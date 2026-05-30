@@ -37,11 +37,11 @@ Raw Text	        Token Breakdown	            Token Count
 
 -----------------------------------------------------------------------------------------------------
 ### 🔳 The Basic Prompt Anatomical Structure
-- [ ] **Role/Persona:** Establishing constraints and baseline knowledge state (e.g., *"Act as a Principal Systems Architect..."*).
-- [ ] **Context/Source Data:** Explicit facts or documents pasted into the prompt.
-- [ ] **Instruction:** The core imperative command (clear, specific actions using verbs like *Extract, Synthesize, Format*).
-- [ ] **Input Constraints & Edge Cases:** Defining what *not* to do (e.g., *"If the answer is missing from the text, reply only with 'NULL'"*).
-- [ ] **Output Indicator/Format:** Forcing structures using markdown, XML tags, or code blocks.
+- Done:: **Role/Persona:** Establishing constraints and baseline knowledge state (e.g., *"Act as a Principal Systems Architect..."*).
+- Done:: **Context/Source Data:** Explicit facts or documents pasted into the prompt.
+- Done:: **Instruction:** The core imperative command (clear, specific actions using verbs like *Extract, Synthesize, Format*).
+- Done:: **Input Constraints & Edge Cases:** Defining what *not* to do (e.g., *"If the answer is missing from the text, reply only with 'NULL'"*).
+- Done:: **Output Indicator/Format:** Forcing structures using markdown, XML tags, or code blocks.
 
 ---
 
@@ -49,15 +49,15 @@ Raw Text	        Token Breakdown	            Token Count
 Standardized structures to prompt a model for standalone text inference.
 
 ### 🔳 Structural Priming Patterns
-- [ ] **Zero-Shot Prompting:** Standard prompt execution with zero input-output examples.
-- [ ] **Few-Shot Prompting (In-Context Learning):** Providing $N$ examples of pairs to prime the model's pattern-recognition engine.
+- Done:: **Zero-Shot Prompting:** Standard prompt execution with zero input-output examples.
+- Done:: **Few-Shot Prompting (In-Context Learning):** Providing $N$ examples of pairs to prime the model's pattern-recognition engine.
   - *Advanced:* Learn how example ordering and label distribution bias the output.
-- [ ] **Delimiter-Based Scoping:** Utilizing clear structural separators (`---`, `###`, `"""`, or XML tags like `<context></context>`) to prevent the model from confusing instruction with data.
-- [ ] **Negative Constraints:** Writing bulletproof exclusion criteria to suppress hallucinations or generic conversational filler (e.g., *"Do not say 'Sure, here is your information'"*).
+- Done:: **Delimiter-Based Scoping:** Utilizing clear structural separators (`---`, `###`, `"""`, or XML tags like `<context></context>`) to prevent the model from confusing instruction with data.
+- Done:: **Negative Constraints:** Writing bulletproof exclusion criteria to suppress hallucinations or generic conversational filler (e.g., *"Do not say 'Sure, here is your information'"*).
 
 ### 🔳 Reasoning & Analysis Patterns
-- [ ] **Chain of Thought (CoT):** Forcing explicit step-by-step rationalization before emitting the final answer.
-- [ ] **System vs. User Separation:** Maximizing structural boundaries by hosting rules in System prompts and runtime variables in User inputs.
+- Done:: **Chain of Thought (CoT):** Forcing explicit step-by-step rationalization before emitting the final answer.
+- Done:: **System vs. User Separation:** Maximizing structural boundaries by hosting rules in System prompts and runtime variables in User inputs.
 
 ---
 
