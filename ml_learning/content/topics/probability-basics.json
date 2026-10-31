@@ -1,0 +1,469 @@
+{
+  "id": "probability-basics",
+  "title": "Probability & Everyday Statistics",
+  "description": "Understand chances, percentages, averages, bell curves, and the golden rule: correlation does NOT mean causation!",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Probability & Everyday Statistics",
+        "subtitle": "How Machine Learning Measures Likelihood and Understands Chance"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Probability is Just Measuring Chance",
+        "content": "In the real world, things are rarely 100% guaranteed. When a doctor diagnoses a patient or a weather app forecasts tomorrow's weather, they speak in terms of **probability**:\n\n- Probability is always a number between **0.0 (0%)** and **1.0 (100%)**.\n- A probability of **0.0** means the event is completely impossible.\n- A probability of **1.0** means the event is 100% certain.\n- A probability of **0.5 (50%)** means it's an even coin toss!"
+      },
+      {
+        "type": "table",
+        "title": "Everyday Probability Examples",
+        "headers": [
+          "Event",
+          "Probability as a Decimal",
+          "Probability as a Percentage",
+          "Meaning"
+        ],
+        "rows": [
+          [
+            "Flipping Heads on a fair coin",
+            "0.50",
+            "50%",
+            "Equally likely to be heads or tails."
+          ],
+          [
+            "Rolling a 6 on a standard 6-sided die",
+            "0.167",
+            "16.7%",
+            "One chance out of 6."
+          ],
+          [
+            "The sun rising tomorrow",
+            "1.00",
+            "100%",
+            "Completely certain."
+          ],
+          [
+            "A fish riding a bicycle",
+            "0.00",
+            "0%",
+            "Completely impossible."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The Golden Rule: Correlation Does NOT Mean Causation!",
+        "content": "Just because two things rise and fall together (**correlation**), it does NOT mean that one causes the other (**causation**):\n\n- *Real Example:* Ice cream sales and sunburn cases both skyrocket in July. Does eating ice cream cause sunburns? Of course not! Both are caused by a third factor: **hot sunny summer weather**!\n\nMachine learning models find correlations in data, but humans must use common sense to understand real-world cause and effect."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "coin-flip-simulator",
+    "title": "Coin Flip Probability Simulator",
+    "description": "Simulate flipping coins to watch how percentages stabilize at 50% as sample size increases.",
+    "params": {
+      "flips": 1000
+    }
+  },
+  "code": {
+    "description": "Simulate flipping coins and plot a normal bell curve in Python.",
+    "starter": "import numpy as np\nimport matplotlib.pyplot as plt\n\n# 1. Flip a coin 1,000 times in Python\nflips = np.random.choice(['Heads', 'Tails'], size=1000)\nheads_percentage = np.mean(flips == 'Heads') * 100\nprint(f'1,000 Coin Flips -> Heads: {heads_percentage:.1f}% (Expected ~50%)')\n\n# 2. Simulate human heights (Bell Curve: Mean = 170cm, Std = 8cm)\nheights = np.random.normal(loc=170, scale=8, size=5000)\n\nprint(f'Average Height: {np.mean(heights):.1f} cm')\nprint(f'Middle Height (Median): {np.median(heights):.1f} cm')\n\nplt.figure(figsize=(6, 4))\nplt.hist(heights, bins=30, color='skyblue', edgecolor='black', alpha=0.7)\nplt.title('The Classic Bell Curve (Heights)')\nplt.xlabel('Height (cm)'); plt.ylabel('Count of People'); plt.grid(True)\nplt.show()"
+  },
+  "quiz": [
+    {
+      "question": "What does a probability of 0.0 (or 0%) mean?",
+      "options": [
+        "The event is guaranteed to happen",
+        "The event is completely impossible and will never happen",
+        "The event has a 50/50 chance",
+        "The calculation has an error"
+      ],
+      "correct": 1,
+      "explanation": "A probability of 0.0 means the event has zero chance of occurring."
+    },
+    {
+      "question": "What does a probability of 1.0 (or 100%) mean?",
+      "options": [
+        "The event is completely impossible",
+        "The event is 100% certain to happen",
+        "The event is a coin flip",
+        "The model is broken"
+      ],
+      "correct": 1,
+      "explanation": "A probability of 1.0 represents absolute, guaranteed certainty."
+    },
+    {
+      "question": "What is the probability of flipping Heads on a fair two-sided coin?",
+      "options": [
+        "0.0 (0%)",
+        "0.5 (50%)",
+        "1.0 (100%)",
+        "0.25 (25%)"
+      ],
+      "correct": 1,
+      "explanation": "There are 2 equally likely outcomes, so 1 / 2 = 0.5 (50%)."
+    },
+    {
+      "question": "What is the probability of rolling a '3' on a standard fair six-sided die?",
+      "options": [
+        "1 out of 6 (about 16.7%)",
+        "3 out of 6 (50%)",
+        "100%",
+        "0%"
+      ],
+      "correct": 0,
+      "explanation": "There is only one face with a 3 out of 6 possible sides: 1/6 = ~16.7%."
+    },
+    {
+      "question": "If all probabilities for all possible outcomes are added together, what must they always sum to?",
+      "options": [
+        "0.0",
+        "1.0 (or 100%)",
+        "10.0",
+        "Depends on the computer"
+      ],
+      "correct": 1,
+      "explanation": "The sum of probabilities for all mutually exclusive possible outcomes always equals exactly 1.0 (100%)."
+    },
+    {
+      "question": "What does a model mean when it outputs: 'Probability of Spam = 0.85'?",
+      "options": [
+        "The email contains 85 words",
+        "The model is 85% confident that this email is spam",
+        "85 people reported the email",
+        "The email was sent 85 minutes ago"
+      ],
+      "correct": 1,
+      "explanation": "A probability of 0.85 means the model estimates an 85% likelihood that the email is spam."
+    },
+    {
+      "question": "What does the famous statistical phrase 'Correlation does NOT imply causation' mean?",
+      "options": [
+        "Correlation is illegal in statistics",
+        "Just because two things tend to happen at the same time does not mean that one is causing the other",
+        "Statistics cannot be trusted",
+        "Computers cause all correlations"
+      ],
+      "correct": 1,
+      "explanation": "Two variables can rise and fall together due to coincidence or a shared third cause, without one causing the other."
+    },
+    {
+      "question": "Ice cream sales and drowning incidents both increase in the summer. Does eating ice cream cause drowning?",
+      "options": [
+        "Yes, ice cream makes people sink in water",
+        "No! Both increase because of hot summer weather (more people swim and more people eat ice cream)",
+        "Yes, statistics proved it",
+        "Only chocolate ice cream causes drowning"
+      ],
+      "correct": 1,
+      "explanation": "This is a classic example of correlation without causation: hot summer weather causes both events."
+    },
+    {
+      "question": "What is a 'Bell Curve' (Normal Distribution) in plain terms?",
+      "options": [
+        "A curve that looks like a ringing metal bell, where most people are near the average and very few are extreme",
+        "A chart of bell sales",
+        "A flat line with no changes",
+        "A circle drawn on a screen"
+      ],
+      "correct": 0,
+      "explanation": "A normal distribution (bell curve) shows that typical values cluster around the center, with extreme highs and lows becoming progressively rarer."
+    },
+    {
+      "question": "Which of the following real-world measurements naturally follows a Bell Curve?",
+      "options": [
+        "Adult human heights in a large city",
+        "The roll of a single die",
+        "Lottery winning ticket numbers",
+        "The letters of the alphabet"
+      ],
+      "correct": 0,
+      "explanation": "Human height is a classic bell curve: most adults are near average height, with very few being extremely short or extremely tall."
+    },
+    {
+      "question": "What is the 'Mean' of a group of numbers?",
+      "options": [
+        "The largest number",
+        "The arithmetic average (sum of all values divided by count)",
+        "The middle number",
+        "The difference between highest and lowest"
+      ],
+      "correct": 1,
+      "explanation": "The mean is the calculated average."
+    },
+    {
+      "question": "What is the 'Median' of a group of numbers?",
+      "options": [
+        "The number that appears most often",
+        "The exact middle value when the numbers are sorted from lowest to highest",
+        "The total sum",
+        "The average"
+      ],
+      "correct": 1,
+      "explanation": "The median divides sorted data in half: 50% are lower, 50% are higher."
+    },
+    {
+      "question": "What is the 'Mode' in statistics?",
+      "options": [
+        "The battery-saving mode on a laptop",
+        "The value that appears most frequently in a dataset",
+        "The average of all values",
+        "The difference between two values"
+      ],
+      "correct": 1,
+      "explanation": "The mode is simply the most common or repeated value."
+    },
+    {
+      "question": "In the set of numbers [4, 4, 4, 7, 9], what is the Mode?",
+      "options": [
+        "4",
+        "7",
+        "9",
+        "5.6"
+      ],
+      "correct": 0,
+      "explanation": "4 appears three times, more than any other number."
+    },
+    {
+      "question": "If you have nine people with salaries of $50,000 and one CEO earning $10,000,000, what happens to the Mean salary?",
+      "options": [
+        "The mean stays at $50,000",
+        "The mean gets pulled way up to over $1,000,000, misrepresenting what typical workers make",
+        "The mean becomes negative",
+        "The mean turns into zero"
+      ],
+      "correct": 1,
+      "explanation": "A single huge outlier drags the mean upward, which is why median is often preferred for salaries."
+    },
+    {
+      "question": "What is 'Variance' in simple terms?",
+      "options": [
+        "A measure of how spread out or scattered the numbers are around their average",
+        "The speed of the computer processor",
+        "A software bug in Python",
+        "The number of columns in a table"
+      ],
+      "correct": 0,
+      "explanation": "Variance measures spread: low variance means data points are clustered tightly together; high variance means they are widely scattered."
+    },
+    {
+      "question": "If all students in a classroom score exactly 80 on a test, what is the variance of the scores?",
+      "options": [
+        "80",
+        "0 (there is zero spread because everyone got the identical score)",
+        "100",
+        "1"
+      ],
+      "correct": 1,
+      "explanation": "When every single number is identical, there is no variation at all (variance = 0)."
+    },
+    {
+      "question": "What is 'Standard Deviation'?",
+      "options": [
+        "The rules written in a software manual",
+        "The square root of variance, measuring the typical distance data points sit away from the average",
+        "The highest possible test score",
+        "A type of computer memory"
+      ],
+      "correct": 1,
+      "explanation": "Standard deviation tells you roughly how far typical values stray from the average, expressed in the original units."
+    },
+    {
+      "question": "What does a 'Positive Correlation' between study hours and exam scores mean?",
+      "options": [
+        "Students who study more hours tend to get higher exam scores",
+        "Studying has no effect on scores",
+        "Studying causes exam papers to tear",
+        "More study hours result in lower scores"
+      ],
+      "correct": 0,
+      "explanation": "Positive correlation means both variables move in the same direction: more study time associates with higher grades."
+    },
+    {
+      "question": "What does a 'Negative Correlation' between car age and car price mean?",
+      "options": [
+        "Older cars generally sell for lower prices",
+        "Older cars sell for higher prices",
+        "Car age has no relationship with price",
+        "Cars do not age"
+      ],
+      "correct": 0,
+      "explanation": "Negative correlation means as one variable goes up (age), the other goes down (price)."
+    },
+    {
+      "question": "What does a Correlation of 0.0 mean?",
+      "options": [
+        "A perfect relationship",
+        "There is no linear relationship between the two variables at all (like shoe size and IQ)",
+        "The calculation failed",
+        "The data is 100% negative"
+      ],
+      "correct": 1,
+      "explanation": "A correlation of zero means the two variables do not move together in a line."
+    },
+    {
+      "question": "What are the minimum and maximum possible values for a correlation coefficient?",
+      "options": [
+        "0 to 100",
+        "-1.0 (perfect negative) to +1.0 (perfect positive)",
+        "Negative infinity to positive infinity",
+        "0 to 1"
+      ],
+      "correct": 1,
+      "explanation": "Correlation is always bounded between -1.0 (perfect opposite relationship) and +1.0 (perfect synchronized relationship)."
+    },
+    {
+      "question": "What does a 'False Alarm' (False Positive) mean in cancer screening?",
+      "options": [
+        "A patient who has cancer is told they are healthy",
+        "A healthy patient is mistakenly told they might have cancer",
+        "The doctor forgot to call the patient",
+        "The scanner ran out of paper"
+      ],
+      "correct": 1,
+      "explanation": "A false positive is a false alarm: the test flags an issue when the patient is actually healthy."
+    },
+    {
+      "question": "What does a 'Miss' (False Negative) mean in cancer screening?",
+      "options": [
+        "A healthy patient is tested twice",
+        "A patient who actually has cancer is mistakenly told they are completely healthy",
+        "The hospital cancels the appointment",
+        "The test takes 10 minutes"
+      ],
+      "correct": 1,
+      "explanation": "A false negative is a missed detection: the test claims everything is clear when disease is actually present."
+    },
+    {
+      "question": "Why is a False Negative in medical testing often considered more dangerous than a False Positive?",
+      "options": [
+        "Because false negatives cost more paper",
+        "Because missing a real disease delays life-saving treatment, while a false alarm can be cleared up with a follow-up test",
+        "Because false negatives crash hospital databases",
+        "Because false positives are illegal"
+      ],
+      "correct": 1,
+      "explanation": "Missing a deadly illness (false negative) can be fatal, making false negatives far more critical in healthcare."
+    },
+    {
+      "question": "What is a 'Sample' versus a 'Population' in statistics?",
+      "options": [
+        "A sample is a smaller subset of people observed from the entire total population",
+        "A sample is digital; a population is analog",
+        "A population is a small city; a sample is a country",
+        "They are identical synonyms"
+      ],
+      "correct": 0,
+      "explanation": "You cannot test every human on Earth (population), so you study a representative subset (sample) to draw conclusions."
+    },
+    {
+      "question": "If you survey 500 voters leaving polling stations to predict an election of 10 million voters, what are the 500 people called?",
+      "options": [
+        "The population",
+        "The sample",
+        "The target",
+        "The algorithm"
+      ],
+      "correct": 1,
+      "explanation": "The 500 surveyed voters represent a sample of the larger voting population."
+    },
+    {
+      "question": "What is 'Sampling Bias'?",
+      "options": [
+        "A survey that asks too many questions",
+        "When the sample of people chosen does not fairly represent the broader population (like surveying only college students to predict retirement laws)",
+        "A computer hardware glitch",
+        "A dataset with zero rows"
+      ],
+      "correct": 1,
+      "explanation": "Sampling bias occurs when your data collection favors certain groups over others, skewing your conclusions."
+    },
+    {
+      "question": "What is a 'Percentile' in everyday life (like scoring in the 90th percentile on the SAT)?",
+      "options": [
+        "You scored exactly 90%",
+        "You scored higher than 90% of all people who took the exam",
+        "You got 90 questions wrong",
+        "You took the test in 90 minutes"
+      ],
+      "correct": 1,
+      "explanation": "The 90th percentile means you performed better than 90% of the entire tested population."
+    },
+    {
+      "question": "What does the '50th percentile' of any dataset equal?",
+      "options": [
+        "The Maximum value",
+        "The Median (the exact middle value)",
+        "The Mean",
+        "Zero"
+      ],
+      "correct": 1,
+      "explanation": "The 50th percentile is by definition the median: half the data is below it, and half is above it."
+    },
+    {
+      "question": "If you flip a fair coin 10 times in a row and get Heads every time, what is the probability of getting Heads on the 11th flip?",
+      "options": [
+        "0% (Tails is 'due')",
+        "50% (The coin has no memory; each flip is independent!)",
+        "100%",
+        "90%"
+      ],
+      "correct": 1,
+      "explanation": "This is the famous 'Gambler's Fallacy': coins have no memory, so every independent flip is always 50/50."
+    },
+    {
+      "question": "What does an 'Independent Event' mean in probability?",
+      "options": [
+        "An event that happens without any electricity",
+        "An event whose outcome is completely unaffected by what happened in previous events",
+        "An event with 100% probability",
+        "A holiday celebrated in July"
+      ],
+      "correct": 1,
+      "explanation": "Independent events do not influence one another (like rolling a die twice)."
+    },
+    {
+      "question": "What is an 'Outlier' in a bell curve distribution?",
+      "options": [
+        "A point in the tall center of the bell",
+        "A very rare point located far out in the thin outer tails of the bell",
+        "The average point",
+        "The area under the curve"
+      ],
+      "correct": 1,
+      "explanation": "Outliers sit in the thin tails far away from the central cluster of the bell curve."
+    },
+    {
+      "question": "Why do machine learning classifiers output probabilities (like 0.92) instead of just hard YES/NO answers?",
+      "options": [
+        "Because computers are indecisive",
+        "Because probabilities allow humans to see how confident the model is and choose custom decision thresholds",
+        "Because YES and NO take up too much memory",
+        "Because probabilities are easier to type"
+      ],
+      "correct": 1,
+      "explanation": "Probabilities express confidence: an email with 99% spam probability is very different from an ambiguous 51% email!"
+    },
+    {
+      "question": "What is the probability of an event that is 50% likely to happen, expressed as a fraction?",
+      "options": [
+        "1/2",
+        "1/4",
+        "1/10",
+        "1/100"
+      ],
+      "correct": 0,
+      "explanation": "50% = 50 / 100 = 1/2."
+    }
+  ],
+  "level": "novice"
+}

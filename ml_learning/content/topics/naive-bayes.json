@@ -1,0 +1,466 @@
+{
+  "id": "naive-bayes",
+  "title": "Naive Bayes & Probabilistic Classification",
+  "description": "Bayes' theorem in classification, the naive conditional independence assumption, Gaussian NB, Multinomial NB, Bernoulli NB, and Laplace smoothing.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Naive Bayes Classifiers",
+        "subtitle": "Fast, Probabilistic Classification Powered by Bayes' Rule and the Independence Assumption"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Bayesian Classification Formulation",
+        "content": "Given a feature vector $\\mathbf{x} = [x_1, x_2, \\dots, x_d]^T$, we want to find the class $y \\in \\{1, \\dots, K\\}$ that maximizes the posterior probability $P(y | \\mathbf{x})$:\n\n$$P(y | \\mathbf{x}) = \\frac{P(\\mathbf{x} | y) P(y)}{P(\\mathbf{x})} \\propto P(y) P(x_1, x_2, \\dots, x_d | y)$$\n\nComputing the full joint likelihood $P(x_1, \\dots, x_d | y)$ requires estimating $2^d$ parameters, which is computationally intractable."
+      },
+      {
+        "type": "text",
+        "title": "The 'Naive' Conditional Independence Assumption",
+        "content": "Naive Bayes makes the simplifying assumption that **all features are conditionally independent given the class label $y$**:\n\n$$P(x_1, x_2, \\dots, x_d | y) = \\prod_{j=1}^d P(x_j | y)$$\n\nThe classification decision rule is therefore:\n$$\\hat{y} = \\arg\\max_y \\left[ P(y) \\prod_{j=1}^d P(x_j | y) \\right] = \\arg\\max_y \\left[ \\ln P(y) + \\sum_{j=1}^d \\ln P(x_j | y) \\right]$$"
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "The Three Primary Naive Bayes Variants",
+        "content": "| Variant | Feature Modality | Likelihood Model $P(x_j|y)$ | Standard Industry Use-Case |\n|---|---|---|---|\n| **Gaussian NB** | Continuous numeric features | Gaussian PDF: $\\frac{1}{\\sqrt{2\\pi\\sigma^2}} e^{-\\frac{(x - \\mu)^2}{2\\sigma^2}}$ | Sensor readings, biometric measurements |\n| **Multinomial NB** | Discrete count data | Multinomially distributed word/token counts | Document classification, bag-of-words text |\n| **Bernoulli NB** | Binary presence/absence | Bernoulli trial: $p_j^x (1-p_j)^{1-x}$ | Keyword presence in spam, short message tagging |"
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The Zero Frequency Problem & Laplace Smoothing",
+        "content": "If a word appears in the test document that never occurred in training class $y$, $P(\\text{word} | y) = 0$. Because the likelihood is a product, **a single zero multiplier wipes out all other evidence and sets the entire probability to zero!**\n\n**Remedy: Laplace (Additive) Smoothing:**\n$$P(x_j = w | y) = \\frac{N_{yj} + \\alpha}{N_y + \\alpha |V|}$$\nSetting $\\alpha = 1.0$ guarantees no word ever receives a probability of zero."
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Why Naive Bayes Works Surprisingly Well",
+        "content": "Even when the conditional independence assumption is mathematically violated in practice, Naive Bayes often produces surprisingly accurate **classification boundaries**, because finding the maximum posterior class requires only the correct ranking, not perfectly calibrated probabilities."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Spam Probability Calculator",
+    "description": "Calculate Naive Bayes spam probability given token likelihoods with and without Laplace smoothing.",
+    "items": [
+      {
+        "text": "Token seen 5 times in Spam, 0 in Ham",
+        "category": "High Spam Likelihood"
+      },
+      {
+        "text": "Unseen token with Laplace smoothing alpha=1",
+        "category": "Smoothed Non-Zero"
+      },
+      {
+        "text": "Unseen token without smoothing wiping out total probability",
+        "category": "Zero Probability Crash"
+      }
+    ],
+    "categories": [
+      "High Spam Likelihood",
+      "Smoothed Non-Zero",
+      "Zero Probability Crash"
+    ]
+  },
+  "code": {
+    "description": "Train GaussianNB on continuous features, and MultinomialNB with Laplace smoothing on text data using Scikit-learn.",
+    "starter": "from sklearn.datasets import load_iris\nfrom sklearn.naive_bayes import GaussianNB, MultinomialNB\nfrom sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.model_selection import train_test_split\n\n# 1. Gaussian Naive Bayes on Continuous Data\niris = load_iris()\nX_tr, X_te, y_tr, y_te = train_test_split(iris.data, iris.target, test_size=0.3, random_state=42)\ngnb = GaussianNB()\ngnb.fit(X_tr, y_tr)\nprint(f'GaussianNB Iris Test Accuracy: {gnb.score(X_te, y_te)*100:.2f}%')\n\n# 2. Multinomial Naive Bayes on Text with Laplace Smoothing (alpha=1.0)\ncorpus = [\n    'free lottery cash prize winner claim',\n    'quarterly revenue financial budget forecast',\n    'claim your free luxury gift card now',\n    'please review the attached report and spreadsheet'\n]\nlabels = [1, 0, 1, 0]  # 1: Spam, 0: Ham\n\nvec = CountVectorizer()\nX_text = vec.fit_transform(corpus)\nmnb = MultinomialNB(alpha=1.0)  # Laplace smoothing\nmnb.fit(X_text, labels)\n\ntest_doc = ['free meeting schedule']\npred = mnb.predict(vec.transform(test_doc))[0]\nprobs = mnb.predict_proba(vec.transform(test_doc))[0]\nprint(f'\\nTest Document: \"{test_doc[0]}\"')\nprint(f'Predicted: {\"SPAM\" if pred==1 else \"HAM\"} (Probabilities: Ham={probs[0]:.3f}, Spam={probs[1]:.3f})')\n"
+  },
+  "quiz": [
+    {
+      "question": "What is the core 'naive' assumption made by the Naive Bayes classifier?",
+      "options": [
+        "All data points are normally distributed",
+        "All features are conditionally independent of each other given the class label: $P(x_1, \\dots, x_d | y) = \\prod P(x_i | y)$",
+        "All features have equal variance",
+        "The dataset has zero missing values"
+      ],
+      "correct": 1,
+      "explanation": "Naive Bayes assumes that given the class label, the presence or value of one feature is conditionally independent of any other feature."
+    },
+    {
+      "question": "What catastrophic numerical problem occurs when a word in a test document never appeared in training class $c$ without smoothing?",
+      "options": [
+        "A divide-by-zero error in Python",
+        "The estimated probability $P(\\text{word}|c) = 0$, causing the entire product of probabilities to collapse to zero regardless of all other words",
+        "The model assigns 100% confidence to class $c$",
+        "The weights diverge to infinity"
+      ],
+      "correct": 1,
+      "explanation": "Because probabilities are multiplied, a single zero probability forces the overall class likelihood to zero."
+    },
+    {
+      "question": "What technique is used to prevent zero probabilities in Naive Bayes?",
+      "options": [
+        "Feature normalization",
+        "Laplace (additive) smoothing (adding a pseudo-count $\\alpha > 0$ to word counts)",
+        "Dropout regularization",
+        "Gradient clipping"
+      ],
+      "correct": 1,
+      "explanation": "Laplace smoothing adds a constant $\\alpha$ (typically 1.0) to numerators and $\\alpha |V|$ to denominators, ensuring all probabilities $> 0$."
+    },
+    {
+      "question": "In Scikit-learn's `MultinomialNB(alpha=1.0)`, what does `alpha=1.0` represent?",
+      "options": [
+        "The learning rate",
+        "Laplace smoothing parameter (pseudo-count added to each category)",
+        "The depth of the tree",
+        "The number of epochs"
+      ],
+      "correct": 1,
+      "explanation": "The `alpha` parameter controls additive smoothing; `alpha=1.0` is standard Laplace smoothing."
+    },
+    {
+      "question": "Which variant of Naive Bayes is designed for continuous real-valued features?",
+      "options": [
+        "Multinomial Naive Bayes",
+        "Gaussian Naive Bayes",
+        "Bernoulli Naive Bayes",
+        "Categorical Naive Bayes"
+      ],
+      "correct": 1,
+      "explanation": "Gaussian Naive Bayes models continuous features by assuming each class feature follows a 1D normal distribution $\\mathcal{N}(\\mu_{cj}, \\sigma_{cj}^2)$."
+    },
+    {
+      "question": "Which variant of Naive Bayes is designed for discrete count data (e.g. word frequency counts in text documents)?",
+      "options": [
+        "Gaussian Naive Bayes",
+        "Multinomial Naive Bayes",
+        "Complement Naive Bayes",
+        "Linear Naive Bayes"
+      ],
+      "correct": 1,
+      "explanation": "Multinomial Naive Bayes models discrete occurrence counts of tokens across a vocabulary."
+    },
+    {
+      "question": "Which variant of Naive Bayes is designed for binary boolean features (0 or 1, word present or absent)?",
+      "options": [
+        "Gaussian Naive Bayes",
+        "Multinomial Naive Bayes",
+        "Bernoulli Naive Bayes",
+        "Continuous Naive Bayes"
+      ],
+      "correct": 2,
+      "explanation": "Bernoulli Naive Bayes models the presence or absence of features as independent binary Bernoulli trials."
+    },
+    {
+      "question": "Why is taking the logarithm of probabilities (log-likelihood) standard in Naive Bayes implementations?",
+      "options": [
+        "To make the code run in fewer lines",
+        "Multiplying hundreds of small probabilities ($< 0.01$) causes floating-point underflow; log transforms products into stable sums: $\\ln(ab) = \\ln a + \\ln b$",
+        "Because logarithms only work on positive numbers",
+        "Because log-likelihood is a neural network"
+      ],
+      "correct": 1,
+      "explanation": "Underflow occurs when multiplying many small fractions; summing logarithms prevents numerical precision collapse to zero."
+    },
+    {
+      "question": "What is the prior probability $P(y = c)$ in Naive Bayes typically estimated as?",
+      "options": [
+        "The percentage of missing values",
+        "The relative frequency of class $c$ in the training dataset: $\\frac{N_c}{N}$",
+        "A random number between 0 and 1",
+        "The inverse of the number of features"
+      ],
+      "correct": 1,
+      "explanation": "Class priors are estimated directly from empirical class frequencies in the training dataset."
+    },
+    {
+      "question": "How does Gaussian Naive Bayes estimate $P(x_j | y = c)$ for a continuous feature $x_j$?",
+      "options": [
+        "By counting unique values",
+        "By computing the class mean $\\mu_{cj}$ and variance $\\sigma_{cj}^2$ from training data and evaluating the Gaussian probability density function at $x_j$",
+        "By fitting a polynomial regression",
+        "By training a decision tree"
+      ],
+      "correct": 1,
+      "explanation": "Gaussian NB computes sample mean and variance for each class-feature pair and evaluates the normal PDF."
+    },
+    {
+      "question": "Is Naive Bayes considered a generative or discriminative model?",
+      "options": [
+        "Discriminative, because it models $P(y|x)$ directly",
+        "Generative, because it models the joint probability distribution $P(x, y) = P(x|y)P(y)$ and can generate synthetic data",
+        "Neither, it is non-parametric",
+        "It is purely heuristic"
+      ],
+      "correct": 1,
+      "explanation": "Naive Bayes is generative because it models how the data was generated $P(x|y)$ alongside class priors $P(y)$."
+    },
+    {
+      "question": "How does Naive Bayes compare in training speed to Logistic Regression and SVMs?",
+      "options": [
+        "Naive Bayes is much slower",
+        "Naive Bayes is exceptionally fast because training requires only a single pass through data to compute counts, means, and variances ($O(N \\cdot D)$)",
+        "Naive Bayes requires GPU clusters",
+        "Naive Bayes requires iterative backpropagation"
+      ],
+      "correct": 1,
+      "explanation": "Naive Bayes has closed-form statistical parameter estimates (frequencies and means), requiring no iterative optimization."
+    },
+    {
+      "question": "Why does Naive Bayes perform well on text classification (e.g. spam filtering) despite the independence assumption being obviously false (words depend on context)?",
+      "options": [
+        "Because words are actually independent in English",
+        "Classification only requires that the correct class has the highest relative posterior probability ranking, not that probabilities are accurately calibrated",
+        "Because text has no numbers",
+        "Because Naive Bayes uses transformers internally"
+      ],
+      "correct": 1,
+      "explanation": "Domingos & Pazzani showed that even when probability calibration is distorted by correlation, the decision boundary often preserves optimal ranking."
+    },
+    {
+      "question": "What happens when features in a dataset are highly correlated in Naive Bayes?",
+      "options": [
+        "The code will crash with an error",
+        "Correlated features are counted redundantly, causing the model to overconfidently exaggerate the posterior probability toward 0 or 1",
+        "The model underfits completely",
+        "The priors become zero"
+      ],
+      "correct": 1,
+      "explanation": "Redundant correlated features act like duplicate votes, multiplying evidence repeatedly and distorting probability magnitude."
+    },
+    {
+      "question": "What is Complement Naive Bayes (CNB) designed to address in Scikit-learn?",
+      "options": [
+        "Missing value imputation",
+        "Severe class imbalance in text classification by utilizing statistics from the complement of each class",
+        "Continuous regression problems",
+        "Image segmentation"
+      ],
+      "correct": 1,
+      "explanation": "Complement Naive Bayes estimates parameters from the complement of each class, making it superior for imbalanced text classification."
+    },
+    {
+      "question": "Can Naive Bayes handle streaming data or online incremental learning?",
+      "options": [
+        "No, Naive Bayes must always retrain from scratch",
+        "Yes, using `partial_fit()`, Naive Bayes can incrementally update its counts, means, and variances with new batches without retraining on old data",
+        "Only on Sundays",
+        "Only if the dataset is stored in SQL"
+      ],
+      "correct": 1,
+      "explanation": "Because parameter estimation is based on summary statistics (counts and sums), incremental updating via `partial_fit()` is trivial."
+    },
+    {
+      "question": "What is the time complexity of predicting a single sample in Naive Bayes across $K$ classes and $D$ features?",
+      "options": [
+        "$O(N \\cdot D)$",
+        "$O(K \\cdot D)$",
+        "$O(D^3)$",
+        "$O(1)$"
+      ],
+      "correct": 1,
+      "explanation": "Inference requires evaluating $D$ feature likelihoods for each of the $K$ classes: $O(K \\cdot D)$ (extremely fast)."
+    },
+    {
+      "question": "Does Naive Bayes suffer from the curse of dimensionality as severely as KNN?",
+      "options": [
+        "Yes, it is identical to KNN",
+        "No, because Naive Bayes evaluates features independently in 1D slices rather than computing high-dimensional spatial distances",
+        "Naive Bayes cannot run in more than 3 dimensions",
+        "Naive Bayes requires $D < 5$"
+      ],
+      "correct": 1,
+      "explanation": "Because Naive Bayes factorizes into 1D conditional likelihoods, it avoids calculating spatial distances in sparse high-dimensional space."
+    },
+    {
+      "question": "Why are predicted probabilities from Naive Bayes often poorly calibrated (extreme, pushed toward 0 or 1)?",
+      "options": [
+        "Because the algorithm has a bug",
+        "The independence assumption multiplies correlated evidence multiple times, artificially inflating confidence toward certainty",
+        "Because Gaussian distributions cannot produce probabilities",
+        "Because Laplace smoothing forces probabilities to 1"
+      ],
+      "correct": 1,
+      "explanation": "Violation of independence causes correlated features to multiply evidence redundantly, driving outputs to extreme 0.00001 or 0.99999."
+    },
+    {
+      "question": "What method is recommended if accurate, calibrated probabilities are required from a Naive Bayes model?",
+      "options": [
+        "Increasing the training set size by 10x",
+        "Applying post-hoc probability calibration using Platt Scaling (CalibratedClassifierCV) or Isotonic Regression",
+        "Setting alpha to 1,000",
+        "Deleting half the features"
+      ],
+      "correct": 1,
+      "explanation": "`CalibratedClassifierCV` maps raw uncalibrated Naive Bayes scores into true calibrated posterior probabilities."
+    },
+    {
+      "question": "What is the memory footprint of a trained Gaussian Naive Bayes model with $K$ classes and $D$ features?",
+      "options": [
+        "$O(N \\cdot D)$",
+        "$O(K \\cdot D)$ to store the mean and variance for each class-feature pair",
+        "$O(N^2)$",
+        "$O(D^3)$"
+      ],
+      "correct": 1,
+      "explanation": "Gaussian NB only stores $\\mu$ and $\\sigma^2$ for each feature across $K$ classes: $2 \\times K \\times D$ numbers (tiny memory footprint)."
+    },
+    {
+      "question": "In text classification, what is the 'vocabulary' $|V|$ in Multinomial Naive Bayes?",
+      "options": [
+        "The number of sentences in the training set",
+        "The total count of unique distinct words across all training documents",
+        "The dictionary size of the English language",
+        "The number of parameters in the GPU"
+      ],
+      "correct": 1,
+      "explanation": "The vocabulary $|V|$ represents the set of all unique tokens recognized by the feature extractor (e.g. CountVectorizer)."
+    },
+    {
+      "question": "If word 'urgent' appears 20 times in 1,000 spam words, what is the raw unsmoothed $P(\\text{'urgent'} | \\text{Spam})$?",
+      "options": [
+        "0.002",
+        "0.02 (20 / 1000 = 0.02)",
+        "0.20",
+        "20.0"
+      ],
+      "correct": 1,
+      "explanation": "Raw likelihood is $\\frac{\\text{Count}}{\\text{Total}} = \\frac{20}{1000} = 0.02$."
+    },
+    {
+      "question": "What happens to Laplace smoothing when $\\alpha$ is set extremely large (e.g. $\\alpha \\rightarrow \\infty$)?",
+      "options": [
+        "The model becomes 100% accurate",
+        "All feature likelihoods converge toward a uniform distribution $\\frac{1}{|V|}$, completely washing out all empirical training data",
+        "The model weights diverge to infinity",
+        "The code throws a division by zero error"
+      ],
+      "correct": 1,
+      "explanation": "An excessively large $\\alpha$ overpowers empirical counts, pushing all likelihoods toward uniform probabilities."
+    },
+    {
+      "question": "What is Lidstone smoothing in Naive Bayes?",
+      "options": [
+        "Smoothing applied only to vowels",
+        "Additive smoothing where hyperparameter $\\alpha$ is set to a fraction between 0 and 1 (e.g. $\\alpha = 0.1$), often outperforming standard Laplace $\\alpha = 1.0$",
+        "Smoothing using running averages",
+        "Smoothing that removes outliers"
+      ],
+      "correct": 1,
+      "explanation": "Lidstone smoothing generalizes Laplace smoothing with fractional $\\alpha < 1.0$, adding less aggressive pseudocounts."
+    },
+    {
+      "question": "Why is Naive Bayes often used as a baseline model in natural language processing (NLP)?",
+      "options": [
+        "Because it was the first algorithm ever written",
+        "It is exceptionally fast to train, requires minimal memory, has zero complex hyperparameters, and sets a strong benchmark for text tasks",
+        "Because it uses self-attention",
+        "Because it is more complex than transformers"
+      ],
+      "correct": 1,
+      "explanation": "Naive Bayes establishes a rapid, reliable text benchmark in seconds before investing compute in transformer models."
+    },
+    {
+      "question": "What is the effect of class imbalance on Naive Bayes classification?",
+      "options": [
+        "The model fails to run",
+        "The prior probability $P(y)$ of the majority class dominates the posterior, biasing predictions toward the majority class",
+        "The priors become equal to 0.5",
+        "The model becomes 100% accurate on the minority class"
+      ],
+      "correct": 1,
+      "explanation": "Because $P(y)$ scales the posterior, high prior frequency shifts decision boundaries in favor of the majority class."
+    },
+    {
+      "question": "How can you mitigate class imbalance in Naive Bayes?",
+      "options": [
+        "By setting uniform class priors (`fit_prior=False`) or using Complement Naive Bayes",
+        "By increasing the learning rate",
+        "By deleting half the vocabulary",
+        "By training on only 1 document"
+      ],
+      "correct": 0,
+      "explanation": "Disabling empirical priors (`fit_prior=False`) prevents majority frequency from overwhelming likelihood signals."
+    },
+    {
+      "question": "Which of the following problems is LEAST suitable for Naive Bayes?",
+      "options": [
+        "Classifying news articles by topic",
+        "Predicting complex interaction effects where the meaning of a feature completely reverses based on another feature ($x_1 \\text{ XOR } x_2$)",
+        "Spam vs Ham filtering",
+        "Sentiment analysis of movie reviews"
+      ],
+      "correct": 1,
+      "explanation": "Because Naive Bayes assumes independent features, it is fundamentally incapable of modeling XOR interaction effects."
+    },
+    {
+      "question": "What is the denominator $P(\\mathbf{x})$ in Bayes' Theorem called, and why can it be ignored when finding the predicted class $\\hat{y}$?",
+      "options": [
+        "It is the marginal evidence; because it is identical for all classes $y$ for a given query $\\mathbf{x}$, it does not change the $\\arg\\max$ ranking",
+        "It is the prior; it cannot be ignored",
+        "It is the error rate",
+        "It is the learning rate"
+      ],
+      "correct": 0,
+      "explanation": "The marginal evidence $P(\\mathbf{x})$ acts as a constant normalizing factor across all candidate classes for a fixed query."
+    },
+    {
+      "question": "How does Naive Bayes handle missing feature values during inference?",
+      "options": [
+        "It crashes with an unhandled exception",
+        "Because features are independent, it simply omits the missing feature from the likelihood product calculation",
+        "It imputes zero for all values",
+        "It deletes the query"
+      ],
+      "correct": 1,
+      "explanation": "Conditional independence allows the algorithm to cleanly skip missing feature terms in the product: $\\prod_{j \\notin \\text{missing}} P(x_j | y)$."
+    },
+    {
+      "question": "What is a typical practical application of Gaussian Naive Bayes in industry?",
+      "options": [
+        "Real-time biometric sensor fault detection from continuous voltage readings",
+        "Writing novels",
+        "Video game graphics rendering",
+        "Compiling C++ code"
+      ],
+      "correct": 0,
+      "explanation": "Gaussian NB is effective for rapid real-time telemetry and sensor classification with continuous numeric measurements."
+    },
+    {
+      "question": "What is the difference between BernoulliNB and MultinomialNB in text processing?",
+      "options": [
+        "BernoulliNB only cares whether a word appeared at least once in a document; MultinomialNB accounts for how many times the word occurred",
+        "BernoulliNB is for regression; MultinomialNB is for classification",
+        "BernoulliNB uses GPU; MultinomialNB uses CPU",
+        "They produce identical probabilities"
+      ],
+      "correct": 0,
+      "explanation": "BernoulliNB binarizes term occurrences (presence/absence); MultinomialNB models term frequency counts."
+    },
+    {
+      "question": "Why does Naive Bayes require very little hyperparameter tuning?",
+      "options": [
+        "Because it has millions of parameters",
+        "Its core parameters (counts, means, variances) are computed directly from closed-form statistics, leaving only the smoothing parameter $\\alpha$ to tune",
+        "Because it is an unsupervised algorithm",
+        "Because it only runs on 1 epoch"
+      ],
+      "correct": 1,
+      "explanation": "Naive Bayes requires no optimization loops; tuning is typically restricted to evaluating a few smoothing values $\\alpha$."
+    },
+    {
+      "question": "In a spam classification model, if $P(\\text{Spam}) = 0.1$, $P(\\text{'winner'} | \\text{Spam}) = 0.5$, and $P(\\text{'winner'} | \\text{Ham}) = 0.01$, with $P(\\text{Ham}) = 0.9$, which class has the higher posterior numerator for document 'winner'?",
+      "options": [
+        "Ham ($0.9 \\times 0.01 = 0.009$)",
+        "Spam ($0.1 \\times 0.5 = 0.05$)",
+        "Both are exactly equal",
+        "Neither"
+      ],
+      "correct": 1,
+      "explanation": "Spam score = $0.1 \\times 0.5 = 0.05$; Ham score = $0.9 \\times 0.01 = 0.009$. Spam is over 5x higher!"
+    }
+  ],
+  "level": "beginner"
+}

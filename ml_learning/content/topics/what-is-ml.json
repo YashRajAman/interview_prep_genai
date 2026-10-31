@@ -1,0 +1,509 @@
+{
+  "id": "what-is-ml",
+  "title": "What is Machine Learning?",
+  "description": "Understand what machine learning is in plain English, how it differs from traditional coding, and how computers learn from examples.",
+  "duration": "20 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Welcome to Machine Learning!",
+        "subtitle": "Teaching Computers to Learn from Examples Instead of Hand-Written Rules"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is Machine Learning in Simple Terms?",
+        "content": "Imagine teaching a child to recognize what a **dog** looks like. You don't hand them a 500-page rulebook listing ear angles, fur textures, and nose measurements. Instead, you point to dogs in the park and say: *'Look, that is a dog!'*\n\nAfter seeing hundreds of dogs, the child's brain naturally discovers the common patterns.\n\n**Machine Learning works the same way:** Instead of writing thousands of strict `if/else` rules, we feed the computer lots of examples (data) and let it discover the underlying patterns on its own."
+      },
+      {
+        "type": "text",
+        "title": "Traditional Programming vs. Machine Learning",
+        "content": "To understand why machine learning is so revolutionary, compare it directly to traditional software:\n\n**1. Traditional Programming (Rules-First):**\nA human programmer writes explicit rules and logic by hand.\n\n$$\\text{Data} + \\text{Rules} \\longrightarrow \\text{Answers}$$\n\n*Example:* A calculator adding numbers, or payroll software calculating sales tax based on a fixed statutory law.\n\n**2. Machine Learning (Data-First):**\nThe computer is fed examples along with known answers, and discovers the underlying patterns on its own!\n\n$$\\text{Data} + \\text{Answers} \\longrightarrow \\text{Learned Rules (Model)}$$\n\n*Example:* Showing an algorithm 100,000 spam and non-spam emails so it learns to spot spam independently."
+      },
+      {
+        "type": "table",
+        "title": "Traditional Software vs. Machine Learning at a Glance",
+        "headers": [
+          "Feature",
+          "Traditional Programming",
+          "Machine Learning"
+        ],
+        "rows": [
+          [
+            "How it works",
+            "Programmer writes every single rule manually.",
+            "Algorithm learns patterns automatically from data."
+          ],
+          [
+            "When rules change",
+            "A programmer must rewrite the code by hand.",
+            "Retrain the model on fresh, updated examples."
+          ],
+          [
+            "Best suited for",
+            "Exact math, payroll taxes, website logins, calculators.",
+            "Face recognition, speech to text, recommendations, spam filtering."
+          ],
+          [
+            "Can it make mistakes?",
+            "No (unless there is a human coding bug).",
+            "Yes! It makes educated guesses based on probabilities."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "Core Vocabulary Every Beginner Should Know",
+        "content": "- **Dataset:** A collection of historical examples (like a spreadsheet of past house sales).\n- **Features (Inputs):** The clues or measurements (e.g. house size, number of bedrooms, location).\n- **Target / Label (Output):** The answer we want to predict (e.g. the selling price of the house).\n- **Training:** The learning process where the computer looks at past examples to find patterns.\n- **Model:** The resulting 'trained brain' that can make predictions on brand new examples.\n- **Prediction (Inference):** The model's educated guess on a new example it has never seen before."
+      },
+      {
+        "type": "text",
+        "title": "When Should You NOT Use Machine Learning?",
+        "content": "Machine learning is powerful, but it is not magic, and it is not always the best tool:\n1. **When a simple formula exists:** Calculating the area of a circle ($A = \\pi r^2$) or converting Celsius to Fahrenheit requires exact math, not a statistical guess!\n2. **When 100% perfection is strictly required:** Medical dosage calculators or flight-control actuators cannot rely on statistical approximations.\n3. **When you have no data:** A machine learning model cannot learn without good, reliable examples to study from."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "sorting-exercise",
+    "title": "Rule-Based vs. Machine Learning Sorter",
+    "description": "Sort the scenarios into whether they are best solved by Traditional Hand-Written Rules or Machine Learning.",
+    "items": [
+      {
+        "text": "Calculating sales tax on a shopping receipt",
+        "category": "Traditional"
+      },
+      {
+        "text": "Recognizing faces in photo albums",
+        "category": "Machine Learning"
+      },
+      {
+        "text": "Sorting an array of numbers from smallest to largest",
+        "category": "Traditional"
+      },
+      {
+        "text": "Recommending videos on YouTube",
+        "category": "Machine Learning"
+      },
+      {
+        "text": "Converting inches to centimeters (cm = in * 2.54)",
+        "category": "Traditional"
+      },
+      {
+        "text": "Filtering spam emails from normal emails",
+        "category": "Machine Learning"
+      },
+      {
+        "text": "Translating spoken language in real-time",
+        "category": "Machine Learning"
+      },
+      {
+        "text": "Verifying if a password is at least 8 characters long",
+        "category": "Traditional"
+      }
+    ],
+    "categories": [
+      "Traditional",
+      "Machine Learning"
+    ]
+  },
+  "code": {
+    "description": "Compare a simple hand-written rule with a machine learning model that learns from examples in Python.",
+    "starter": "# 1. Traditional Hand-Written Rule\ndef rule_spam_filter(email_text):\n    # The programmer must guess every bad word by hand!\n    keywords = ['lottery', 'free cash', 'claim prize']\n    return any(word in email_text.lower() for word in keywords)\n\n# 2. Machine Learning Approach (Learns from examples!)\nfrom sklearn.feature_extraction.text import CountVectorizer\nfrom sklearn.naive_bayes import MultinomialNB\n\n# Training examples with labels (1 = Spam, 0 = Normal)\ntraining_emails = [\n    'Congratulations you won a lottery prize',\n    'Can we reschedule our project meeting to 3pm?',\n    'Claim your free cash prize today',\n    'Please find attached the quarterly earnings report'\n]\nlabels = [1, 0, 1, 0]\n\n# Teach the model\nvectorizer = CountVectorizer()\nX_train = vectorizer.fit_transform(training_emails)\nmodel = MultinomialNB()\nmodel.fit(X_train, labels)\n\n# Test on a brand new email\nnew_email = ['Urgent: claim your unexpected lottery winnings']\nX_new = vectorizer.transform(new_email)\nml_prediction = model.predict(X_new)[0]\n\nprint(f'Test Email: \"{new_email[0]}\"')\nprint('Rule-based check:   ', 'SPAM' if rule_spam_filter(new_email[0]) else 'NORMAL')\nprint('ML Model prediction:', 'SPAM' if ml_prediction == 1 else 'NORMAL')"
+  },
+  "quiz": [
+    {
+      "question": "What is the simplest way to describe Machine Learning?",
+      "options": [
+        "Writing 10,000 if/else statements by hand",
+        "Teaching computers to recognize patterns from examples instead of writing every rule manually",
+        "Building physical robot hardware",
+        "Installing a new operating system on a laptop"
+      ],
+      "correct": 1,
+      "explanation": "Machine Learning enables computers to learn patterns directly from example data without needing every single rule hand-coded."
+    },
+    {
+      "question": "How does Machine Learning differ fundamentally from traditional programming?",
+      "options": [
+        "Traditional programming runs on computers; machine learning runs on smartphones",
+        "Traditional programming uses human-written rules; machine learning learns rules from data",
+        "Machine learning does not require any data",
+        "Traditional programming is only used for video games"
+      ],
+      "correct": 1,
+      "explanation": "In traditional coding, developers write rules manually. In ML, algorithms look at data and answers to discover the rules automatically."
+    },
+    {
+      "question": "Which of the following is a classic example of Machine Learning in everyday life?",
+      "options": [
+        "A pocket calculator multiplying 45 by 12",
+        "Your email app automatically filtering out spam emails",
+        "A digital clock showing the current time",
+        "A light switch turning on a bulb"
+      ],
+      "correct": 1,
+      "explanation": "Email spam filters learn from millions of past emails to spot spam patterns automatically."
+    },
+    {
+      "question": "What do we call the collection of past examples used to teach a machine learning model?",
+      "options": [
+        "The training data",
+        "The trash bin",
+        "The compiler code",
+        "The Wi-Fi network"
+      ],
+      "correct": 0,
+      "explanation": "Training data is the set of historical examples fed into the algorithm so it can learn patterns."
+    },
+    {
+      "question": "When a trained model makes an educated guess on a new example it has never seen before, what is that called?",
+      "options": [
+        "A prediction (or inference)",
+        "A compiler error",
+        "A data backup",
+        "A software crash"
+      ],
+      "correct": 0,
+      "explanation": "A prediction (or inference) is the output or guess a trained model produces when given new input data."
+    },
+    {
+      "question": "If you want a computer to recognize photos of cats using Machine Learning, what should you do?",
+      "options": [
+        "Write down 50,000 manual rules describing whiskers and ears",
+        "Show the computer thousands of labeled photos of cats and non-cats",
+        "Draw a cat on a piece of paper and hold it up to the webcam",
+        "Restart the computer three times"
+      ],
+      "correct": 1,
+      "explanation": "Machine learning learns visual patterns by analyzing thousands of labeled image examples."
+    },
+    {
+      "question": "Why is it nearly impossible to write a traditional 'if/else' program to recognize cats in photos?",
+      "options": [
+        "Because computers cannot open photos",
+        "Because cats come in endless colors, angles, poses, lighting, and backgrounds that are impossible to list as simple rules",
+        "Because programming languages do not support cats",
+        "Because cats move too quickly"
+      ],
+      "correct": 1,
+      "explanation": "Visual concepts have far too many real-world variations for human programmers to codify into manual if/else checks."
+    },
+    {
+      "question": "For which of the following tasks is Machine Learning UNNECESSARY?",
+      "options": [
+        "Calculating the sales tax on a $50 purchase using a fixed 8% tax rate",
+        "Recommending songs on Spotify based on your listening history",
+        "Detecting fraudulent credit card transactions",
+        "Translating spoken English into Spanish in real-time"
+      ],
+      "correct": 0,
+      "explanation": "Calculating sales tax is a simple, exact mathematical formula (50 * 0.08 = 4). An exact rule is faster, 100% accurate, and needs no ML!"
+    },
+    {
+      "question": "What does the famous saying 'Garbage In, Garbage Out' mean in Machine Learning?",
+      "options": [
+        "Computers must be thrown away after training a model",
+        "If your training data is flawed, biased, or full of errors, your model will make bad predictions",
+        "You should store your training data in the recycle bin",
+        "Old models can be recycled into new models"
+      ],
+      "correct": 1,
+      "explanation": "A machine learning model is only as good as the examples it learns from; poor data produces unreliable predictions."
+    },
+    {
+      "question": "In Machine Learning, what is a 'feature'?",
+      "options": [
+        "A bug in the software",
+        "A specific measurable clue or property of the data (such as house size, car mileage, or customer age)",
+        "The price of the computer",
+        "The name of the programmer"
+      ],
+      "correct": 1,
+      "explanation": "Features are the individual measurable attributes or clues used by the model to make its predictions."
+    },
+    {
+      "question": "In Machine Learning, what is a 'label' (or target)?",
+      "options": [
+        "The actual answer or outcome we want the model to learn to predict (e.g. 'Spam' vs 'Not Spam', or House Price)",
+        "A sticky note attached to the computer screen",
+        "The brand name of the laptop",
+        "The version of Python being used"
+      ],
+      "correct": 0,
+      "explanation": "The label (target) is the ground-truth answer you want the computer to learn how to predict."
+    },
+    {
+      "question": "Suppose you want to predict the price of a house. Which of the following is a 'feature'?",
+      "options": [
+        "The final selling price of the house",
+        "The square footage and number of bedrooms",
+        "The date the buyer moves in",
+        "The name of the mortgage bank"
+      ],
+      "correct": 1,
+      "explanation": "Square footage and bedroom count are input clues (features) used to estimate the price."
+    },
+    {
+      "question": "In the same house price prediction example, what is the 'target' (label)?",
+      "options": [
+        "The number of bathrooms",
+        "The neighborhood name",
+        "The final selling price of the house",
+        "The color of the front door"
+      ],
+      "correct": 2,
+      "explanation": "The final selling price is the outcome (target) we are trying to predict."
+    },
+    {
+      "question": "Can a machine learning model make mistakes?",
+      "options": [
+        "No, computers are always 100% infallible",
+        "Yes, machine learning models make educated statistical guesses, not absolute guarantees",
+        "Only if the computer runs out of battery",
+        "No, machine learning is magic"
+      ],
+      "correct": 1,
+      "explanation": "Machine learning is based on probabilities and patterns; it can and will make mistakes, especially on unusual examples."
+    },
+    {
+      "question": "What is a 'model' in Machine Learning?",
+      "options": [
+        "A fashion model posing for photographs",
+        "The trained software program that has learned patterns from data and can now make predictions",
+        "A plastic toy car",
+        "A 3D printer blueprint"
+      ],
+      "correct": 1,
+      "explanation": "A model is the resulting artifact or program after training that takes in new features and outputs a prediction."
+    },
+    {
+      "question": "What does 'training' a machine learning model mean?",
+      "options": [
+        "Running the computer through physical exercises",
+        "The process where an algorithm analyzes data examples to discover patterns and adjust itself",
+        "Typing code into an editor",
+        "Downloading files from the internet"
+      ],
+      "correct": 1,
+      "explanation": "Training is the phase where the algorithm studies data examples and tunes itself to make accurate predictions."
+    },
+    {
+      "question": "Why do we set aside some data as a 'test set' that the model never sees during training?",
+      "options": [
+        "To save disk space on the computer",
+        "To fairly test whether the model can make accurate predictions on brand new, unseen examples",
+        "Because computers can only read half a file at a time",
+        "To hide the answers from the software engineer"
+      ],
+      "correct": 1,
+      "explanation": "A test set acts like a final exam: it checks if the model actually learned general patterns or just memorized past examples."
+    },
+    {
+      "question": "If a student memorizes the practice questions word-for-word but fails the real exam with new questions, what is this called in ML?",
+      "options": [
+        "Underfitting",
+        "Overfitting",
+        "Data cleaning",
+        "Model serving"
+      ],
+      "correct": 1,
+      "explanation": "Overfitting happens when a model memorizes the training data too closely (including noise) and fails to perform on new data."
+    },
+    {
+      "question": "What is 'generalization' in Machine Learning?",
+      "options": [
+        "Speaking about machine learning in general terms",
+        "The ability of a model to make accurate predictions on new data it has never encountered before",
+        "Translating code into general English",
+        "Converting images to black and white"
+      ],
+      "correct": 1,
+      "explanation": "Generalization is the core goal of ML: performing accurately on new, unseen examples in the real world."
+    },
+    {
+      "question": "Which of the following is an example of a 'Classification' task?",
+      "options": [
+        "Predicting the exact price of gasoline next week in dollars",
+        "Deciding whether a bank transaction is 'Fraud' or 'Legitimate'",
+        "Predicting the temperature in degrees Celsius tomorrow",
+        "Estimating a person's height in inches"
+      ],
+      "correct": 1,
+      "explanation": "Classification is sorting things into distinct categories or buckets (like Fraud vs Legitimate)."
+    },
+    {
+      "question": "Which of the following is an example of a 'Regression' task?",
+      "options": [
+        "Predicting whether an email is spam or normal",
+        "Predicting whether a patient has diabetes (Yes or No)",
+        "Predicting the exact sale price of a used car in dollars",
+        "Classifying a photo as either a cat, dog, or bird"
+      ],
+      "correct": 2,
+      "explanation": "Regression is predicting a continuous numeric value (like dollars, height, temperature)."
+    },
+    {
+      "question": "How does Netflix recommend movies you might enjoy?",
+      "options": [
+        "Employees manually watch every movie and guess what you like",
+        "By analyzing patterns in the movies you and other users with similar tastes have watched",
+        "By picking random titles from its database",
+        "By always showing the newest movie regardless of your taste"
+      ],
+      "correct": 1,
+      "explanation": "Recommendation systems use machine learning to discover patterns in viewing history across millions of users."
+    },
+    {
+      "question": "Why do spammers often write 'w!nner' or 'fr33' instead of 'winner' or 'free'?",
+      "options": [
+        "Because spammers have broken keyboards",
+        "To try to bypass simple rule-based filters that search for exact dictionary words",
+        "Because symbols make emails load faster",
+        "Because it is required by law"
+      ],
+      "correct": 1,
+      "explanation": "Simple rule-based filters break when spammers substitute symbols for letters; machine learning catches these subtle variations."
+    },
+    {
+      "question": "What happens if you train an ML model to recognize animals, but only show it photos of dogs taken indoors on white carpets?",
+      "options": [
+        "The model will become a super-intelligent expert on all animals",
+        "The model may mistakenly learn that an animal must be on a white carpet to be a dog, failing on dogs outside",
+        "The computer will crash immediately",
+        "The model will automatically know what a horse looks like"
+      ],
+      "correct": 1,
+      "explanation": "Models learn from whatever patterns are present in the data, including background quirks if the data is not diverse."
+    },
+    {
+      "question": "What is a 'dataset'?",
+      "options": [
+        "A computer monitor setting",
+        "A collection of related data, often organized in rows and columns like a spreadsheet",
+        "A set of computer cables",
+        "A programming language"
+      ],
+      "correct": 1,
+      "explanation": "A dataset is the organized collection of data points (rows and columns) used to train and evaluate models."
+    },
+    {
+      "question": "In a data table used for machine learning, what does each individual 'row' typically represent?",
+      "options": [
+        "A single observation or example (such as one customer, one house, or one transaction)",
+        "A mathematical equation",
+        "A software setting",
+        "The date the computer was manufactured"
+      ],
+      "correct": 0,
+      "explanation": "Each row corresponds to one single item or instance in the real world."
+    },
+    {
+      "question": "In a data table used for machine learning, what does each 'column' typically represent?",
+      "options": [
+        "A different user account",
+        "A specific property or feature (such as age, price, square footage, or color)",
+        "A line of Python code",
+        "A computer processor core"
+      ],
+      "correct": 1,
+      "explanation": "Each column represents an attribute or measurement recorded for every example."
+    },
+    {
+      "question": "If you have an exact formula to solve a problem (like calculating the area of a rectangle: Length x Width), should you use Machine Learning?",
+      "options": [
+        "Yes, machine learning is always better than math",
+        "No, use the exact formula because it is 100% accurate, faster, and requires no training",
+        "Yes, but only if you use a deep neural network",
+        "Yes, to make the code look modern"
+      ],
+      "correct": 1,
+      "explanation": "Never use ML when an exact, simple, 100% accurate mathematical formula is already available."
+    },
+    {
+      "question": "What is an 'algorithm' in simple terms?",
+      "options": [
+        "A fancy type of computer screen",
+        "A step-by-step set of instructions or rules for solving a problem or learning patterns",
+        "A secret password for software",
+        "A brand of computer chips"
+      ],
+      "correct": 1,
+      "explanation": "An algorithm is simply a clear recipe or procedure for doing a specific computation."
+    },
+    {
+      "question": "What is an 'anomaly detection' system in machine learning?",
+      "options": [
+        "A system that detects when the computer screen is turned off",
+        "An ML model trained to spot unusual or abnormal events that stand out from normal patterns, like credit card fraud",
+        "A tool for fixing typos in emails",
+        "A video game character"
+      ],
+      "correct": 1,
+      "explanation": "Anomaly detectors learn what 'normal' looks like so they can alert humans when something weird or suspicious occurs."
+    },
+    {
+      "question": "When your spam filter mistakenly sends an important email from your boss to the spam folder, what is that called?",
+      "options": [
+        "A false positive",
+        "A false negative",
+        "A true positive",
+        "A syntax error"
+      ],
+      "correct": 0,
+      "explanation": "A false positive is a 'false alarm': the filter predicted positive (Spam) when the email was actually legitimate."
+    },
+    {
+      "question": "When a sneaky spam email slips past your filter and lands in your main inbox, what is that called?",
+      "options": [
+        "A false positive",
+        "A false negative",
+        "A true negative",
+        "A system upgrade"
+      ],
+      "correct": 1,
+      "explanation": "A false negative is a 'miss': the model failed to detect the spam, falsely predicting negative (Normal)."
+    },
+    {
+      "question": "If an image classifier tests 100 photos and correctly identifies 92 of them, what is its accuracy?",
+      "options": [
+        "8%",
+        "92%",
+        "100%",
+        "50%"
+      ],
+      "correct": 1,
+      "explanation": "Accuracy is the percentage of correct predictions: 92 correct out of 100 = 92%."
+    },
+    {
+      "question": "Why is Machine Learning called 'learning'?",
+      "options": [
+        "Because the computer attends university courses",
+        "Because the computer's performance improves as it sees more examples, without being explicitly reprogrammed",
+        "Because the computer develops human consciousness",
+        "Because it uses artificial paper and pens"
+      ],
+      "correct": 1,
+      "explanation": "It is called learning because the model improves its ability to perform a task as it is exposed to more data over time."
+    },
+    {
+      "question": "What is the very first thing you should do before starting any machine learning project?",
+      "options": [
+        "Buy the most expensive graphics card available",
+        "Clearly define what problem you want to solve and what outcome you want to predict",
+        "Write 1,000 lines of random Python code",
+        "Post about it on social media"
+      ],
+      "correct": 1,
+      "explanation": "Every successful ML project starts by understanding the goal, what you want to predict, and whether you have the data to do it."
+    }
+  ],
+  "level": "novice"
+}

@@ -1,0 +1,484 @@
+{
+  "id": "understanding-data",
+  "title": "Understanding Data: Rows, Columns & Types",
+  "description": "Learn how data is organized into spreadsheets, the difference between numbers and categories, and how to spot missing values and outliers.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Understanding Data for Machine Learning",
+        "subtitle": "How Real-World Information is Represented in Spreadsheets and Numbers"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Data is the Food that Feeds Machine Learning",
+        "content": "Machine learning models cannot look out the window or read minds—they only learn from the data we give them! Usually, this data looks like a familiar **spreadsheet** (or CSV file):\n\n- **Rows (Examples):** Each row represents one single person, house, patient, or item.\n- **Columns (Features):** Each column represents a specific measurement or clue (like Age, Income, or City)."
+      },
+      {
+        "type": "table",
+        "title": "The Two Main Types of Data",
+        "headers": [
+          "Data Type",
+          "What is it?",
+          "Everyday Examples",
+          "How Computers Treat It"
+        ],
+        "rows": [
+          [
+            "Numerical (Numbers)",
+            "Measurements you can add, subtract, and count.",
+            "House size (sq ft), Age in years, Temperature, Bank balance ($).",
+            "Computers understand numbers directly."
+          ],
+          [
+            "Categorical (Categories)",
+            "Labels, names, or groups that describe words or types.",
+            "City (New York, Paris, Tokyo), Color (Red, Blue), Yes/No, Pet (Dog, Cat).",
+            "Must be converted to numbers (like 0, 1, 2) before feeding to math models."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "Missing Values & Outliers in Real Life",
+        "content": "- **Missing Values:** What happens when someone leaves a question blank on a survey? You get an empty box (`NaN` or null). We must either drop that row or fill in the blank with a sensible value (like the average).\n- **Outliers:** A data point that is bizarrely different from the rest. For example, if a customer's age is entered as `250`, it's almost certainly a typing mistake for `25`!"
+      }
+    ]
+  },
+  "interactive": {
+    "type": "sorting-exercise",
+    "title": "Data Type Sorter",
+    "description": "Sort each measurement into whether it is Numerical (a number) or Categorical (a category/word).",
+    "items": [
+      {
+        "text": "House price in dollars ($350,000)",
+        "category": "Numerical"
+      },
+      {
+        "text": "Car color (Red, Blue, Silver)",
+        "category": "Categorical"
+      },
+      {
+        "text": "Customer age in years (34)",
+        "category": "Numerical"
+      },
+      {
+        "text": "Credit card approved (Yes / No)",
+        "category": "Categorical"
+      },
+      {
+        "text": "Distance to work in miles (12.5)",
+        "category": "Numerical"
+      },
+      {
+        "text": "Customer review rating (Positive, Neutral, Negative)",
+        "category": "Categorical"
+      }
+    ],
+    "categories": [
+      "Numerical",
+      "Categorical"
+    ]
+  },
+  "code": {
+    "description": "Explore rows, columns, missing values, and summary numbers with Pandas in Python.",
+    "starter": "import pandas as pd\nimport numpy as np\n\n# Create a customer dataset with 5 rows and 5 columns\ndata = {\n    'Name': ['Alice', 'Bob', 'Charlie', 'Diana', 'Eve'],\n    'Age': [28, 35, np.nan, 42, 29], # Charlie's age is blank!\n    'City': ['Chicago', 'Dallas', 'Chicago', 'Miami', 'Chicago'],\n    'Balance': [1500, 3200, 4800, 95000, 2100], # Diana has high balance\n    'Subscribed': [1, 0, 1, 1, 0]\n}\n\ndf = pd.DataFrame(data)\nprint('=== Full Customer Dataset ===')\nprint(df)\n\nprint('\\n=== Checking for Missing Empty Boxes ===')\nprint(df.isnull().sum())\n\nprint('\\n=== Filling Missing Age with the Group Average ===')\navg_age = df['Age'].mean()\ndf['Age'] = df['Age'].fillna(avg_age)\nprint(df[['Name', 'Age']])"
+  },
+  "quiz": [
+    {
+      "question": "In machine learning, how is tabular data most commonly organized?",
+      "options": [
+        "In folders on a flash drive",
+        "In rows (individual examples) and columns (features/attributes)",
+        "In a single long paragraph of text",
+        "In a spiral notebook"
+      ],
+      "correct": 1,
+      "explanation": "Tabular data is structured like a spreadsheet: each row is one example, and each column is a feature or attribute."
+    },
+    {
+      "question": "In a customer spreadsheet, what does each individual 'row' represent?",
+      "options": [
+        "A single customer",
+        "The customer's address",
+        "The total sales of the company",
+        "A column header"
+      ],
+      "correct": 0,
+      "explanation": "Each row represents a single entity, instance, or observation (like one customer or one house)."
+    },
+    {
+      "question": "In the same spreadsheet, what does each 'column' represent?",
+      "options": [
+        "A specific property or measurement, like Age, State, or Annual Income",
+        "A single user's password",
+        "The date the computer was purchased",
+        "The name of the database software"
+      ],
+      "correct": 0,
+      "explanation": "Columns represent the attributes, clues, or features recorded across all examples."
+    },
+    {
+      "question": "Which of the following is a 'Numerical' feature?",
+      "options": [
+        "Eye color (Brown, Blue, Hazel)",
+        "House selling price in dollars ($350,000)",
+        "Country of birth (Canada, Mexico, Brazil)",
+        "Payment method (Cash, Credit Card, PayPal)"
+      ],
+      "correct": 1,
+      "explanation": "House price is a numerical measurement that can be measured, added, and compared mathematically."
+    },
+    {
+      "question": "Which of the following is a 'Categorical' feature?",
+      "options": [
+        "Annual income ($75,000)",
+        "A person's height in inches (68 inches)",
+        "Car paint color (Red, Silver, Black, Blue)",
+        "Number of children in a household (2)"
+      ],
+      "correct": 2,
+      "explanation": "Car color is a discrete descriptive word/category, not a continuous numerical measurement."
+    },
+    {
+      "question": "Why must categorical words (like 'Red', 'Blue', 'Green') be converted into numbers for machine learning models?",
+      "options": [
+        "Because computers can only spell in English",
+        "Because machine learning algorithms are mathematical formulas that perform calculations with numbers",
+        "Because text files take up too much memory",
+        "Because words are illegal in software"
+      ],
+      "correct": 1,
+      "explanation": "At their core, ML algorithms perform math (addition, multiplication) on numbers, so categories must be represented numerically."
+    },
+    {
+      "question": "What is a 'Binary' categorical feature?",
+      "options": [
+        "A feature with numbers from 1 to 100",
+        "A feature that has only two possible options (such as Yes/No, True/False, or Male/Female)",
+        "A feature that uses letters instead of numbers",
+        "A feature that changes every hour"
+      ],
+      "correct": 1,
+      "explanation": "Binary features have exactly two states or categories (e.g. Yes/No, 1/0)."
+    },
+    {
+      "question": "What does a 'Missing Value' in a dataset mean?",
+      "options": [
+        "A file that was completely deleted from the computer",
+        "A specific cell or box in the spreadsheet that is blank or has no recorded information",
+        "A negative number",
+        "A very large number"
+      ],
+      "correct": 1,
+      "explanation": "Missing values represent blank entries where data was not collected, lost, or not reported."
+    },
+    {
+      "question": "If a patient's medical survey has a blank box for 'Height', what is one common way to handle this missing value?",
+      "options": [
+        "Guessing a negative number",
+        "Filling in the blank with the average height of other patients, or dropping the row",
+        "Shutting down the hospital computer",
+        "Deleting all patients from the database"
+      ],
+      "correct": 1,
+      "explanation": "Common strategies include imputing (filling) with the average/median value or removing rows with missing data."
+    },
+    {
+      "question": "What is an 'Outlier' in a dataset?",
+      "options": [
+        "A person who works outdoors in nature",
+        "A data value that is wildly different or extreme compared to the rest of the examples (such as a customer age of 250)",
+        "The first column in a spreadsheet",
+        "A row that contains text"
+      ],
+      "correct": 1,
+      "explanation": "Outliers are extreme anomalies that lie far away from the rest of the distribution, often caused by measurement or typing errors."
+    },
+    {
+      "question": "Suppose you are looking at employee salaries and see: [$50,000, $55,000, $48,000, $52,000, $15,000,000]. What is $15,000,000?",
+      "options": [
+        "The average salary of normal workers",
+        "An extreme outlier (likely the CEO or a data typo)",
+        "A missing value",
+        "A categorical feature"
+      ],
+      "correct": 1,
+      "explanation": "$15,000,000 is an extreme outlier that is hundreds of times larger than the other employee salaries."
+    },
+    {
+      "question": "How can extreme outliers affect a machine learning model if left unaddressed?",
+      "options": [
+        "They make the computer run faster",
+        "They can pull the model's predictions heavily in their direction, skewing predictions for normal cases",
+        "They make the file size zero",
+        "They turn numbers into text"
+      ],
+      "correct": 1,
+      "explanation": "Extreme outliers can distort model training, making the model less accurate for typical, normal instances."
+    },
+    {
+      "question": "What is 'Structured Data'?",
+      "options": [
+        "Data organized neatly in tables with defined rows and columns (like an Excel spreadsheet or SQL database)",
+        "A collection of random spoken voice notes",
+        "A folder of unorganized vacation videos",
+        "A book of handwritten poetry"
+      ],
+      "correct": 0,
+      "explanation": "Structured data is tabular data arranged neatly into rows and columns with fixed schemas."
+    },
+    {
+      "question": "Which of the following is an example of 'Unstructured Data'?",
+      "options": [
+        "A CSV spreadsheet of customer addresses and phone numbers",
+        "A collection of raw photographs, audio clips, and free-form customer text reviews",
+        "A database table of credit card transactions",
+        "An accounting ledger of debits and credits"
+      ],
+      "correct": 1,
+      "explanation": "Unstructured data includes images, video, audio, and free-text that does not fit neatly into traditional table columns."
+    },
+    {
+      "question": "What is a 'Target' variable (also called the Label or y)?",
+      "options": [
+        "The bullseye on an archery board",
+        "The specific outcome or answer that the model is trying to learn to predict",
+        "The column with the largest numbers",
+        "The name of the file on disk"
+      ],
+      "correct": 1,
+      "explanation": "The target variable is the ground-truth outcome you want your model to predict."
+    },
+    {
+      "question": "If you are predicting whether a student passes an exam, what is the Target variable?",
+      "options": [
+        "The number of hours the student studied",
+        "Whether the student Passed or Failed (Yes/No)",
+        "The temperature of the classroom",
+        "The student's attendance record"
+      ],
+      "correct": 1,
+      "explanation": "Pass or Fail is the outcome (Target) you are trying to predict; hours studied is an input feature."
+    },
+    {
+      "question": "What is a 'Feature' (also denoted as X)?",
+      "options": [
+        "A cool new tool in an app",
+        "An input measurement, property, or clue used by the model to make its prediction",
+        "The final score of the model",
+        "The date the project started"
+      ],
+      "correct": 1,
+      "explanation": "Features are the input variables fed into the model to help it predict the target outcome."
+    },
+    {
+      "question": "In predicting car fuel efficiency (Miles Per Gallon), which of the following is an input Feature?",
+      "options": [
+        "The car's weight, engine size, and horsepower",
+        "The future price of gasoline next year",
+        "The name of the driver's dog",
+        "The speed of the wind outside the house"
+      ],
+      "correct": 0,
+      "explanation": "Weight, engine size, and horsepower are physical attributes (features) directly related to fuel efficiency."
+    },
+    {
+      "question": "What is 'Data Cleaning'?",
+      "options": [
+        "Wiping your keyboard with a damp cloth",
+        "The process of fixing errors, filling missing values, removing duplicates, and correcting typos in a dataset",
+        "Deleting your entire hard drive",
+        "Converting all numbers to zero"
+      ],
+      "correct": 1,
+      "explanation": "Data cleaning ensures that mistakes, empty cells, and corrupt records are resolved before training."
+    },
+    {
+      "question": "What does 'Duplicate Data' mean?",
+      "options": [
+        "A backup copy of your file saved on a USB drive",
+        "Having identical rows repeated multiple times in your dataset, which can bias the model",
+        "A dataset with two columns",
+        "A dataset with two rows"
+      ],
+      "correct": 1,
+      "explanation": "Duplicate rows represent repeated records that can unfairly over-weight certain examples during learning."
+    },
+    {
+      "question": "What is 'Data Leakage' in simple terms?",
+      "options": [
+        "Water dripping onto a computer server",
+        "When secret clues or future answers accidentally sneak into the training data, giving the model an unfair cheat sheet",
+        "When your Wi-Fi password is stolen",
+        "When a spreadsheet has too many columns"
+      ],
+      "correct": 1,
+      "explanation": "Data leakage occurs when clues about the target that wouldn't exist in real life are accidentally included during training."
+    },
+    {
+      "question": "Imagine you want to predict if a hospital patient has pneumonia. If the training data includes a column called 'Doctor_Gave_Pneumonia_Medicine', why is this dangerous?",
+      "options": [
+        "Because the computer will run out of memory",
+        "Because it is data leakage: the medicine already reveals the doctor's diagnosis, so the model learns a cheat rather than true symptoms",
+        "Because doctors do not use computers",
+        "Because pneumonia cannot be cured"
+      ],
+      "correct": 1,
+      "explanation": "This is data leakage: the prescription already gives away the answer, so the model won't learn how to diagnose from actual symptoms."
+    },
+    {
+      "question": "Why is having a diverse and representative dataset important?",
+      "options": [
+        "So the computer doesn't get bored looking at the same data",
+        "So the model learns patterns that work fairly and accurately for all types of real-world situations and people",
+        "Because diverse files load faster in Python",
+        "Because diverse data takes up less storage space"
+      ],
+      "correct": 1,
+      "explanation": "If a dataset only includes one demographic or scenario, the model will fail on different real-world cases."
+    },
+    {
+      "question": "What happens if you train an autonomous car model only on sunny daytime highway data?",
+      "options": [
+        "The car will automatically know how to drive in a midnight blizzard",
+        "The car may struggle or fail when encountering nighttime, heavy rain, or busy city intersections",
+        "The car's tires will wear out faster",
+        "The car will refuse to turn on"
+      ],
+      "correct": 1,
+      "explanation": "Models only know what they have seen; training only on sunny highways leaves the model blind to rain, snow, and night."
+    },
+    {
+      "question": "What is a 'Unique Identifier' column (like Customer_ID, Social_Security_Number, or Student_ID)?",
+      "options": [
+        "A column that should definitely be used to predict the target",
+        "A unique tag for each row that carries no real predictive pattern and should generally be removed before modeling",
+        "A column that contains only zeros",
+        "A password used to encrypt the table"
+      ],
+      "correct": 1,
+      "explanation": "ID numbers are arbitrary labels unique to each row; using them as features can cause the model to memorize IDs instead of real patterns."
+    },
+    {
+      "question": "Why should an arbitrary 'Customer_ID' column (e.g. 1001, 1002, 1003) NOT be used as a predictive feature?",
+      "options": [
+        "Because Python does not allow numbers over 1000",
+        "Because the ID number is just an arbitrary tracking label; higher IDs don't mean a customer will spend more money!",
+        "Because ID numbers are written in letters",
+        "Because Customer IDs are always negative"
+      ],
+      "correct": 1,
+      "explanation": "Arbitrary tracking numbers have no meaningful relationship with real-world behavior and will mislead the algorithm."
+    },
+    {
+      "question": "What is the 'Mean' of a numerical column?",
+      "options": [
+        "The most frequently occurring number",
+        "The mathematical average (sum of all values divided by the count of values)",
+        "The middle number when values are sorted",
+        "The difference between the largest and smallest number"
+      ],
+      "correct": 1,
+      "explanation": "The mean is the classic average: add all numbers up and divide by how many there are."
+    },
+    {
+      "question": "What is the 'Median' of a numerical column?",
+      "options": [
+        "The middle value when the numbers are sorted in order from smallest to largest",
+        "The average of all numbers",
+        "The highest number in the column",
+        "The lowest number in the column"
+      ],
+      "correct": 0,
+      "explanation": "The median is the exact middle point of sorted data; 50% of values are below it and 50% are above it."
+    },
+    {
+      "question": "If you have salaries [$40k, $45k, $50k, $55k, $5,000,000], why is the Median ($50k) a better description of typical salary than the Mean ($1,038k)?",
+      "options": [
+        "Because the median is easier to spell",
+        "Because the single multi-millionaire drastically pulls the mean upward, while the median reflects the experience of typical workers",
+        "Because the mean cannot be calculated in Python",
+        "Because the median is always smaller than the mean"
+      ],
+      "correct": 1,
+      "explanation": "The median is robust against extreme outliers; the mean is heavily distorted by extreme values."
+    },
+    {
+      "question": "What is 'Imbalanced Data' in classification?",
+      "options": [
+        "A computer desk that is tilted to one side",
+        "When one category appears far more frequently than another (such as 999 normal emails and only 1 spam email)",
+        "A table that has more columns than rows",
+        "A spreadsheet where numbers are not sorted"
+      ],
+      "correct": 1,
+      "explanation": "Imbalanced data occurs when one class heavily outnumbers another, which can trick models into simply guessing the majority class every time."
+    },
+    {
+      "question": "If 99% of bank transactions are legitimate and only 1% are fraud, what accuracy would a lazy model get if it just guessed 'Legitimate' for every transaction?",
+      "options": [
+        "1%",
+        "50%",
+        "99%",
+        "0%"
+      ],
+      "correct": 2,
+      "explanation": "A model that always guesses the majority class achieves 99% accuracy while catching zero fraud! That's why accuracy alone is dangerous on imbalanced data."
+    },
+    {
+      "question": "What does 'One-Hot Encoding' do to a categorical column like Color [Red, Green, Blue]?",
+      "options": [
+        "It turns all colors into black and white",
+        "It creates separate yes/no (1 or 0) columns for each color: Is_Red, Is_Green, Is_Blue",
+        "It deletes the column from the table",
+        "It changes the text color on the screen to red"
+      ],
+      "correct": 1,
+      "explanation": "One-hot encoding converts categorical words into binary indicator columns (1s and 0s) that math models can easily calculate with."
+    },
+    {
+      "question": "What is a 'Sample Size' in machine learning?",
+      "options": [
+        "The physical dimensions of a laptop monitor",
+        "The total number of examples (rows) in your dataset",
+        "The font size used in the spreadsheet",
+        "The number of gigabytes on a hard drive"
+      ],
+      "correct": 1,
+      "explanation": "Sample size refers to how many observations or rows are available to train and test the model."
+    },
+    {
+      "question": "Why does having more high-quality training examples generally help a machine learning model?",
+      "options": [
+        "Because more examples allow the algorithm to spot true patterns and filter out random noise more reliably",
+        "Because computers only work if a file has over 1 million rows",
+        "Because more rows make the code run faster",
+        "Because algorithms get tired on small datasets"
+      ],
+      "correct": 0,
+      "explanation": "More representative data gives the model a clearer picture of real-world patterns, reducing guesswork."
+    },
+    {
+      "question": "What is the golden rule of data preparation before building an ML model?",
+      "options": [
+        "Always look at, understand, and clean your data before feeding it into any algorithm!",
+        "Never open a spreadsheet with human eyes",
+        "Always delete 50% of your data at random",
+        "Only use data that comes from social media"
+      ],
+      "correct": 0,
+      "explanation": "Understanding your data, its types, missing boxes, and outliers is the single most critical foundation for building a successful model."
+    }
+  ],
+  "level": "novice"
+}

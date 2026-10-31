@@ -1,0 +1,465 @@
+{
+  "id": "ensemble-methods",
+  "title": "Ensemble Methods: Bagging & Random Forests",
+  "description": "Wisdom of crowds, Bias-Variance reduction through ensembling, Bootstrap Aggregating (Bagging), Random Forests, Out-Of-Bag (OOB) error, and feature importances.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Ensemble Methods & Random Forests",
+        "subtitle": "Combining Weak Learners into an Unstoppable Meta-Predictor"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Wisdom of Crowds (Condorcet's Jury Theorem)",
+        "content": "If you aggregate the predictions of a group of diverse, independent predictors that each perform slightly better than random guessing ($p > 0.5$), the collective majority vote approaches **100% accuracy** as the number of voters approaches infinity!"
+      },
+      {
+        "type": "text",
+        "title": "Bootstrap Aggregation (Bagging)",
+        "content": "A single decision tree has low bias but high variance (easily overfits). **Bagging** reduces variance without increasing bias:\n\n1. **Bootstrap Sampling:** Draw $B$ random subsets of size $N$ from the training set **with replacement**. On average, each bootstrap sample contains ~63.2% unique instances, leaving ~36.8% **Out-of-Bag (OOB)**.\n2. **Parallel Training:** Fit an independent base estimator (deep decision tree) on each of the $B$ bootstrap samples in parallel.\n3. **Aggregation:** Average predictions across all $B$ models:\n   - **Classification:** Plurality majority vote: $\\hat{y} = \\text{mode}(h_1(\\mathbf{x}), \\dots, h_B(\\mathbf{x}))$.\n   - **Regression:** Arithmetic mean: $\\hat{y} = \\frac{1}{B} \\sum_{b=1}^B h_b(\\mathbf{x})$."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Why Random Forests Beat Simple Bagging",
+        "content": "If one feature is overwhelmingly strong (e.g. `Income`), simple Bagging trees will all choose `Income` as their root split, producing **highly correlated trees**! The variance of an average of correlated trees does not drop effectively.\n\n**Random Forests (Breiman, 2001) solve this with Feature Subsampling:**\nAt every single split in every tree, only a random subset of features $m \\approx \\sqrt{d}$ (classification) or $m \\approx d/3$ (regression) is considered. This **decorrelates the trees**, drastically cutting variance!"
+      },
+      {
+        "type": "text",
+        "title": "Out-of-Bag (OOB) Error: Free Validation",
+        "content": "Because ~36.8% of training samples are never selected in any given bootstrap draw, each tree can be tested on the samples it never saw during training. Averaging these out-of-bag evaluations yields an **unbiased generalization score without requiring a separate validation set**!"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Industry Takeaway",
+        "content": "Random Forest is widely regarded as the ultimate off-the-shelf tabular baseline: it requires virtually zero hyperparameter tuning, requires no feature scaling, handles missing values, and is almost immune to overfitting as the number of trees increases."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Forest Voter Simulator",
+    "description": "Observe how ensemble majority voting converts 10 noisy 60% accuracy weak classifiers into an 85%+ accurate ensemble.",
+    "items": [
+      {
+        "text": "100 Independent Decision Trees averaging predictions",
+        "category": "Variance Reduction"
+      },
+      {
+        "text": "Random feature subsampling sqrt(d) at each split",
+        "category": "Tree Decorrelation"
+      },
+      {
+        "text": "Evaluating trees on unselected ~36.8% samples",
+        "category": "Out-of-Bag (OOB) Error"
+      }
+    ],
+    "categories": [
+      "Variance Reduction",
+      "Tree Decorrelation",
+      "Out-of-Bag (OOB) Error"
+    ]
+  },
+  "code": {
+    "description": "Train a Random Forest Classifier, inspect OOB score, tune n_estimators, and plot feature importances with Scikit-learn.",
+    "starter": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import train_test_split\nimport numpy as np\n\n# Load dataset\ndata = load_breast_cancer()\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)\n\n# Fit Random Forest with Out-of-Bag scoring enabled\nrf = RandomForestClassifier(n_estimators=100, oob_score=True, random_state=42, n_jobs=-1)\nrf.fit(X_train, y_train)\n\nprint(f'Random Forest Test Accuracy: {rf.score(X_test, y_test)*100:.2f}%')\nprint(f'Out-Of-Bag (OOB) Score:      {rf.oob_score_*100:.2f}%')\n\n# Print top 5 most important features\nindices = np.argsort(rf.feature_importances_)[::-1][:5]\nprint('\\n=== Top 5 Feature Importances ===')\nfor rank, idx in enumerate(indices, 1):\n    print(f'{rank}. {data.feature_names[idx]:25s}: {rf.feature_importances_[idx]:.4f}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What is the primary statistical mechanism through which Bootstrap Aggregating (Bagging) improves model performance?",
+      "options": [
+        "It drastically reduces bias",
+        "It dramatically reduces model variance without significantly increasing bias by averaging multiple decorrelated predictors",
+        "It increases model training speed on single-core CPUs",
+        "It eliminates the need for test data"
+      ],
+      "correct": 1,
+      "explanation": "Averaging independent estimators reduces variance by a factor proportional to the number of models, leaving bias unaffected."
+    },
+    {
+      "question": "In bootstrap resampling with replacement, what percentage of unique original training instances are expected to be included in any given bootstrap sample?",
+      "options": [
+        "50.0%",
+        "Approximately 63.2% ($\\approx 1 - 1/e$)",
+        "99.0%",
+        "Exactly 100%"
+      ],
+      "correct": 1,
+      "explanation": "As $N \\rightarrow \\infty$, the probability of a sample NOT being selected in $N$ draws is $(1 - 1/N)^N \\approx 1/e \\approx 36.8%$; thus ~63.2% are selected."
+    },
+    {
+      "question": "What percentage of training instances remain Out-Of-Bag (OOB) in a bootstrap sample of size $N$?",
+      "options": [
+        "Approximately 36.8%",
+        "10.0%",
+        "50.0%",
+        "0.0%"
+      ],
+      "correct": 0,
+      "explanation": "Approximately 36.8% of samples are never drawn in each bootstrap iteration, acting as a natural holdout set."
+    },
+    {
+      "question": "How does a Random Forest decorrelate its individual decision trees compared to standard Bagging?",
+      "options": [
+        "By using a different random seed for each tree",
+        "By restricting each split to consider only a random subset of features (typically $\\sqrt{d}$ for classification)",
+        "By training trees on different computers",
+        "By using different loss functions for each tree"
+      ],
+      "correct": 1,
+      "explanation": "Random Forests force diversity by selecting the best split from a randomly chosen subset of features $m \\approx \\sqrt{d}$ at each node."
+    },
+    {
+      "question": "What is the default recommended number of features considered per split in Scikit-learn's `RandomForestClassifier`?",
+      "options": [
+        "All $d$ features",
+        "$\\sqrt{d}$ (the square root of total features)",
+        "$d / 3$",
+        "$1$"
+      ],
+      "correct": 1,
+      "explanation": "For classification, the standard default is `max_features='sqrt'` ($\\approx \\sqrt{d}$)."
+    },
+    {
+      "question": "What is the default recommended number of features considered per split for regression in `RandomForestRegressor`?",
+      "options": [
+        "$\\sqrt{d}$",
+        "$d / 3$ (one-third of total features)",
+        "$d$",
+        "$2$"
+      ],
+      "correct": 1,
+      "explanation": "For regression tasks, the standard heuristic recommended by Breiman is $m \\approx d / 3$ (or 1.0 in scikit-learn)."
+    },
+    {
+      "question": "Can increasing the number of trees (`n_estimators`) in a Random Forest cause the model to overfit?",
+      "options": [
+        "Yes, more than 100 trees always overfits",
+        "No; adding more trees reduces variance and plateaus generalization error according to the Strong Law of Large Numbers",
+        "Yes, if trees are deep",
+        "Only in classification"
+      ],
+      "correct": 1,
+      "explanation": "Leo Breiman proved that Random Forests do not overfit as $n_{\\text{trees}} \\rightarrow \\infty$; generalization error converges to a fixed bound."
+    },
+    {
+      "question": "What is the Out-Of-Bag (OOB) score in a Random Forest?",
+      "options": [
+        "An error message thrown when memory overflows",
+        "An unbiased estimate of model generalization performance computed by evaluating each training sample using only the trees that did not have that sample in their bootstrap draw",
+        "The percentage of outliers deleted by the forest",
+        "The training accuracy on epoch 0"
+      ],
+      "correct": 1,
+      "explanation": "The OOB score evaluates each sample against the ensemble of trees that omitted it, providing validation without a separate split."
+    },
+    {
+      "question": "Why can Random Forests be trained in parallel across multiple CPU cores (`n_jobs=-1`)?",
+      "options": [
+        "Because trees are trained using gradient descent",
+        "Because individual trees are completely independent of each other during both training and inference (unlike sequential boosting)",
+        "Because Python threads share memory",
+        "Because random forests use GPUs only"
+      ],
+      "correct": 1,
+      "explanation": "Bagging trees are embarrassingly parallel: each tree builds independently from its own bootstrap sample with zero inter-tree communication."
+    },
+    {
+      "question": "What is an Extra-Trees (Extremely Randomized Trees) Classifier in Scikit-learn?",
+      "options": [
+        "A random forest with 10,000 trees",
+        "An ensemble that randomizes not only the feature subset at each node, but also draws random split thresholds rather than searching for optimal thresholds",
+        "A model that uses neural networks as base estimators",
+        "A decision tree with depth 100"
+      ],
+      "correct": 1,
+      "explanation": "Extra-Trees draws random cut thresholds for each candidate feature, further reducing variance and accelerating training speed."
+    },
+    {
+      "question": "How does Random Forest compute feature importance by default in Scikit-learn (Gini Importance)?",
+      "options": [
+        "By measuring how many times a feature name appears in the code",
+        "By summing the total decrease in node impurity (Gini or MSE) brought by splits on that feature, averaged across all trees in the forest",
+        "By calculating Pearson correlation with the target",
+        "By permuting feature values on the test set"
+      ],
+      "correct": 1,
+      "explanation": "MDI (Mean Decrease in Impurity) sums the impurity reductions achieved by a feature across all nodes in all trees."
+    },
+    {
+      "question": "What is a major limitation of Gini Feature Importance in Random Forests?",
+      "options": [
+        "It computes too slowly",
+        "It artificially inflates the importance of continuous features and high-cardinality categorical variables because they offer more splitting opportunities",
+        "It is only defined for binary classification",
+        "It can produce negative values"
+      ],
+      "correct": 1,
+      "explanation": "Continuous and high-cardinality features offer numerous split points, accumulating spurious impurity reductions even on pure noise."
+    },
+    {
+      "question": "How does Permutation Feature Importance overcome the cardinality bias of Gini importance?",
+      "options": [
+        "By converting categories to binary numbers",
+        "By measuring the true decrease in model evaluation metric when a feature's values are randomly shuffled on a validation set",
+        "By training trees on single features",
+        "By using linear regression"
+      ],
+      "correct": 1,
+      "explanation": "Permutation importance tests real predictive degradation on validation data when the link between feature and target is broken."
+    },
+    {
+      "question": "In Random Forest regression, how is the final prediction aggregated across all $B$ individual trees?",
+      "options": [
+        "By majority vote",
+        "By taking the arithmetic mean average of the individual tree predictions: $\\hat{y} = \\frac{1}{B} \\sum_{b=1}^B \\hat{y}_b$",
+        "By selecting the prediction of the deepest tree",
+        "By taking the maximum value"
+      ],
+      "correct": 1,
+      "explanation": "Regression ensembles average the continuous numerical outputs of all constituent trees."
+    },
+    {
+      "question": "What is the effect of setting `max_depth` to a shallow value (e.g. `max_depth=3`) in a Random Forest?",
+      "options": [
+        "Decreases bias and increases variance",
+        "Increases bias and reduces variance (may lead to underfitting if too shallow)",
+        "Causes the trees to become linear models",
+        "Has zero effect on performance"
+      ],
+      "correct": 1,
+      "explanation": "Constraining tree depth restricts model expressiveness, increasing bias while reducing variance."
+    },
+    {
+      "question": "Why do Random Forests typically perform poorly on sparse, high-dimensional text data compared to Linear SVMs?",
+      "options": [
+        "Because trees cannot read words",
+        "When features are sparse with 50,000 words, random subsampling $\\sqrt{d}$ often picks split subsets containing only zeros, resulting in uninformative splits",
+        "Because random forests cannot run on text",
+        "Because text data has no variance"
+      ],
+      "correct": 1,
+      "explanation": "In sparse bag-of-words, random subsets of $\\sqrt{d}$ features frequently contain zero non-zero entries, yielding uninformative splits."
+    },
+    {
+      "question": "Can a Random Forest extrapolate continuous upward trends beyond the maximum target value seen in training data?",
+      "options": [
+        "Yes, random forests extrapolate perfectly",
+        "No, because individual trees make piecewise constant predictions, the forest average can never predict a value higher than the maximum training target",
+        "Only if n_estimators > 500",
+        "Only if trees are pruned"
+      ],
+      "correct": 1,
+      "explanation": "Like individual decision trees, Random Forests cannot predict values outside the bounding box $[y_{\\min}, y_{\\max}]$ of training targets."
+    },
+    {
+      "question": "What is the primary trade-off when increasing the number of trees (`n_estimators`) from 100 to 1,000?",
+      "options": [
+        "Accuracy decreases significantly",
+        "Generalization score plateaus while computational training and inference time increase by 10x with higher memory consumption",
+        "The model starts overfitting",
+        "The trees become correlated"
+      ],
+      "correct": 1,
+      "explanation": "Beyond 100-300 trees, marginal accuracy gains become negligible while serving latency and memory footprint scale linearly."
+    },
+    {
+      "question": "What is the purpose of the `max_samples` parameter in Scikit-learn's `RandomForestClassifier`?",
+      "options": [
+        "The maximum number of rows in the CSV",
+        "The fraction or absolute number of samples drawn from $X$ to train each base tree (if $< 1.0$, subsampling without or with replacement)",
+        "The number of classes in the target",
+        "The number of output predictions"
+      ],
+      "correct": 1,
+      "explanation": "`max_samples` controls bootstrap sample size; setting it $< 1.0$ increases diversity and accelerates training."
+    },
+    {
+      "question": "What is the Isolation Forest algorithm used for in unsupervised machine learning?",
+      "options": [
+        "Classifying trees in forestry datasets",
+        "Anomaly / outlier detection by measuring how few random splits are required to isolate an anomalous data point in an ensemble of random trees",
+        "Predicting continuous target variables",
+        "Clustering customers into 5 groups"
+      ],
+      "correct": 1,
+      "explanation": "Isolation Forest exploits the fact that anomalies are few and structurally different, requiring very few random splits to isolate in leaves."
+    },
+    {
+      "question": "Why do anomalies require fewer splits to isolate in an Isolation Forest?",
+      "options": [
+        "Because anomalies have high target values",
+        "Anomalies reside in sparse, low-density regions of feature space, making them easy to separate with few random hyperplane cuts",
+        "Because anomalies are always negative numbers",
+        "Because the algorithm deletes normal points"
+      ],
+      "correct": 1,
+      "explanation": "Normal points cluster densely and require deep trees to isolate; rare outliers in sparse regions are isolated near tree roots."
+    },
+    {
+      "question": "What is the difference between hard voting and soft voting in an ensemble classifier (`VotingClassifier`)?",
+      "options": [
+        "Hard voting uses CPUs; soft voting uses GPUs",
+        "Hard voting uses majority class labels; soft voting averages predicted class probabilities and picks the class with highest average probability",
+        "Hard voting is for regression; soft voting is for classification",
+        "They are identical in output"
+      ],
+      "correct": 1,
+      "explanation": "Soft voting weights confident probability predictions, generally outperforming simple discrete majority voting."
+    },
+    {
+      "question": "When is Stacking (Stacked Generalization) used in ensemble learning?",
+      "options": [
+        "When stacking books on a table",
+        "Combining diverse models (e.g. Random Forest, SVM, LightGBM) by training a meta-model on their out-of-fold validation predictions",
+        "Running models one after another in a loop",
+        "Multiplying model weights together"
+      ],
+      "correct": 1,
+      "explanation": "Stacking trains a meta-learner (e.g. Logistic Regression) using predictions of diverse base models as input features."
+    },
+    {
+      "question": "Why must the meta-learner in Stacking be trained on Out-Of-Fold (OOF) predictions rather than training set predictions?",
+      "options": [
+        "To prevent the code from running out of memory",
+        "To prevent catastrophic data leakage: base models predict their own training data with near-100% accuracy, causing the meta-learner to overfit",
+        "Because scikit-learn requires OOF arrays",
+        "Because OOF predictions are always integers"
+      ],
+      "correct": 1,
+      "explanation": "Base models overfit their training data; using out-of-fold cross-validated predictions ensures the meta-model trains on realistic test-like errors."
+    },
+    {
+      "question": "What is a Random Forest's sensitivity to multicollinearity compared to Linear Regression?",
+      "options": [
+        "Random Forest crashes on collinear data",
+        "Random Forest handles multicollinearity robustly without failing, though correlated features share and split their importance scores",
+        "Random Forest becomes unstable",
+        "Random Forest requires VIF < 5"
+      ],
+      "correct": 1,
+      "explanation": "Random Forests handle collinearity naturally; trees split on whichever feature is selected, dividing importance among correlated predictors."
+    },
+    {
+      "question": "What does `min_impurity_decrease` do in a Random Forest?",
+      "options": [
+        "Increases training speed",
+        "A node will only be split if the split induces an impurity decrease greater than or equal to this threshold value",
+        "Forces trees to be balanced",
+        "Sets all leaf values to zero"
+      ],
+      "correct": 1,
+      "explanation": "`min_impurity_decrease` pre-prunes splits that do not yield significant purity improvements."
+    },
+    {
+      "question": "Why do Random Forests not require feature normalization or scaling?",
+      "options": [
+        "Because trees only evaluate relative ordering ($x_j \\le t$) within single features, invariant to monotonic scaling",
+        "Because trees run in parallel",
+        "Because scaling causes overfitting",
+        "Because trees normalize data automatically"
+      ],
+      "correct": 0,
+      "explanation": "Tree splits depend on rank order; multiplying a feature by 1,000,000 changes the threshold number but not the sample partition."
+    },
+    {
+      "question": "Can Random Forests handle missing values directly in standard Scikit-learn?",
+      "options": [
+        "Yes, scikit-learn imputes missing values automatically",
+        "Historically no; in standard Scikit-learn, missing values must be imputed (SimpleImputer) or handled via HistGradientBoosting",
+        "Only if missing values are coded as -999",
+        "Only in regression"
+      ],
+      "correct": 1,
+      "explanation": "Standard `RandomForestClassifier` in scikit-learn requires clean matrices without NaNs, though modern gradient boosters handle NaNs natively."
+    },
+    {
+      "question": "What is proximity matrix in Random Forests?",
+      "options": [
+        "A matrix of GPS distances between servers",
+        "A symmetric $N \\times N$ matrix measuring how frequently pairs of training observations land in the same terminal leaf node across all trees",
+        "A covariance matrix of features",
+        "A confusion matrix of predictions"
+      ],
+      "correct": 1,
+      "explanation": "The proximity matrix captures pairwise sample similarity: points that frequently share leaves across trees are statistically similar."
+    },
+    {
+      "question": "What is the time complexity of predicting a single sample using a Random Forest of $B$ trees with depth $D$?",
+      "options": [
+        "$O(N \\cdot D)$",
+        "$O(B \\cdot D)$",
+        "$O(D^3)$",
+        "$O(1)$"
+      ],
+      "correct": 1,
+      "explanation": "Each tree traversal takes $O(D)$ operations down its depth; for $B$ trees, total inference time is $O(B \\cdot D)$."
+    },
+    {
+      "question": "What is the effect of setting `bootstrap=False` in `RandomForestClassifier`?",
+      "options": [
+        "The model uses zero trees",
+        "Each tree is trained on the full original training dataset without bootstrap resampling, relying solely on feature subsampling for diversity",
+        "The model becomes a single decision tree",
+        "The code throws a syntax error"
+      ],
+      "correct": 1,
+      "explanation": "Disabling bootstrap fits each tree on 100% of data, introducing diversity exclusively through random feature splits."
+    },
+    {
+      "question": "Why is a single deep decision tree prone to overfitting, but a Random Forest of 500 deep decision trees is not?",
+      "options": [
+        "Because Random Forests use smaller datasets",
+        "The individual trees overfit in different random directions; when their predictions are averaged, idiosyncratic errors cancel out while true signal reinforces",
+        "Because 500 trees delete all noise",
+        "Because Random Forests use gradient descent"
+      ],
+      "correct": 1,
+      "explanation": "Bootstrap and feature subsampling decorrelate errors; averaging high-variance predictors cancels out random noise components."
+    },
+    {
+      "question": "What is the difference between Bagging and Pasting in ensemble learning?",
+      "options": [
+        "Bagging samples with replacement; Pasting samples without replacement",
+        "Bagging is for classification; Pasting is for regression",
+        "Bagging runs on GPUs; Pasting runs on CPUs",
+        "They are identical techniques"
+      ],
+      "correct": 0,
+      "explanation": "Bagging draws bootstrap samples with replacement; Pasting draws random subsets without replacement."
+    },
+    {
+      "question": "What is the primary reason Random Forests consistently outperform single Decision Trees on tabular benchmarks?",
+      "options": [
+        "Random Forests have lower computational complexity",
+        "Random Forests achieve vastly superior variance reduction while preserving low bias",
+        "Random Forests are easier to visualize than single trees",
+        "Random Forests have fewer hyperparameters"
+      ],
+      "correct": 1,
+      "explanation": "Ensembling hundreds of decorrelated trees achieves massive variance reduction, transforming a weak unstable model into an industry workhorse."
+    },
+    {
+      "question": "How does `class_weight='balanced_subsample'` differ from `class_weight='balanced'` in Random Forest?",
+      "options": [
+        "It calculates weights once globally",
+        "It recomputes balanced class weights dynamically for each individual tree based on the class distribution within that specific tree's bootstrap sample",
+        "It only trains on the minority class",
+        "It deletes majority class rows"
+      ],
+      "correct": 1,
+      "explanation": "`balanced_subsample` adapts weights to the exact empirical class balance in each tree's individual bootstrap draw."
+    }
+  ],
+  "level": "intermediate"
+}

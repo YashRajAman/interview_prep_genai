@@ -1,0 +1,459 @@
+{
+  "id": "feature-engineering",
+  "title": "Feature Engineering & Preprocessing",
+  "description": "StandardScaler vs MinMaxScaler vs RobustScaler, Power transforms (Box-Cox), Categorical encodings, handling imbalanced data (SMOTE), and feature selection.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Feature Engineering & Preprocessing",
+        "subtitle": "The Art and Science of Transforming Raw Data into Maximum Predictive Signal"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Andrew Ng's Axiom",
+        "content": "\"Coming up with features is difficult, time-consuming, requires expert knowledge. 'Applied machine learning' is basically **feature engineering**.\" — Andrew Ng"
+      },
+      {
+        "type": "text",
+        "title": "Continuous Feature Scaling Strategies",
+        "content": "- **StandardScaler (Z-Score Standardization):** Centered at 0 with unit variance:\n$$z = \\frac{x - \\mu}{\\sigma}$$\nIdeal for algorithms sensitive to variance scale (Linear/Logistic Regression, SVMs, Neural Networks, PCA).\n\n- **MinMaxScaler (Normalization):** Scales values strictly into a bounded range $[0, 1]$:\n$$x_{\\text{norm}} = \\frac{x - x_{\\min}}{x_{\\max} - x_{\\min}}$$\nPreserves zero entries in sparse matrices and bounded image pixel ranges $[0, 255] \\rightarrow [0, 1]$.\n\n- **RobustScaler:** Uses median and interquartile range (IQR) to scale data without being distorted by extreme outliers:\n$$x_{\\text{robust}} = \\frac{x - \\text{median}}{\\text{IQR}}$$"
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Categorical Encoding Techniques",
+        "content": "| Encoding Method | Mechanism | Cardinality Limit | Key Strength / Vulnerability |\n|---|---|---|---|\n| **One-Hot Encoding** | Creates $K$ binary indicator columns | Low ($K < 20$) | Preserves full category independence; causes dimensional explosion if $K$ is large |\n| **Ordinal Encoding** | Maps categories to integers ($1, 2, \\dots, K$) | Medium | Imposes artificial mathematical linear order; suitable only for naturally ranked categories |\n| **Target (Mean) Encoding**| Replaces category with target mean $\\mathbb{E}[y|x=c]$ | High ($K > 1,000$) | Very compact 1D representation; severe risk of target leakage without smoothing |\n| **Frequency (Count)** | Replaces category with sample frequency count | High | Compact, preserves popularity signal, no target leakage |"
+      },
+      {
+        "type": "text",
+        "title": "Handling Severe Class Imbalance",
+        "content": "- **Class Weighting:** Adjusts the loss function penalty inversely proportional to class frequency: $w_j = \\frac{N}{K \\cdot N_j}$. Highly effective with zero computational overhead.\n- **SMOTE (Synthetic Minority Over-sampling Technique):** Synthesizes new minority examples along feature-space line segments connecting k-nearest minority neighbors.\n- **Undersampling (e.g. NearMiss, Random):** Downsamples majority class to balance ratios, at the risk of discarding potentially valuable information."
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "SMOTE Leakage Warning",
+        "content": "**Never apply SMOTE before the train/test split!** Synthesizing samples before splitting causes synthetic points generated from test-set neighbors to leak directly into the training partition, creating unrealistically high test metrics that fail in production."
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Feature Engineering Philosophy",
+        "content": "Domain knowledge drives the best features: ratios (Debt-to-Income), temporal deltas (Days Since Last Purchase), and aggregations (Mean Transaction over 7 Days) routinely beat raw features regardless of algorithm choice."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "statistics-calculator",
+    "title": "Feature Scaling Transformer Simulator",
+    "description": "Compare how StandardScaler, MinMaxScaler, and RobustScaler transform a dataset with extreme outliers.",
+    "metrics": [
+      "scaled_mean",
+      "scaled_std",
+      "scaled_min",
+      "scaled_max",
+      "outlier_effect"
+    ]
+  },
+  "code": {
+    "description": "Construct a ColumnTransformer with Scalers and OneHotEncoders, and handle class imbalance using Scikit-learn.",
+    "starter": "import pandas as pd\nimport numpy as np\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.linear_model import LogisticRegression\nfrom sklearn.model_selection import train_test_split\n\n# Create sample dataset with mixed numeric and categorical features\ndf = pd.DataFrame({\n    'age': [25, 45, 35, 50, 23, 38, 62, 29],\n    'income': [45000, 120000, 65000, 180000, 32000, 75000, 240000, 52000],\n    'city': ['NYC', 'London', 'Tokyo', 'NYC', 'London', 'Tokyo', 'NYC', 'Tokyo'],\n    'churn': [0, 1, 0, 1, 0, 0, 1, 0]\n})\n\nX = df.drop('churn', axis=1)\ny = df['churn']\n\n# Configure ColumnTransformer\npreprocessor = ColumnTransformer(transformers=[\n    ('num', StandardScaler(), ['age', 'income']),\n    ('cat', OneHotEncoder(drop='first', sparse_output=False), ['city'])\n])\n\n# Chain with model\nmodel = Pipeline([\n    ('prep', preprocessor),\n    ('clf', LogisticRegression(class_weight='balanced', random_state=42))\n])\n\nmodel.fit(X, y)\nprint('Transformed feature names:', model.named_steps['prep'].get_feature_names_out())\nprint(f'Model Training Score: {model.score(X, y)*100:.1f}%')\n"
+  },
+  "quiz": [
+    {
+      "question": "What does StandardScaler do to a numeric feature?",
+      "options": [
+        "Scales values into the range [0, 1]",
+        "Transforms the feature so it has a mean of 0 and a standard deviation of 1: $z = \\frac{x - \\mu}{\\sigma}$",
+        "Replaces negative numbers with zero",
+        "Converts numbers into text categories"
+      ],
+      "correct": 1,
+      "explanation": "StandardScaler centers data at zero and divides by the sample standard deviation, producing unit variance."
+    },
+    {
+      "question": "When is RobustScaler preferred over StandardScaler?",
+      "options": [
+        "When the dataset contains severe outliers that would distort the mean and standard deviation",
+        "When all values are strictly positive",
+        "When running on microcontrollers",
+        "When features have zero variance"
+      ],
+      "correct": 0,
+      "explanation": "RobustScaler centers by median and divides by IQR, making it unaffected by extreme outlier anomalies."
+    },
+    {
+      "question": "What is the mathematical range of MinMaxScaler by default?",
+      "options": [
+        "$[-1, +1]$",
+        "$[0, 1]$",
+        "$(-\\infty, +\\infty)$",
+        "$[0, 100]$"
+      ],
+      "correct": 1,
+      "explanation": "MinMaxScaler maps the minimum feature value to 0 and the maximum value to 1: $\\frac{x - x_{\\min}}{x_{\\max} - x_{\\min}}$."
+    },
+    {
+      "question": "Why is `drop='first'` often used in OneHotEncoder for linear and logistic regression models?",
+      "options": [
+        "To save computer memory",
+        "To avoid the 'dummy variable trap' (perfect multicollinearity where one indicator column is linearly dependent on the others)",
+        "Because the first category is always irrelevant",
+        "Because scikit-learn will crash without it"
+      ],
+      "correct": 1,
+      "explanation": "If there are $K$ categories, $K-1$ indicators fully determine the state; dropping the first column avoids singular covariance matrices."
+    },
+    {
+      "question": "What is Target Encoding (Mean Encoding)?",
+      "options": [
+        "Replacing categories with random numbers",
+        "Replacing each categorical value with the average target value for that category across training data: $\\mathbb{E}[y | \\text{category}]$",
+        "Encoding target variables into binary 0 and 1",
+        "Sorting target labels alphabetically"
+      ],
+      "correct": 1,
+      "explanation": "Target encoding efficiently compresses high-cardinality categories into informative continuous scalar features."
+    },
+    {
+      "question": "What is the primary risk of Target Encoding if no regularization or smoothing is applied?",
+      "options": [
+        "The code will fail with syntax errors",
+        "Extreme overfitting and target leakage, especially on rare categories with only 1 or 2 observations",
+        "The model becomes underfitted",
+        "The target variable is deleted"
+      ],
+      "correct": 1,
+      "explanation": "A category appearing only once receives that single row's exact target value, producing perfect memorization without generalization."
+    },
+    {
+      "question": "How does m-estimate (smoothing) protect Target Encoding against overfitting?",
+      "options": [
+        "By deleting rare categories",
+        "By pulling (shrinking) small category sample averages toward the global target mean: $\\frac{n \\cdot \\bar{y}_c + m \\cdot \\bar{y}_{\\text{global}}}{n + m}$",
+        "By squaring all target values",
+        "By converting categories to binary"
+      ],
+      "correct": 1,
+      "explanation": "Empirical Bayes smoothing shrinks small-sample category estimates toward the overall population mean."
+    },
+    {
+      "question": "What does the SMOTE algorithm (Synthetic Minority Over-sampling Technique) do to address class imbalance?",
+      "options": [
+        "Duplicates exact existing minority rows",
+        "Synthesizes new synthetic minority examples along the line segments connecting existing minority samples to their k-nearest minority neighbors",
+        "Deletes majority class samples randomly",
+        "Changes majority labels to minority"
+      ],
+      "correct": 1,
+      "explanation": "SMOTE interpolates between existing minority instances in continuous feature space, expanding minority decision regions."
+    },
+    {
+      "question": "Why is applying SMOTE to the entire dataset BEFORE splitting into train and test sets a severe error?",
+      "options": [
+        "It makes SMOTE run too slowly",
+        "Data Leakage: synthetic training points generated from test set neighbors leak into the training distribution, falsifying test metrics",
+        "Python memory will crash",
+        "Scikit-learn forbids SMOTE"
+      ],
+      "correct": 1,
+      "explanation": "Over-sampling before splitting leaks test set neighbor information directly into training data."
+    },
+    {
+      "question": "What is the Box-Cox transformation used for in feature engineering?",
+      "options": [
+        "Converting text to numbers",
+        "A parametric power transformation that normalizes continuous features, stabilizing variance and transforming non-normal distributions into Gaussian shapes",
+        "Compressing files into boxes",
+        "Encrypting database features"
+      ],
+      "correct": 1,
+      "explanation": "Box-Cox finds parameter $\\lambda$ to transform skewed positive continuous features into approximate normal distributions."
+    },
+    {
+      "question": "Under what condition is the Box-Cox transformation applicable?",
+      "options": [
+        "Only on categorical features",
+        "Strictly on positive continuous values ($x > 0$)",
+        "Only on binary targets",
+        "Only on negative numbers"
+      ],
+      "correct": 1,
+      "explanation": "Standard Box-Cox requires strictly positive values ($x > 0$); the Yeo-Johnson transform extends this to zero and negative values."
+    },
+    {
+      "question": "What is the Yeo-Johnson transformation?",
+      "options": [
+        "A modification of linear regression",
+        "A power transform similar to Box-Cox that supports zero and negative values",
+        "A clustering algorithm",
+        "An activation function in deep learning"
+      ],
+      "correct": 1,
+      "explanation": "Yeo-Johnson generalizes Box-Cox power transformations across zero and negative continuous numbers."
+    },
+    {
+      "question": "What is Feature Selection via Variance Thresholding?",
+      "options": [
+        "Deleting features that have large standard deviation",
+        "Removing all features whose variance across training samples falls below a specified threshold (e.g. zero-variance constant features)",
+        "Normalizing all variances to 1",
+        "Dividing variance by mean"
+      ],
+      "correct": 1,
+      "explanation": "Features with near-zero variance contain almost constant values across all rows, providing negligible predictive signal."
+    },
+    {
+      "question": "What is Recursive Feature Elimination (RFE)?",
+      "options": [
+        "A recursive function that generates random numbers",
+        "An iterative greedy feature selection method that trains a model, ranks feature importances, and prunes the weakest features step-by-step",
+        "A technique that deletes half the dataset each epoch",
+        "A sorting algorithm for pandas columns"
+      ],
+      "correct": 1,
+      "explanation": "RFE fits a model recursively, pruning the least significant features until the desired subset size is reached."
+    },
+    {
+      "question": "What is the difference between Filter methods and Wrapper methods in feature selection?",
+      "options": [
+        "Filter methods use GPU; Wrapper methods use CPU",
+        "Filter methods evaluate features using statistical metrics (e.g. correlation, mutual information) independently of any model; Wrapper methods use a model's performance to score feature subsets",
+        "Filter methods are supervised; Wrapper methods are unsupervised",
+        "They are identical techniques"
+      ],
+      "correct": 1,
+      "explanation": "Filter methods score features via statistical tests (fast, model-agnostic); Wrapper methods train models iteratively to find optimal subsets."
+    },
+    {
+      "question": "What does Mutual Information measure between a continuous feature $X$ and target $y$?",
+      "options": [
+        "Linear correlation only",
+        "The reduction in uncertainty (entropy) of target $y$ given knowledge of feature $X$, capturing both linear AND complex non-linear relationships",
+        "The Euclidean distance between $X$ and $y$",
+        "The execution time of predicting $y$ from $X$"
+      ],
+      "correct": 1,
+      "explanation": "Mutual information measures non-linear statistical dependence: $\\text{MI} = 0$ if and only if variables are strictly independent."
+    },
+    {
+      "question": "Why can Mutual Information detect relationships that Pearson's correlation coefficient completely misses?",
+      "options": [
+        "Because Mutual Information runs in C++",
+        "Pearson correlation is strictly limited to linear relationships ($r = 0$ for $y = x^2$ symmetric around 0), while Mutual Information quantifies general probabilistic dependence",
+        "Because Pearson correlation divides by zero",
+        "Because Mutual Information requires binary data"
+      ],
+      "correct": 1,
+      "explanation": "Mutual Information captures arbitrary non-linear associations, circular patterns, and complex dependencies missed by linear correlation."
+    },
+    {
+      "question": "What is L1-based feature selection (using Lasso or LogisticRegression with penalty='l1')?",
+      "options": [
+        "Deleting features with negative weights",
+        "Using $L_1$ regularization to drive non-informative feature coefficients strictly to zero, naturally performing embedded feature selection",
+        "Training a decision tree on L1 norms",
+        "Setting learning rate to 0.1"
+      ],
+      "correct": 1,
+      "explanation": "Lasso penalizes absolute weight sums, driving weights of uninformative or redundant predictors to exactly zero."
+    },
+    {
+      "question": "What is an interaction feature in feature engineering?",
+      "options": [
+        "A feature created by combining two or more existing features through arithmetic operations ($x_1 \\times x_2$, $x_1 / x_2$), capturing synergistic cross-effects",
+        "A user clicking on an interactive web element",
+        "A feature that changes during inference",
+        "A categorical feature with two levels"
+      ],
+      "correct": 0,
+      "explanation": "Interaction terms model multiplicative dependencies where the impact of one feature varies depending on another."
+    },
+    {
+      "question": "What is binning (discretization) of continuous variables?",
+      "options": [
+        "Deleting noisy rows",
+        "Grouping continuous numeric values into discrete bins or intervals (e.g. age into [0-18, 19-35, 36-65, 65+]) to model non-linear step relationships",
+        "Sorting columns alphabetically",
+        "Converting text into tokens"
+      ],
+      "correct": 1,
+      "explanation": "Binning transforms continuous features into categorical buckets, allowing linear models to fit non-linear step functions."
+    },
+    {
+      "question": "What is Weight of Evidence (WoE) and Information Value (IV) widely used for in credit scoring?",
+      "options": [
+        "Calculating credit card interest rates",
+        "Encoding categorical features and quantifying their predictive strength in distinguishing good credit applicants from defaulters",
+        "Compressing CSV files",
+        "Training neural networks on mobile devices"
+      ],
+      "correct": 1,
+      "explanation": "WoE and IV are standard banking risk metrics for transforming features into linear log-odds predictors."
+    },
+    {
+      "question": "In time-series feature engineering, what is a 'lag feature'?",
+      "options": [
+        "A feature that causes the model to run slowly",
+        "A feature containing historical values of the variable from previous time steps ($y_{t-1}, y_{t-2}, y_{t-7}$)",
+        "A feature with missing values",
+        "A target variable shifted into the future"
+      ],
+      "correct": 1,
+      "explanation": "Lag features feed historical values from previous time horizons into the model to capture auto-regressive dynamics."
+    },
+    {
+      "question": "In time-series feature engineering, what is a 'rolling window feature'?",
+      "options": [
+        "A window that moves across computer monitors",
+        "Summary statistics (e.g. 7-day rolling mean, 30-day rolling standard deviation) computed over a trailing window of historical time steps",
+        "A dataset with sliding row counts",
+        "A feature that rotates by 90 degrees"
+      ],
+      "correct": 1,
+      "explanation": "Rolling statistics aggregate recent historical trends (e.g. average spend over the past 30 days) to smooth short-term volatility."
+    },
+    {
+      "question": "What is cyclical encoding for periodic features like hour of day (0-23) or month of year (1-12)?",
+      "options": [
+        "Deleting the time column",
+        "Transforming periodic numbers into two continuous features using sine and cosine: $\\sin\\left(\\frac{2\\pi t}{T}\\right)$ and $\\cos\\left(\\frac{2\\pi t}{T}\\right)$ so hour 23 and hour 0 are close",
+        "Sorting timestamps numerically",
+        "Applying one-hot encoding with 24 columns"
+      ],
+      "correct": 1,
+      "explanation": "Trigonometric mapping preserves cyclical continuity: 23:59 and 00:01 map to adjacent coordinates on a circle."
+    },
+    {
+      "question": "Why is mapping hour of day linearly from 0 to 23 problematic for distance-based models?",
+      "options": [
+        "Computers cannot count to 23",
+        "It treats hour 23 and hour 0 as having a maximum mathematical distance of 23 units, when in physical reality they are only 1 hour apart",
+        "Because hours are categorical strings",
+        "Because 23 is a prime number"
+      ],
+      "correct": 1,
+      "explanation": "Linear encoding breaks the continuous cyclic boundary: 11:59 PM and 12:01 AM appear maximally distant rather than consecutive."
+    },
+    {
+      "question": "What is Count Frequency Encoding for categorical variables?",
+      "options": [
+        "Replacing categories with their rank in the dictionary",
+        "Replacing each categorical value with the percentage or absolute frequency count of its occurrence in the training dataset",
+        "Counting the number of characters in the category string",
+        "Converting text to ASCII integers"
+      ],
+      "correct": 1,
+      "explanation": "Frequency encoding captures categorical prevalence efficiently without dimensional expansion, useful for tree models."
+    },
+    {
+      "question": "What is NearMiss undersampling for imbalanced datasets?",
+      "options": [
+        "Missing a deadline on an ML project",
+        "An undersampling technique that selects majority class samples close to minority class samples based on distance metrics to clarify decision boundaries",
+        "Randomly dropping rows with missing values",
+        "A clustering algorithm"
+      ],
+      "correct": 1,
+      "explanation": "NearMiss selects majority instances geographically close to minority samples to preserve critical boundary information."
+    },
+    {
+      "question": "What is class weighting (`class_weight='balanced'`) in classification loss functions?",
+      "options": [
+        "Weighing the computer before and after training",
+        "Scaling the loss penalty incurred for misclassifying minority class samples inversely proportional to their class prevalence in training data",
+        "Adding random weights to features",
+        "Forcing the dataset to have equal rows"
+      ],
+      "correct": 1,
+      "explanation": "Class weighting multiplies minority loss penalties, forcing optimization algorithms to focus equally on rare classes without data manipulation."
+    },
+    {
+      "question": "Why is Class Weighting generally preferred over naive random undersampling?",
+      "options": [
+        "Random undersampling is illegal in finance",
+        "Random undersampling discards potentially valuable majority class data, whereas class weighting retains 100% of data while reweighting gradient penalties",
+        "Class weighting only works in Python",
+        "Undersampling causes syntax errors"
+      ],
+      "correct": 1,
+      "explanation": "Class weighting retains full data volume, avoiding information loss while achieving balanced gradient focus."
+    },
+    {
+      "question": "What is Outlier Winsorization (clipping)?",
+      "options": [
+        "Deleting all outlier rows from the database",
+        "Capping extreme values at specified percentiles (e.g. setting values below the 1st percentile to $P_1$ and above the 99th percentile to $P_{99}$)",
+        "Converting outliers to NaN",
+        "Multiplying outliers by zero"
+      ],
+      "correct": 1,
+      "explanation": "Winsorization caps extreme values at fixed quantile boundaries, retaining sample count while eliminating extreme outlier leverage."
+    },
+    {
+      "question": "What is PolynomialFeatures in Scikit-learn?",
+      "options": [
+        "A transformer that converts features into polynomial degrees and interaction terms ($x_1^2, x_2^2, x_1 x_2$)",
+        "A model that only fits parabolas",
+        "A tool for compressing data",
+        "An algorithm for drawing charts"
+      ],
+      "correct": 0,
+      "explanation": "`PolynomialFeatures` expands feature spaces with power terms and cross-product interactions, enabling linear models to capture non-linear surfaces."
+    },
+    {
+      "question": "What is the primary danger of setting `degree=4` or higher in `PolynomialFeatures` on 20 input features?",
+      "options": [
+        "The computer screen will turn off",
+        "Combinatorial explosion: the number of generated features explodes to thousands, consuming massive RAM and severely risking overfitting",
+        "The data becomes negative",
+        "Scikit-learn deletes the target column"
+      ],
+      "correct": 1,
+      "explanation": "The number of polynomial combinations grows exponentially with degree: $\\approx O(d^k)$, causing memory explosion and overfitting."
+    },
+    {
+      "question": "What is Scikit-learn's `ColumnTransformer` designed for?",
+      "options": [
+        "Transforming database column names to lowercase",
+        "Applying different preprocessing pipelines to different subsets of columns in parallel (e.g. scaling numeric columns while one-hot encoding categorical columns)",
+        "Merging two tables together",
+        "Deleting duplicate columns"
+      ],
+      "correct": 1,
+      "explanation": "ColumnTransformer routes specific columns to dedicated transformers (scalers, encoders, imputers) and concatenates outputs."
+    },
+    {
+      "question": "Why is it mandatory to call `fit_transform()` on training data but strictly `transform()` on test/production data?",
+      "options": [
+        "Calling fit_transform twice throws a Python error",
+        "To prevent data leakage: test data must be transformed using the exact statistics (means, scales, categories) learned from training data",
+        "Because transform executes faster",
+        "Because test data has no column names"
+      ],
+      "correct": 1,
+      "explanation": "Calling fit on test data recalibrates scales with test statistics, violating the cardinal rule of held-out evaluation."
+    },
+    {
+      "question": "What is feature crossing in machine learning?",
+      "options": [
+        "Drawing an X through a column",
+        "Creating a synthetic feature by combining two or more categorical features (e.g., combining `Country='USA'` and `Device='Mobile'` into `USA_Mobile`)",
+        "Deleting intersecting rows",
+        "Running two models simultaneously"
+      ],
+      "correct": 1,
+      "explanation": "Feature crossing combines discrete attributes to capture specific localized non-linear conjunctions."
+    }
+  ],
+  "level": "intermediate"
+}

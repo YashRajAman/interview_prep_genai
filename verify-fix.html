@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Table Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .md-table-wrap { margin: 20px 0; }
+        .md-table { border-collapse: collapse; width: 100%; }
+        .md-table th, .md-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .md-table th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Testing Table Fix</h1>
+    
+    <h2>Test Content</h2>
+    <div id="test-content"></div>
+    
+    <script>
+        // Copy the fixed parseMarkdown function here
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+        
+        function formatInline(text) {
+            return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        }
+        
+        function parseTable(lines) {
+            // Extract header cells from line 0.
+            var headerCells = splitTableRow(lines[0]);
+            // Skip line 1 (separator row).
+            // Extract body rows from line 2 onward.
+            var bodyRows = [];
+            for (var i = 2; i < lines.length; i++) {
+                var cells = splitTableRow(lines[i]);
+                if (cells.length > 0) {
+                    bodyRows.push(cells);
+                }
+            }
+            
+            var html = '<div class="md-table-wrap"><table class="md-table">';
+            
+            // Header row.
+            html += '<thead><tr>';
+            headerCells.forEach(function (cell) {
+                html += '<th>' + formatInline(escapeHtml(cell.trim())) + '</th>';
+            });
+            html += '</tr></thead>';
+            
+            // Body rows.
+            if (bodyRows.length > 0) {
+                html += '<tbody>';
+                bodyRows.forEach(function (row) {
+                    html += '<tr>';
+                    row.forEach(function (cell) {
+                        html += '<td>' + formatInline(escapeHtml(cell.trim())) + '</td>';
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody>';
+            }
+            
+            html += '</table></div>';
+            return html;
+        }
+        
+        function splitTableRow(line) {
+            var trimmed = line.trim();
+            // Remove leading/trailing pipes.
+            if (trimmed.charAt(0) === '|') trimmed = trimmed.substring(1);
+            if (trimmed.charAt(trimmed.length - 1) === '|') trimmed = trimmed.substring(0, trimmed.length - 1);
+            // Split by pipe, respecting escaped pipes (\\|).
+            return trimmed.split(/(?<!\\\\)\\\|/);
+        }
+        
+        // The fixed parseMarkdown function
+        function parseMarkdown(content) {
+            if (!content) return '';
+            
+            // Split into blocks by double newlines (paragraph breaks).
+            var blocks = content.split(/\n\n+/);
+            var html = [];
+            
+            blocks.forEach(function (block) {
+                block = block.trim();
+                if (!block) return;
+                
+                var lines = block.split('\n');
+                
+                // Detect markdown table: first line has | separators, second line
+                // is a separator row (|---|---|), remaining lines are data rows.
+                var isTable = lines.length >= 2 &&
+                    /\|/.test(lines[0]) &&
+                    /^\s*\|?[\s:-]*-{3,}[\s:-|]*\|?\s*$/test(lines[1]);
+                
+                if (isTable) {
+                    html.push(parseTable(lines));
+                    return;
+                }
+                
+                // Handle case where table is preceded by text in the same block
+                // (e.g., "**Training data:**\\n| ... |")
+                if (lines.length >= 4) {
+                    // Look for table pattern in lines 1-3 (skip the first line)
+                    for (var i = 1; i <= 3 && i < lines.length - 1; i++) {
+                        var isTableAtPos = lines.length >= i + 2 &&
+                            /\|/.test(lines[i]) &&
+                            /^\s*\|?[\s:-]*-{3,}[\s:-|]*\|?\s*$/test(lines[i + 1]);
+                        
+                        if (isTableAtPos) {
+                            // We found a table starting at line i
+                            // Parse the table
+                            var tableLines = lines.slice(i);
+                            html.push(parseTable(tableLines));
+                            
+                            // Check if there's remaining text before the table
+                            var remainingLines = [];
+                            for (var j = 0; j < i; j++) {
+                                if (lines[j].trim() !== '') {
+                                    remainingLines.push(lines[j]);
+                                }
+                            }
+                            
+                            // If there's remaining text, add it as a paragraph
+                            if (remainingLines.length > 0) {
+                                var para = remainingLines.map(function(l) {
+                                    return formatInline(escapeHtml(l));
+                                }).join('<br>');
+                                html.push('<p>' + para + '</p>');
+                            }
+                            return;
+                        }
+                    }
+                }
+                
+                // Detect unordered list (- or * prefix).
+                var isUL = lines.every(function (l) {
+                    return l.trim() === '' || /^\s*[-*]\s+/.test(l);
+                }) && lines.some(function (l) {
+                    return /^\s*[-*]\s+/.test(l);
+                });
+                
+                // Detect ordered list (1. 2. etc.).
+                var isOL = lines.every(function (l) {
+                    return l.trim() === '' || /^\s*\d+\.\s+/.test(l);
+                }) && lines.some(function (l) {
+                    return /^\s*\d+\.\s+/.test(l);
+                });
+                
+                if (isUL) {
+                    var items = lines.filter(function (l) {
+                        return l.trim() !== '';
+                    }).map(function (l) {
+                        var text = l.replace(/^\s*[-*]\s+/, '');
+                        return '<li>' + formatInline(text) + '</li>';
+                    });
+                    html.push('<ul>' + items.join('') + '</ul>');
+                } else if (isOL) {
+                    var olItems = lines.filter(function (l) {
+                        return l.trim() !== '';
+                    }).map(function (l) {
+                        var text = l.replace(/^\s*\d+\.\s+/, '');
+                        return '<li>' + formatInline(text) + '</li>';
+                    });
+                    html.push('<ol>' + olItems.join('') + '</ol>');
+                } else {
+                    // Regular paragraph — join lines with <br> for soft breaks.
+                    var para = lines.map(function (l) {
+                        return formatInline(escapeHtml(l));
+                    }).join('<br>');
+                    html.push('<p>' + para + '</p>');
+                }
+            });
+            
+            return html.join('');
+        }
+        
+        // Test with the Supervised Learning Example content
+        const testContent = '**Training data:**\n| Square Feet | Bedrooms | Price |\n|---|---|---|\n| 1500 | 3 | $300,000 |\n| 2000 | 4 | $450,000 |\n| 1200 | 2 | $250,000 |\n\n**Prediction:** New house, 1800 sq ft, 3 beds → Model predicts: **$380,000**';
+        
+        document.getElementById('test-content').innerHTML = parseMarkdown(testContent);
+        
+        console.log('Parsed output:', parseMarkdown(testContent));
+    </script>
+</body>
+</html>

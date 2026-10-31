@@ -1,0 +1,471 @@
+{
+  "id": "regularization-dl",
+  "title": "Deep Learning Regularization & Normalization",
+  "description": "L1/L2 Weight Decay, Dropout, Batch Normalization, Layer Normalization, Group Normalization, and Early Stopping.",
+  "duration": "35 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Regularization & Normalization in Deep Networks",
+        "subtitle": "Taming Overfitting and Stabilizing Internal Activations in Deep Architectures"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Why Regularization is Crucial in Deep Learning",
+        "text": "Deep neural networks are heavily overparameterized—they frequently possess vastly more learnable weights than training samples (often millions or billions of parameters). Without regularization, they can achieve zero training error by memorizing random noise. **Regularization** imposes structural priors that constrain parameter complexity, promoting smooth decision surfaces that generalize to unseen data."
+      },
+      {
+        "type": "table",
+        "title": "Comparison of Deep Normalization Techniques",
+        "headers": [
+          "Technique",
+          "Normalized Dimensions",
+          "Batch Dependency",
+          "Primary Domain",
+          "Inference Behavior"
+        ],
+        "rows": [
+          [
+            "Batch Normalization (BN)",
+            "Normalizes across batch dimension $(N)$ for each channel $(C, H, W)$ independently.",
+            "High (requires batch size $\\ge 16$ for accurate batch stats).",
+            "Convolutional Networks (ResNet, ConvNeXt, YOLO).",
+            "Uses frozen exponential running mean $\\mu$ and variance $\\sigma^2$ computed during training."
+          ],
+          [
+            "Layer Normalization (LN)",
+            "Normalizes across channels and feature dimensions $(C, H, W)$ for each single sample independently.",
+            "None ($N=1$ works identically).",
+            "Transformers (BERT, GPT, ViT), Recurrent Networks (LSTMs).",
+            "Identical calculation during training and inference."
+          ],
+          [
+            "Group Normalization (GN)",
+            "Divides channels into groups $(G)$ and normalizes across channels within each group and spatial dims.",
+            "None ($N=1$ works identically).",
+            "Computer vision with small batch sizes (object detection, segmentation).",
+            "Identical calculation during training and inference."
+          ],
+          [
+            "Instance Normalization (IN)",
+            "Normalizes across spatial dimensions $(H, W)$ for each individual channel and sample independently.",
+            "None.",
+            "Style transfer, Generative Adversarial Networks (GANs).",
+            "Normalizes away style contrast while preserving content."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Batch Normalization Mathematical Equations",
+        "text": "For a mini-batch $\\mathcal{B} = \\{x_1, \\dots, x_m\\}$:\n\n1. **Mini-batch mean:** $\\mu_\\mathcal{B} = \\frac{1}{m} \\sum_{i=1}^m x_i$\n2. **Mini-batch variance:** $\\sigma_\\mathcal{B}^2 = \\frac{1}{m} \\sum_{i=1}^m (x_i - \\mu_\\mathcal{B})^2$\n3. **Normalize:** $\\hat{x}_i = \\frac{x_i - \\mu_\\mathcal{B}}{\\sqrt{\\sigma_\\mathcal{B}^2 + \\epsilon}}$\n4. **Scale and Shift (learnable affine transform):** $y_i = \\gamma \\hat{x}_i + \\beta$\n\n> Note: $\\gamma$ and $\\beta$ are learnable parameters that allow the network to restore the original representation if identity mapping is optimal."
+      },
+      {
+        "type": "text",
+        "title": "Dropout & Inverted Dropout (Srivastava et al., 2014)",
+        "body": "Dropout randomly sets a fraction $p$ of hidden unit activations to zero at each training step. This prevents **co-adaptation** of features, forcing every neuron to learn robust, self-reliant representations.\n\nModern frameworks implement **Inverted Dropout** during training by scaling surviving activations by $\\frac{1}{1-p}$:\n\n$$\\tilde{a} = \\frac{\\text{mask} \\odot a}{1 - p}, \\quad \\text{mask}_i \\sim \\text{Bernoulli}(1 - p)$$\n\n**Benefit:** Inference requires zero computation or scaling—the test pass is standard forward evaluation."
+      }
+    ],
+    "code_example": {
+      "title": "Layer Normalization vs Batch Normalization Implementation",
+      "code": "import numpy as np\n\n# Simulated mini-batch: Batch size N=4, Features D=5\nnp.random.seed(42)\nX = np.random.randn(4, 5) * 3 + 2 # Mean ~2, Std ~3\n\ndef batch_norm_forward(X, gamma, beta, eps=1e-5):\n    # Normalize along batch axis (axis=0)\n    mu = np.mean(X, axis=0, keepdims=True)\n    var = np.var(X, axis=0, keepdims=True)\n    X_hat = (X - mu) / np.sqrt(var + eps)\n    out = gamma * X_hat + beta\n    return out, mu, var\n\ndef layer_norm_forward(X, gamma, beta, eps=1e-5):\n    # Normalize along feature axis (axis=-1) for each sample independently\n    mu = np.mean(X, axis=-1, keepdims=True)\n    var = np.var(X, axis=-1, keepdims=True)\n    X_hat = (X - mu) / np.sqrt(var + eps)\n    out = gamma * X_hat + beta\n    return out\n\ngamma = np.ones((1, 5))\nbeta = np.zeros((1, 5))\n\nbn_out, _, _ = batch_norm_forward(X, gamma, beta)\nln_out = layer_norm_forward(X, gamma, beta)\n\nprint('Original X column means:', np.round(np.mean(X, axis=0), 2))\nprint('BatchNorm column means (should be ~0):', np.round(np.mean(bn_out, axis=0), 2))\nprint('LayerNorm row means (should be ~0):', np.round(np.mean(ln_out, axis=-1), 2))"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Who proposed the Dropout regularization technique for deep neural networks in 2014?",
+      "options": [
+        "Yann LeCun",
+        "Nitish Srivastava, Geoffrey Hinton, Alex Krizhevsky, Ilya Sutskever, and Ruslan Salakhutdinov",
+        "Ian Goodfellow",
+        "Kaiming He"
+      ],
+      "correct": 1,
+      "explanation": "Srivastava et al. published 'Dropout: A Simple Way to Prevent Neural Networks from Overfitting' in JMLR 2014."
+    },
+    {
+      "question": "What does Dropout do during each training iteration?",
+      "options": [
+        "Permanently deletes the bottom 10% smallest weights",
+        "Randomly zeros out a chosen fraction p of neuron activations with probability p",
+        "Scales all weights by 0.5",
+        "Sets negative activations to zero"
+      ],
+      "correct": 1,
+      "explanation": "At each forward step, a random subset of units is temporarily zeroed out based on a dropout probability p."
+    },
+    {
+      "question": "Why is Inverted Dropout preferred over standard original Dropout in modern frameworks like PyTorch and TensorFlow?",
+      "options": [
+        "Inverted Dropout scales active units by 1 / (1 - p) during training, meaning the forward pass at test/inference time requires zero scaling adjustments",
+        "Inverted Dropout works on weights instead of activations",
+        "Inverted Dropout uses less memory",
+        "Inverted Dropout does not require random numbers"
+      ],
+      "correct": 0,
+      "explanation": "By scaling activations up by 1/(1-p) during training, expected value is preserved, allowing the test code to run cleanly without modifications."
+    },
+    {
+      "question": "What should be done with Dropout during model evaluation/inference?",
+      "options": [
+        "Keep dropout active at the exact same rate",
+        "Disable dropout completely (set p=0 or call model.eval())",
+        "Invert the dropout mask",
+        "Increase dropout probability to 1.0"
+      ],
+      "correct": 1,
+      "explanation": "During inference, dropout is disabled so all neurons participate deterministically, computing an implicit ensemble average."
+    },
+    {
+      "question": "How can Dropout be interpreted from an ensemble learning perspective?",
+      "options": [
+        "It trains an implicit ensemble of 2^N different thinned neural networks with shared weights in a single architecture",
+        "It is equivalent to AdaBoost",
+        "It trains N separate models in parallel on separate GPUs",
+        "It is identical to bagging decision trees"
+      ],
+      "correct": 0,
+      "explanation": "With N neurons, each dropout configuration corresponds to one of 2^N possible sub-networks, all sharing weights."
+    },
+    {
+      "question": "What is Monte Carlo Dropout (MC Dropout)?",
+      "options": [
+        "Using dropout at test time across multiple forward passes to estimate predictive uncertainty and confidence intervals",
+        "A random method to initialize weights",
+        "A method to generate random training data",
+        "A dropout rate chosen by roulette wheel selection"
+      ],
+      "correct": 0,
+      "explanation": "Gal and Ghahramani (2016) showed that leaving dropout active during inference across T stochastic passes approximates Bayesian posterior uncertainty."
+    },
+    {
+      "question": "What are the learnable parameters introduced by Batch Normalization for each channel?",
+      "options": [
+        "Weights and biases",
+        "Gamma (scale) and Beta (shift)",
+        "Alpha and Rho",
+        "Lambda and Epsilon"
+      ],
+      "correct": 1,
+      "explanation": "Batch Normalization introduces learnable affine parameters gamma (scale) and beta (shift) to preserve representational power."
+    },
+    {
+      "question": "Why can Batch Normalization restore identity mapping if necessary?",
+      "options": [
+        "If gamma = sqrt(var + eps) and beta = mu, the normalized output reverts identically to the original un-normalized input",
+        "Because gamma is always 1",
+        "Because beta is always 0",
+        "By deleting the normalization step"
+      ],
+      "correct": 0,
+      "explanation": "The learnable scale and shift allow the optimization algorithm to undo normalization if the network finds unnormalized features optimal."
+    },
+    {
+      "question": "What happens to Batch Normalization during testing / inference?",
+      "options": [
+        "It computes the mean and variance of the single test sample",
+        "It uses the fixed running (exponential moving) mean and variance accumulated during the training phase",
+        "It disables normalization completely",
+        "It prompts the user to input test statistics"
+      ],
+      "correct": 1,
+      "explanation": "At test time, BN uses the deterministic population running mean and running variance tracked during training."
+    },
+    {
+      "question": "Why does Batch Normalization struggle when mini-batch sizes are very small (e.g. 2 or 4)?",
+      "options": [
+        "The batch mean and variance become extremely noisy and inaccurate estimates of the true population statistics",
+        "GPU memory overflows",
+        "Gradients become exactly zero",
+        "Epsilon cannot be added"
+      ],
+      "correct": 0,
+      "explanation": "With batch sizes like 2 or 4, sample variance estimates fluctuate wildly, introducing destabilizing noise into training."
+    },
+    {
+      "question": "Across which dimension does Layer Normalization compute mean and variance?",
+      "options": [
+        "Across the batch dimension (N)",
+        "Across the feature/channel dimensions for each individual sample independently",
+        "Across all images in the entire dataset",
+        "Across the training epochs"
+      ],
+      "correct": 1,
+      "explanation": "Layer Normalization computes statistics across the feature dimensions for each individual sample, making it completely independent of batch size."
+    },
+    {
+      "question": "Why is Layer Normalization favored over Batch Normalization in Transformers and RNNs?",
+      "options": [
+        "Because sequence lengths vary and batch sizes can be small or dynamic; LN computes statistics per token/sample without batch cross-talk",
+        "Because LN requires second derivatives",
+        "Because BN is copyrighted",
+        "Because LN eliminates the need for attention"
+      ],
+      "correct": 0,
+      "explanation": "Sequential models process varying sequence lengths where batch statistics are irregular and parallel tokens benefit from independent per-sample normalization."
+    },
+    {
+      "question": "What is Pre-LN vs Post-LN in Transformer architectures?",
+      "options": [
+        "Pre-LN applies LayerNorm before the multi-head attention and MLP sub-layers, providing stable gradient flow that eliminates the need for delicate warmup",
+        "Pre-LN normalizes the input text string",
+        "Post-LN is only used in computer vision",
+        "Pre-LN doubles the parameter count"
+      ],
+      "correct": 0,
+      "explanation": "Pre-LN stabilizes gradients directly along the residual stream, preventing gradient explosion and allowing training without strict learning rate warmup."
+    },
+    {
+      "question": "What is Group Normalization (Wu & He, 2018)?",
+      "options": [
+        "Dividing channels into G groups and performing normalization within each group along spatial dimensions independently of batch size",
+        "Normalizing groups of users in collaborative filtering",
+        "Normalizing batches into groups of 32",
+        "A method for federated learning"
+      ],
+      "correct": 0,
+      "explanation": "Group Norm divides the channel dimension into G groups (e.g. 32) and normalizes within each group, matching BN accuracy while remaining batch-independent."
+    },
+    {
+      "question": "What is Instance Normalization primarily used for?",
+      "options": [
+        "Image classification on ImageNet",
+        "Style transfer and generative models (GANs) to strip away instance-specific contrast and lighting style",
+        "Tabular regression",
+        "Speech recognition"
+      ],
+      "correct": 1,
+      "explanation": "Instance Normalization normalizes each sample and channel independently, discarding contrast/style variations while retaining structural content."
+    },
+    {
+      "question": "What is Weight Decay in gradient descent optimization?",
+      "options": [
+        "Adding a penalty proportional to the squared magnitude of weights (L2) to the loss function, which causes weights to decay toward zero on each step",
+        "Reducing the number of weights every epoch",
+        "Pruning zero weights",
+        "Decreasing the precision from 32-bit to 16-bit"
+      ],
+      "correct": 0,
+      "explanation": "Weight decay penalizes large weights, mathematically equivalent to L2 regularization in standard SGD: theta <- (1 - lr * lambda) * theta - lr * grad."
+    },
+    {
+      "question": "What is the difference between L1 regularization and L2 regularization regarding model weights?",
+      "options": [
+        "L1 produces sparse weights (driving many exactly to zero), while L2 shrinks weights smoothly toward zero without exact zeros",
+        "L2 produces sparse weights",
+        "L1 increases weight magnitudes",
+        "L2 is non-differentiable"
+      ],
+      "correct": 0,
+      "explanation": "L1 adds a constant force toward zero (|w|), driving irrelevant weights to exact zero for feature selection; L2 penalizes large weights quadratically (w^2)."
+    },
+    {
+      "question": "What is Early Stopping?",
+      "options": [
+        "Halting training when validation error begins to degrade or ceases improving, and restoring the best checkpoint",
+        "Stopping training after exactly 10 minutes",
+        "Halting when training loss reaches zero",
+        "Stopping when GPU temperature is high"
+      ],
+      "correct": 0,
+      "explanation": "Early stopping monitors validation metrics and stops before the model overfits the training set, saving the checkpoint with optimal validation score."
+    },
+    {
+      "question": "What is the 'patience' hyperparameter in Early Stopping?",
+      "options": [
+        "The number of epochs to wait without validation improvement before terminating training",
+        "The seconds to wait between mini-batches",
+        "The number of epochs before starting validation",
+        "The learning rate multiplier"
+      ],
+      "correct": 0,
+      "explanation": "Patience defines how many evaluation cycles the trainer tolerates without a new best score before terminating early."
+    },
+    {
+      "question": "Why is Data Augmentation considered a form of regularization in deep learning?",
+      "options": [
+        "It artificially expands the training distribution with label-preserving transformations, exposing the network to diverse variations and preventing memorization",
+        "It compresses the images into smaller files",
+        "It decreases the number of trainable weights",
+        "It changes the loss function to cross-entropy"
+      ],
+      "correct": 0,
+      "explanation": "By generating stochastic variations (rotations, crops, flips), data augmentation increases effective sample diversity, smoothing decision boundaries."
+    },
+    {
+      "question": "What is CutMix data augmentation?",
+      "options": [
+        "Cutting a rectangular patch from one image, pasting it onto another, and mixing their target labels proportionally to the patch area",
+        "Cutting out a patch and filling it with black pixels",
+        "Mixing two audio clips",
+        "Dropping 50% of the channels"
+      ],
+      "correct": 0,
+      "explanation": "CutMix replaces an image patch with a patch from another image and sets the ground truth label to a proportional combination of both classes."
+    },
+    {
+      "question": "What is Mixup data augmentation (Zhang et al., 2017)?",
+      "options": [
+        "Linearly interpolating both input images and their one-hot target vectors: x_tilde = lambda*x_i + (1-lambda)*x_j",
+        "Swapping random channels between images",
+        "Concatenating two images side-by-side",
+        "Blurring the image with a Gaussian filter"
+      ],
+      "correct": 0,
+      "explanation": "Mixup creates synthetic training examples via convex combinations of pairs of inputs and labels, encouraging linear behavior between classes."
+    },
+    {
+      "question": "What is Label Smoothing?",
+      "options": [
+        "Replacing hard 0 and 1 one-hot targets with (1 - eps) for the correct class and eps / (K - 1) for incorrect classes",
+        "Rounding continuous labels to integers",
+        "Removing labels from 10% of samples",
+        "Normalizing labels to mean 0"
+      ],
+      "correct": 0,
+      "explanation": "Label smoothing prevents the network from becoming overconfident by softening target distributions, which regularizes logit magnitudes."
+    },
+    {
+      "question": "What is Stochastic Depth (DropPath)?",
+      "options": [
+        "Randomly dropping entire residual blocks or layers during training with a specified survival probability, while keeping all layers active at test time",
+        "Dropping random pixels from input images",
+        "Decreasing network depth every epoch",
+        "Pruning weights based on depth"
+      ],
+      "correct": 0,
+      "explanation": "Stochastic Depth bypasses entire layers via residual shortcuts during training, functioning as an ensemble over networks of varying effective depths."
+    },
+    {
+      "question": "What is RMSNorm (Root Mean Square Normalization)?",
+      "options": [
+        "A computationally faster simplification of LayerNorm that scales activations by the root mean square without subtracting the mean",
+        "A normalization technique for audio root-mean-square levels",
+        "A combination of RMSprop and BatchNorm",
+        "A method that sets variance to zero"
+      ],
+      "correct": 0,
+      "explanation": "RMSNorm assumes centering the mean is computationally unnecessary and only scales by the root mean square of activations, used in modern LLMs like Llama and Gemma."
+    },
+    {
+      "question": "In PyTorch, what is the purpose of setting `model.train()` vs `model.eval()`?",
+      "options": [
+        "It toggles specific behaviors of layers like Dropout (active in train, disabled in eval) and BatchNorm (updates running stats in train, uses frozen stats in eval)",
+        "It compiles the model to C++",
+        "It changes the GPU clock speed",
+        "It loads weights from disk"
+      ],
+      "correct": 0,
+      "explanation": "Calling `model.train()` or `model.eval()` toggles the training/inference modes of stateful modules like Dropout and BatchNorm."
+    },
+    {
+      "question": "What happens if you accidentally run validation or testing with `model.train()` active?",
+      "options": [
+        "Dropout remains active injecting random noise, and BatchNorm computes mean/var from the current test batch rather than frozen running statistics, degrading evaluation accuracy",
+        "The test data is deleted",
+        "The code throws a compilation error",
+        "The accuracy is identical"
+      ],
+      "correct": 0,
+      "explanation": "Test predictions become stochastic due to active dropout, and batch-dependent due to live batch statistics, corrupting evaluation metrics."
+    },
+    {
+      "question": "Why should Batch Normalization typically NOT be placed after a Dropout layer?",
+      "options": [
+        "The variance shift introduced by Dropout corrupts the running variance estimates tracked by Batch Normalization (the 'variance shift' problem)",
+        "BatchNorm cannot compute square roots after dropout",
+        "It causes syntax errors in PyTorch",
+        "Dropout requires unnormalized inputs"
+      ],
+      "correct": 0,
+      "explanation": "Li et al. showed that applying Dropout before BatchNorm causes a mismatch between training and test activation variances."
+    },
+    {
+      "question": "What is the impact of weight decay when applied to the bias parameters?",
+      "options": [
+        "Biases are typically excluded from weight decay because regularizing them has negligible effect on capacity and can introduce underfitting bias",
+        "It causes biases to explode",
+        "It doubles the training speed",
+        "It is mandatory for convergence"
+      ],
+      "correct": 0,
+      "explanation": "Standard practice in modern deep learning (e.g. in Transformers) explicitly excludes 1D parameters (biases and LayerNorm gains) from weight decay."
+    },
+    {
+      "question": "What is Gradient Penalty (e.g., in WGAN-GP)?",
+      "options": [
+        "Adding a regularization term to the loss that penalizes the squared norm of the critic's gradient with respect to inputs: (||grad_x D(x)||_2 - 1)^2",
+        "Fining the model for high loss",
+        "Penalizing parameters that change too fast",
+        "Clipping gradients below zero"
+      ],
+      "correct": 0,
+      "explanation": "WGAN-GP enforces 1-Lipschitz continuity by penalizing deviations of the discriminator gradient norm from 1."
+    },
+    {
+      "question": "How does Spectral Normalization regularize neural networks (Miyato et al., 2018)?",
+      "options": [
+        "By dividing each weight matrix W by its largest singular value (spectral norm) sigma(W), enforcing a Lipschitz constraint <= 1",
+        "By computing FFT of weights",
+        "By normalizing spectra of audio waves",
+        "By setting eigenvalues to zero"
+      ],
+      "correct": 0,
+      "explanation": "Spectral Normalization bounds the Lipschitz constant of each layer to 1, stabilizing training in GAN discriminators."
+    },
+    {
+      "question": "What is the primary danger of over-regularization?",
+      "options": [
+        "The model underfits, failing to capture meaningful underlying patterns in the training data",
+        "The model trains too quickly",
+        "The model achieves 100% test accuracy",
+        "The model runs out of VRAM"
+      ],
+      "correct": 0,
+      "explanation": "Excessive regularization overly constrains model capacity, causing severe underfitting and poor performance on both training and test data."
+    },
+    {
+      "question": "What is Elastic Net regularization in deep learning?",
+      "options": [
+        "A linear combination of both L1 and L2 weight penalties: alpha * L1 + (1 - alpha) * L2",
+        "A network with flexible rubber-like connections",
+        "A technique for dynamic layer resizing",
+        "A method for training on elastic cloud instances"
+      ],
+      "correct": 0,
+      "explanation": "Elastic Net combines L1 sparsity with L2 grouping and stability, balancing both regularization types."
+    },
+    {
+      "question": "Why is Layer Normalization placed inside the residual branch (Pre-LN) in modern Transformers rather than outside (Post-LN)?",
+      "options": [
+        "Pre-LN ensures the residual stream remains clean and unscaled, preserving identity gradients throughout hundreds of layers and eliminating fragile warmup",
+        "Pre-LN uses half the parameters",
+        "Pre-LN eliminates the need for attention masks",
+        "Pre-LN allows larger vocabularies"
+      ],
+      "correct": 0,
+      "explanation": "Pre-LN provides an unobstructed highway for gradient flow directly through the residual skip connections, greatly improving training stability."
+    },
+    {
+      "question": "What is Cross-Entropy Loss with Label Smoothing mathematically?",
+      "options": [
+        "L = (1 - eps) * CE(y, y_hat) + eps * CE(uniform, y_hat)",
+        "L = CE(y, y_hat)^2",
+        "L = exp(CE(y, y_hat))",
+        "L = CE(y, y_hat) - eps * weights"
+      ],
+      "correct": 0,
+      "explanation": "Label smoothing linearly mixes the cross-entropy loss against the true target with the cross-entropy loss against a uniform prior distribution across all classes."
+    }
+  ],
+  "level": "advanced"
+}

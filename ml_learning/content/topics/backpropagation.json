@@ -1,0 +1,460 @@
+{
+  "id": "backpropagation",
+  "title": "Backpropagation & Computational Graphs",
+  "description": "Chain rule of calculus, Reverse-mode automatic differentiation, Jacobian matrices, Vanishing/Exploding gradients, and Weight Initialization.",
+  "duration": "35 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Backpropagation & Automatic Differentiation",
+        "subtitle": "The Engine that Powers Modern Deep Learning Optimization"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is Backpropagation?",
+        "text": "Introduced to machine learning by Rumelhart, Hinton, and Williams in 1986, **Backpropagation (Backward Propagation of Errors)** is an algorithm for computing the gradient of the loss function with respect to every trainable weight and bias in a neural network by recursively applying the **multivariate chain rule** of calculus in reverse topological order over a computational graph."
+      },
+      {
+        "type": "text",
+        "title": "Forward Pass vs Backward Pass on a Computational Graph",
+        "body": "Every deep learning framework (PyTorch, TensorFlow, JAX) represents calculations as a Directed Acyclic Graph (DAG) of atomic operations:\n\n1. **Forward Pass:** Compute intermediate values from inputs to loss, storing intermediate activations ($Z^{[l]}, A^{[l]}$) in memory (activations cache).\n2. **Backward Pass (Reverse-Mode Autodiff):** Traverse backward from the scalar loss $L$, computing the gradient of $L$ with respect to each node by multiplying upstream gradients with local Jacobians:\n\n$$\\frac{\\partial L}{\\partial x} = \\sum_{y \\in \\text{children}(x)} \\frac{\\partial L}{\\partial y} \\cdot \\frac{\\partial y}{\\partial x}$$"
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "The Core Backpropagation Equations for an MLP Layer",
+        "text": "For layer $l$ where $Z^{[l]} = W^{[l]} A^{[l-1]} + \\mathbf{b}^{[l]}$ and $A^{[l]} = g^{[l]}(Z^{[l]})$:\n\n1. **Error vector at layer $l$:**\n$$dZ^{[l]} = \\frac{\\partial L}{\\partial Z^{[l]}} = dA^{[l]} \\odot {g^{[l]}}'(Z^{[l]})$$\n\n2. **Gradient with respect to weights:**\n$$dW^{[l]} = \\frac{\\partial L}{\\partial W^{[l]}} = \\frac{1}{m} dZ^{[l]} (A^{[l-1]})^T$$\n\n3. **Gradient with respect to biases:**\n$$d\\mathbf{b}^{[l]} = \\frac{\\partial L}{\\partial \\mathbf{b}^{[l]}} = \\frac{1}{m} \\sum_{i=1}^{m} dZ^{[l](i)}$$\n\n4. **Upstream gradient for previous layer:**\n$$dA^{[l-1]} = (W^{[l]})^T dZ^{[l]}$$"
+      },
+      {
+        "type": "table",
+        "title": "The Two Pathologies: Vanishing vs Exploding Gradients",
+        "headers": [
+          "Pathology",
+          "Mathematical Cause",
+          "Observed Symptoms in Training",
+          "Proven Remedies"
+        ],
+        "rows": [
+          [
+            "Vanishing Gradients",
+            "Repeated multiplication of small weight matrices ($\\lambda_{max} < 1$) and saturating derivatives (Sigmoid $\\le 0.25$); $\\prod_{l=1}^L W^{[l]} \\to 0$.",
+            "Early layers learn exceedingly slowly or completely freeze; training loss plateaus early.",
+            "Use ReLU / GELU activations; He/Xavier initialization; Residual connections (ResNets); Batch/Layer Normalization."
+          ],
+          [
+            "Exploding Gradients",
+            "Repeated multiplication of large weight matrices ($\\lambda_{max} > 1$); $\\prod_{l=1}^L W^{[l]} \\to \\infty$.",
+            "Weights oscillate wildly; loss abruptly evaluates to NaN or Inf; model diverges.",
+            "Gradient Clipping (by norm or value); proper weight initialization; lower learning rate; Weight Decay."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "Gradient Clipping Techniques",
+        "text": "**Norm Clipping** scales down the entire gradient vector if its L2 norm exceeds a threshold $c$ without changing its direction:\n\n$$\\mathbf{g} \\leftarrow \\mathbf{g} \\cdot \\min\\left(1, \\frac{c}{\\|\\mathbf{g}\\|_2}\\right)$$\n\nThis is essential when training RNNs, LSTMs, and large Transformer models to prevent catastrophic divergence from occasional massive loss spikes."
+      }
+    ],
+    "code_example": {
+      "title": "Exact Analytical Gradient Verification (Gradient Checking)",
+      "code": "import numpy as np\n\n# Analytical vs Numerical gradient checker\ndef numerical_gradient(f, w, eps=1e-5):\n    grad = np.zeros_like(w)\n    it = np.nditer(w, flags=['multi_index'], op_flags=['readwrite'])\n    while not it.finished:\n        idx = it.multi_index\n        orig_val = w[idx]\n        \n        w[idx] = orig_val + eps\n        loss_pos = f(w)\n        w[idx] = orig_val - eps\n        loss_neg = f(w)\n        w[idx] = orig_val # restore\n        \n        grad[idx] = (loss_pos - loss_neg) / (2.0 * eps)\n        it.iternext()\n    return grad\n\n# Simple 2-layer forward and loss\nnp.random.seed(42)\nX = np.random.randn(3, 5)\nY = np.array([[1, 0, 1, 0, 1]])\nW1 = np.random.randn(4, 3) * 0.1\n\ndef loss_fn(W1_val):\n    Z1 = np.dot(W1_val, X)\n    A1 = np.maximum(0, Z1) # ReLU\n    # Mock output loss\n    return 0.5 * np.sum(A1**2)\n\n# Analytical gradient for W1\nZ1 = np.dot(W1, X)\nA1 = np.maximum(0, Z1)\ndA1 = A1\ndZ1 = dA1 * (Z1 > 0)\nanalytical_grad = np.dot(dZ1, X.T)\n\nnum_grad = numerical_gradient(loss_fn, W1)\nrelative_error = np.linalg.norm(analytical_grad - num_grad) / (np.linalg.norm(analytical_grad) + np.linalg.norm(num_grad))\n\nprint(f'Analytical Gradient Shape: {analytical_grad.shape}')\nprint(f'Numerical Gradient Shape:  {num_grad.shape}')\nprint(f'Relative Error: {relative_error:.2e}')\nassert relative_error < 1e-7, 'Gradient check failed!'"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What mathematical theorem formulates the backbone of the backpropagation algorithm?",
+      "options": [
+        "Bayes' Theorem",
+        "Multivariate Chain Rule of Calculus",
+        "Central Limit Theorem",
+        "Taylor's Theorem"
+      ],
+      "correct": 1,
+      "explanation": "Backpropagation calculates partial derivatives of the loss with respect to parameters by systematically applying the chain rule."
+    },
+    {
+      "question": "Who popularized backpropagation for artificial neural networks in their seminal 1986 paper?",
+      "options": [
+        "LeCun, Bengio, and Hinton",
+        "Rumelhart, Hinton, and Williams",
+        "Vaswani et al.",
+        "Goodfellow et al."
+      ],
+      "correct": 1,
+      "explanation": "David Rumelhart, Geoffrey Hinton, and Ronald Williams published 'Learning representations by back-propagating errors' in Nature in 1986."
+    },
+    {
+      "question": "In computational graphs, why is reverse-mode automatic differentiation preferred over forward-mode for neural networks?",
+      "options": [
+        "Because forward-mode cannot handle non-linearities",
+        "Because neural networks have many parameters (N) but a single scalar loss output (1), making reverse-mode O(1) passes vs O(N) passes in forward-mode",
+        "Because reverse-mode requires zero memory cache",
+        "Because reverse-mode does not use the chain rule"
+      ],
+      "correct": 1,
+      "explanation": "Reverse-mode computes gradients of 1 scalar output with respect to millions of inputs in a single backward pass, whereas forward-mode would require one pass per input parameter."
+    },
+    {
+      "question": "What is stored during the forward pass that is strictly required during the backward pass?",
+      "options": [
+        "The test set labels",
+        "Intermediate activations and pre-activation tensors (Z and A)",
+        "The optimizer state from 5 epochs ago",
+        "The compiler assembly code"
+      ],
+      "correct": 1,
+      "explanation": "Intermediate values (like activations and inputs) must be cached in memory during forward propagation because the local derivatives evaluate at those values."
+    },
+    {
+      "question": "What trade-off arises from caching forward activations for backpropagation?",
+      "options": [
+        "Training requires substantially more GPU VRAM than inference",
+        "Inference becomes non-deterministic",
+        "Gradients become biased",
+        "The learning rate must be negative"
+      ],
+      "correct": 0,
+      "explanation": "Activation memory dominates GPU RAM during training, which is why maximum batch size during training is far smaller than during pure inference."
+    },
+    {
+      "question": "Given loss L, pre-activation Z = W X + b, and error dZ = dL/dZ, what is dL/dW for a batch of m samples?",
+      "options": [
+        "dZ * X",
+        "(1/m) * dZ * X^T",
+        "(1/m) * X * dZ^T",
+        "dZ + X"
+      ],
+      "correct": 1,
+      "explanation": "dL/dW = (1/m) * dZ * X^T, summing outer products over the m training examples in the mini-batch."
+    },
+    {
+      "question": "What is dL/db for a layer with error matrix dZ across m samples?",
+      "options": [
+        "(1/m) * sum(dZ, axis=1, keepdims=True)",
+        "max(dZ)",
+        "W^T * dZ",
+        "dZ * dZ^T"
+      ],
+      "correct": 0,
+      "explanation": "Because the bias is added to every sample in the batch, its gradient is the sum of error vectors across all batch instances: (1/m) * sum(dZ, axis=1)."
+    },
+    {
+      "question": "In a deep network with L layers, why does backpropagating through saturating Sigmoid activations cause the gradient at layer 1 to approach zero?",
+      "options": [
+        "Because the derivative of Sigmoid is bounded by 0.25, and multiplying L numbers <= 0.25 decays exponentially (0.25^L -> 0)",
+        "Because Sigmoid creates negative weights",
+        "Because Sigmoid is non-differentiable at the origin",
+        "Because the bias term cancels the gradient"
+      ],
+      "correct": 0,
+      "explanation": "Repeatedly multiplying terms with magnitude at most 0.25 causes exponential decay: (0.25)^10 is less than 10^-6."
+    },
+    {
+      "question": "What is the primary operational consequence of vanishing gradients?",
+      "options": [
+        "The output layer outputs NaN",
+        "Early layers near the input learn extremely slowly or not at all, leaving shallow representation learning ineffective",
+        "The learning rate grows uncontrollably",
+        "The loss diverges to infinity"
+      ],
+      "correct": 1,
+      "explanation": "When gradients vanish in early layers, their weights receive negligible updates, rendering deep networks no more capable than shallow ones."
+    },
+    {
+      "question": "How does Gradient Clipping by Global Norm prevent exploding gradients?",
+      "options": [
+        "By setting all gradients to zero if any value is negative",
+        "By scaling down the entire gradient vector proportionally when its L2 norm exceeds a threshold c: g = g * min(1, c / ||g||)",
+        "By removing the highest loss sample from the batch",
+        "By dividing all weights by the number of epochs"
+      ],
+      "correct": 1,
+      "explanation": "Global norm clipping scales the gradient vector while preserving its exact directional angle in parameter space."
+    },
+    {
+      "question": "What is the purpose of Gradient Checking ('grad check') in deep learning development?",
+      "options": [
+        "To verify that an analytical backprop implementation matches finite-difference numerical approximations within tight tolerance",
+        "To check if the GPU has enough CUDA cores",
+        "To ensure the loss is monotonic",
+        "To prune dead weights automatically"
+      ],
+      "correct": 0,
+      "explanation": "Grad checking computes numerical two-sided finite difference approximations to verify analytical derivative formulas and backprop code."
+    },
+    {
+      "question": "Why should numerical gradient checking NOT be used for everyday model training instead of backpropagation?",
+      "options": [
+        "Because finite differences are mathematically incorrect",
+        "Because numerical gradient checking requires evaluating the forward pass twice per parameter, making it orders of magnitude too slow for millions of parameters",
+        "Because numerical gradients only work for linear regression",
+        "Because numerical gradients cannot run on CPUs"
+      ],
+      "correct": 1,
+      "explanation": "Computing numerical gradients for a model with 10 million parameters would require 20 million forward passes per training step, which is computationally intractable."
+    },
+    {
+      "question": "In backpropagation, what is the 'local gradient' of an addition gate z = x + y?",
+      "options": [
+        "dz/dx = y and dz/dy = x",
+        "dz/dx = 1 and dz/dy = 1",
+        "dz/dx = 0 and dz/dy = 0",
+        "dz/dx = x and dz/dy = y"
+      ],
+      "correct": 1,
+      "explanation": "The partial derivatives of z = x + y with respect to both x and y are 1.0, acting as a gradient distributor."
+    },
+    {
+      "question": "In a computational graph, how does a multiplication gate z = x * y distribute upstream gradient dL/dz?",
+      "options": [
+        "dL/dx = (dL/dz) * y and dL/dy = (dL/dz) * x",
+        "dL/dx = (dL/dz) * x and dL/dy = (dL/dz) * y",
+        "dL/dx = dL/dz + y",
+        "dL/dx = (dL/dz) / y"
+      ],
+      "correct": 0,
+      "explanation": "The multiplication gate swaps inputs: local derivative with respect to x is y, and with respect to y is x."
+    },
+    {
+      "question": "When a node in a computational graph branches out to multiple downstream paths, how is its total upstream gradient accumulated?",
+      "options": [
+        "By multiplying the gradients from all branches",
+        "By summing the gradients from all downstream branches",
+        "By taking the maximum gradient among branches",
+        "By taking only the first branch's gradient"
+      ],
+      "correct": 1,
+      "explanation": "By the multivariate chain rule, if x affects L through multiple paths y_1, y_2, ..., then dL/dx = sum_i (dL/dy_i * dy_i/dx)."
+    },
+    {
+      "question": "Why is the two-sided finite difference (f(w + eps) - f(w - eps)) / (2*eps) preferred over one-sided (f(w + eps) - f(w)) / eps?",
+      "options": [
+        "It requires fewer operations",
+        "Its truncation error is O(eps^2) compared to O(eps) for one-sided, offering significantly higher precision",
+        "It never divides by zero",
+        "It avoids computing f(w)"
+      ],
+      "correct": 1,
+      "explanation": "Taylor expansion reveals that symmetric differences cancel out the first-order error term, yielding O(eps^2) accuracy."
+    },
+    {
+      "question": "What is the typical value of epsilon used during numerical gradient checking?",
+      "options": [
+        "0.1",
+        "1e-5 to 1e-7",
+        "1e-18",
+        "100.0"
+      ],
+      "correct": 1,
+      "explanation": "Values between 1e-5 and 1e-7 balance truncation error against 64-bit/32-bit floating-point rounding precision."
+    },
+    {
+      "question": "What is the Jacobian matrix in the context of vector-to-vector mappings in neural networks?",
+      "options": [
+        "A matrix of all first-order partial derivatives of a vector function f: R^n -> R^m",
+        "The inverse of the Hessian matrix",
+        "A matrix containing the eigenvalues of the weights",
+        "A diagonal matrix of biases"
+      ],
+      "correct": 0,
+      "explanation": "The Jacobian J contains J_ij = df_i / dx_j for a mapping from R^n to R^m."
+    },
+    {
+      "question": "What is the Hessian matrix?",
+      "options": [
+        "A vector of first derivatives",
+        "A square matrix of second-order partial derivatives of a scalar function",
+        "A diagonal matrix of weight decay factors",
+        "The cross-product of inputs and outputs"
+      ],
+      "correct": 1,
+      "explanation": "The Hessian H contains H_ij = d^2 L / (d w_i d w_j), describing the local curvature of the loss landscape."
+    },
+    {
+      "question": "Why do first-order optimization methods (SGD, Adam) dominate deep learning over second-order methods (Newton's method)?",
+      "options": [
+        "Second-order methods cannot optimize convex functions",
+        "Computing and inverting the Hessian matrix of size (N x N) requires O(N^2) memory and O(N^3) time, which is impossible for millions of parameters",
+        "First-order methods always find the global minimum",
+        "First-order methods do not require gradients"
+      ],
+      "correct": 1,
+      "explanation": "For a network with 1 billion parameters, an explicit Hessian would require 10^18 floating point numbers (petabytes of RAM)."
+    },
+    {
+      "question": "What is the Jacobian of the element-wise ReLU activation vector a = relu(z)?",
+      "options": [
+        "A dense random matrix",
+        "A diagonal matrix where the i-th diagonal element is 1 if z_i > 0 else 0",
+        "An all-ones matrix",
+        "An identity matrix multiplied by -1"
+      ],
+      "correct": 1,
+      "explanation": "Because ReLU operates element-wise without cross-element interactions, its Jacobian is purely diagonal with 1s where z_i > 0 and 0s elsewhere."
+    },
+    {
+      "question": "What is Activation Checkpointing (Gradient Checkpointing)?",
+      "options": [
+        "Discarding some intermediate activations during forward pass and recomputing them on-the-fly during backward pass to save VRAM",
+        "Saving model checkpoints to disk after every batch",
+        "Verifying activations with a unit test",
+        "Converting activations to 8-bit integers permanently"
+      ],
+      "correct": 0,
+      "explanation": "Gradient checkpointing trades additional compute (~20-30% extra forward ops) for massive VRAM reduction by recomputing activations during backward pass."
+    },
+    {
+      "question": "How does residual skip connection (y = F(x) + x) in ResNets mitigate vanishing gradients?",
+      "options": [
+        "By eliminating all backward operations",
+        "The derivative dy/dx = dF/dx + 1 contains a constant +1 identity term, ensuring an uninterrupted gradient highway directly to early layers",
+        "By normalizing the input mean to zero",
+        "By doubling the learning rate"
+      ],
+      "correct": 1,
+      "explanation": "Because d(F(x) + x)/dx = F'(x) + 1, even if F'(x) approaches zero, the gradient always carries a clean non-decayed signal through the +1 identity path."
+    },
+    {
+      "question": "What is the condition for gradient explosion in terms of the spectral radius of the layer weight matrices?",
+      "options": [
+        "The largest eigenvalue of weight matrices is consistently greater than 1.0",
+        "The largest eigenvalue is equal to 0",
+        "The weight matrices are symmetric",
+        "The determinant is negative"
+      ],
+      "correct": 0,
+      "explanation": "If the spectral radius (maximum singular value / eigenvalue) exceeds 1 across many repeated matrix multiplications, the product grows exponentially."
+    },
+    {
+      "question": "Which weight initialization strategy draws weights from N(0, 2 / n_in)?",
+      "options": [
+        "Xavier Uniform",
+        "He (Kaiming) Normal",
+        "LeCun Uniform",
+        "Random Constant"
+      ],
+      "correct": 1,
+      "explanation": "He normal initialization uses mean 0 and standard deviation sqrt(2 / n_in), derived specifically to maintain variance across ReLU layers."
+    },
+    {
+      "question": "Which weight initialization draws weights from U(-sqrt(6 / (n_in + n_out)), +sqrt(6 / (n_in + n_out)))?",
+      "options": [
+        "He Uniform",
+        "Glorot (Xavier) Uniform",
+        "Normal Distribution N(0, 1)",
+        "Bernoulli Distribution"
+      ],
+      "correct": 1,
+      "explanation": "Glorot Uniform initialization balances fan-in and fan-out for symmetric, saturating activations like Tanh."
+    },
+    {
+      "question": "What happens if weights are initialized too large (e.g. std=10.0)?",
+      "options": [
+        "Sigmoid/Tanh activations immediately saturate at extremes (-1, +1 or 0, 1), producing tiny initial gradients and stalling learning",
+        "The network converges in 1 step",
+        "The weights collapse to 0",
+        "The loss becomes negative"
+      ],
+      "correct": 0,
+      "explanation": "Large initial weights push pre-activations into the flat saturation tails of activation functions, causing immediate gradient stagnation."
+    },
+    {
+      "question": "In PyTorch, what does calling `loss.backward()` execute?",
+      "options": [
+        "Runs inference on the test set",
+        "Traverses the autograd computational graph backward from loss to compute and accumulate gradients in the `.grad` attribute of all leaf tensors",
+        "Updates the weights using SGD",
+        "Clears all cached memory"
+      ],
+      "correct": 1,
+      "explanation": "It triggers reverse-mode autodiff, calculating gradients and adding them to the `.grad` field of parameters with `requires_grad=True`."
+    },
+    {
+      "question": "Why must `optimizer.zero_grad()` be called before `loss.backward()` in PyTorch training loops?",
+      "options": [
+        "To reset weights to random values",
+        "Because PyTorch accumulates (sums) gradients into `.grad` by default rather than overwriting them",
+        "To clear the model from GPU memory",
+        "To set the learning rate to zero"
+      ],
+      "correct": 1,
+      "explanation": "Gradients accumulate by default (which is useful for gradient accumulation across mini-batches). Failing to zero them causes gradients from successive batches to sum together."
+    },
+    {
+      "question": "What is Gradient Accumulation in deep learning?",
+      "options": [
+        "Summing gradients across multiple micro-batches before performing an optimizer step, simulating a larger effective batch size within VRAM limits",
+        "Calculating the cumulative sum of loss across epochs",
+        "Storing past gradients for momentum",
+        "Adding noise to gradients"
+      ],
+      "correct": 0,
+      "explanation": "Gradient accumulation allows practitioners to train with an effective batch size of, say, 256 or 1024 even if only a micro-batch of 16 fits on GPU memory."
+    },
+    {
+      "question": "What does `torch.no_grad()` do in PyTorch?",
+      "options": [
+        "Halts gradient updates while still building the autograd graph",
+        "Disables the autograd engine during forward pass, preventing construction of the computational graph and saving memory during validation/inference",
+        "Forces all gradients to be zero",
+        "Deletes model weights"
+      ],
+      "correct": 1,
+      "explanation": "It turns off autograd tracking, reducing memory allocation and compute time during evaluation."
+    },
+    {
+      "question": "What is the gradient of the loss with respect to input x for the operation z = x^2, L = 3z + 5?",
+      "options": [
+        "dL/dx = 3",
+        "dL/dx = 6x",
+        "dL/dx = 2x",
+        "dL/dx = 3x^2"
+      ],
+      "correct": 1,
+      "explanation": "dL/dz = 3, dz/dx = 2x. By the chain rule, dL/dx = (dL/dz) * (dz/dx) = 3 * 2x = 6x."
+    },
+    {
+      "question": "If L = sum(log(y_hat)) and y_hat = sigmoid(z), what is dL/dz?",
+      "options": [
+        "1 - y_hat",
+        "y_hat * (1 - y_hat)",
+        "1 / y_hat",
+        "y_hat"
+      ],
+      "correct": 0,
+      "explanation": "For negative log-likelihood with sigmoid, dL/dz simplifies neatly to (y_hat - y); for y=1, it is y_hat - 1."
+    },
+    {
+      "question": "Why is automatic differentiation superior to symbolic differentiation for deep networks?",
+      "options": [
+        "Symbolic differentiation produces exact analytical expressions which suffer from exponential expression swell for complex nested functions",
+        "Symbolic differentiation cannot compute derivatives of polynomials",
+        "Automatic differentiation produces approximations with large error",
+        "Symbolic differentiation requires GPUs"
+      ],
+      "correct": 0,
+      "explanation": "Symbolic differentiation generates explicit algebraic formulas that explode exponentially in size ('expression swell') for nested compositions, whereas autodiff computes numerical derivatives step-by-step."
+    },
+    {
+      "question": "What is the condition for a mathematical function to be compatible with standard backpropagation?",
+      "options": [
+        "It must be linear everywhere",
+        "It must be sub-differentiable (or differentiable almost everywhere) so a valid subgradient can be computed",
+        "It must be strictly convex",
+        "It must have an analytical inverse"
+      ],
+      "correct": 1,
+      "explanation": "Functions need not be smooth everywhere (e.g. ReLU has no derivative at 0, where a subgradient like 0 or 1 is chosen), but must be sub-differentiable almost everywhere."
+    }
+  ],
+  "level": "advanced"
+}

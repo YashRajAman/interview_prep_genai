@@ -1,0 +1,490 @@
+{
+  "id": "types-of-ml",
+  "title": "Types of Machine Learning",
+  "description": "Learn the three main types of ML: Supervised, Unsupervised, and Reinforcement Learning with friendly everyday analogies.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "The Three Main Families of Machine Learning",
+        "subtitle": "Supervised Learning, Unsupervised Learning, and Reinforcement Learning"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Simple Analogy",
+        "content": "Think of the three types of machine learning like three ways a person can learn:\n\n1. **Supervised Learning (Learning with a Teacher):** A student does homework with an answer key. The teacher shows flashcards: *'This is a cat. This is a dog.'* The student learns by checking against the right answers.\n2. **Unsupervised Learning (Learning on Your Own):** You are given a box of mixed puzzle pieces with no picture on the box. You naturally sort them by color or shape without anyone telling you the categories.\n3. **Reinforcement Learning (Learning by Trial and Error):** You train a puppy with treats. When it sits, it gets a treat (+1 reward). When it chews the carpet, you say *'No!'* (-1 penalty). Over time, it learns good behavior."
+      },
+      {
+        "type": "table",
+        "title": "The 3 Main Types Compared",
+        "headers": [
+          "Type",
+          "Does it have answers (labels)?",
+          "What is the goal?",
+          "Real-World Everyday Example"
+        ],
+        "rows": [
+          [
+            "Supervised Learning",
+            "YES: Data has inputs X and correct answers y.",
+            "Predict the correct answer for new examples.",
+            "Predicting house prices, spam detection, medical diagnosis."
+          ],
+          [
+            "Unsupervised Learning",
+            "NO: Data only has inputs X with no answers.",
+            "Find hidden patterns, groupings, or clusters.",
+            "Grouping grocery store shoppers by shopping habits, detecting fraud."
+          ],
+          [
+            "Reinforcement Learning",
+            "NO: Learns through rewards & penalties from actions.",
+            "Take actions in an environment to maximize total reward.",
+            "Teaching AI to play Chess, self-driving car steering, robotics."
+          ]
+        ]
+      },
+      {
+        "type": "text",
+        "title": "Supervised Learning: Classification vs. Regression",
+        "content": "In Supervised Learning, the type of question determines the category:\n- **Classification (Picking a Category):** When the answer is a category or bucket. *Examples:* Is this email Spam or Normal? Is this tumor Benign or Malignant? Is this photo a Cat, Dog, or Bird?\n- **Regression (Predicting a Number):** When the answer is a continuous measurement or number. *Examples:* What will this house sell for in dollars? How tall will this child be? What will tomorrow's temperature be in degrees?"
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Paradigm Sorter",
+    "description": "Categorize each machine learning use-case into its correct fundamental paradigm.",
+    "items": [
+      {
+        "text": "Predicting whether an email is spam based on 10,000 labeled past emails",
+        "category": "Supervised"
+      },
+      {
+        "text": "Grouping 50,000 grocery store shoppers into 4 shopper types without labels",
+        "category": "Unsupervised"
+      },
+      {
+        "text": "Teaching a robot dog to walk and jump via trial, error, and score rewards",
+        "category": "Reinforcement"
+      },
+      {
+        "text": "Predicting the dollar sale price of a home based on its size and location",
+        "category": "Supervised"
+      },
+      {
+        "text": "An AI teaching itself to beat humans at Chess by playing millions of practice rounds",
+        "category": "Reinforcement"
+      },
+      {
+        "text": "Sorting unlabelled customer photos into albums by facial similarity",
+        "category": "Unsupervised"
+      }
+    ],
+    "categories": [
+      "Supervised",
+      "Unsupervised",
+      "Reinforcement"
+    ]
+  },
+  "code": {
+    "description": "Compare Classification (predicting category) vs Regression (predicting number) in Python.",
+    "starter": "# 1. Classification: Predict Category ('Cold' vs 'Hot')\nfrom sklearn.tree import DecisionTreeClassifier\nX_temps = [[10], [15], [28], [35]] # Celsius\ny_category = ['Cold', 'Cold', 'Hot', 'Hot']\n\nclassifier = DecisionTreeClassifier()\nclassifier.fit(X_temps, y_category)\nprint('Classification for 32°C:', classifier.predict([[32]])[0]) # Output: Hot\n\n# 2. Regression: Predict Exact Continuous Number (Ice Cream Sales in $)\nfrom sklearn.linear_model import LinearRegression\nX_temps = [[15], [20], [25], [30]]\ny_sales = [150, 220, 310, 420] # Sales in dollars\n\nregressor = LinearRegression()\nregressor.fit(X_temps, y_sales)\npredicted_sales = regressor.predict([[28]])[0]\nprint(f'Predicted sales at 28°C: ${predicted_sales:.2f}')"
+  },
+  "quiz": [
+    {
+      "question": "What are the three main types of Machine Learning?",
+      "options": [
+        "CPU, GPU, and RAM",
+        "Supervised, Unsupervised, and Reinforcement Learning",
+        "Python, Java, and C++",
+        "Input, Output, and Storage"
+      ],
+      "correct": 1,
+      "explanation": "The three primary branches of ML are Supervised, Unsupervised, and Reinforcement Learning."
+    },
+    {
+      "question": "What makes Supervised Learning 'supervised'?",
+      "options": [
+        "A human manager must watch the computer train 24 hours a day",
+        "The training data includes both inputs and the correct answers (labels), like a teacher grading an exam",
+        "The computer requires a supervisor password to run",
+        "The model only runs on supervised cloud servers"
+      ],
+      "correct": 1,
+      "explanation": "Supervised learning is guided by known ground-truth labels that serve as an 'answer key' for the algorithm to learn from."
+    },
+    {
+      "question": "What is the primary goal of Supervised Learning?",
+      "options": [
+        "To group unlabeled data without answers",
+        "To learn the relationship between input features and target labels so it can predict answers for new data",
+        "To win video games using rewards",
+        "To format computer hard drives"
+      ],
+      "correct": 1,
+      "explanation": "Supervised learning learns how to map inputs to correct outputs based on historical labeled examples."
+    },
+    {
+      "question": "What is the difference between Classification and Regression in supervised learning?",
+      "options": [
+        "Classification predicts a category or label; Regression predicts a continuous number",
+        "Classification is for numbers; Regression is for words",
+        "Classification only works on images; Regression only works on audio",
+        "There is no difference; they are exact synonyms"
+      ],
+      "correct": 0,
+      "explanation": "Classification outputs discrete categories (e.g. Yes/No, Cat/Dog); regression outputs continuous numeric values (e.g. $350,000, 72.5 degrees)."
+    },
+    {
+      "question": "Which of the following is a Classification problem?",
+      "options": [
+        "Predicting the price of a used laptop in dollars",
+        "Deciding whether an email is 'Spam' or 'Not Spam'",
+        "Predicting tomorrow's rainfall in millimeters",
+        "Estimating someone's exact age in years"
+      ],
+      "correct": 1,
+      "explanation": "Spam vs Not Spam is a choice between two discrete categories, which makes it a classification task."
+    },
+    {
+      "question": "Which of the following is a Regression problem?",
+      "options": [
+        "Predicting tomorrow's temperature in degrees Fahrenheit",
+        "Predicting whether a bank customer will cancel their account (Yes/No)",
+        "Classifying an animal photo as a lion, tiger, or bear",
+        "Sorting incoming support tickets into Billing vs Technical"
+      ],
+      "correct": 0,
+      "explanation": "Temperature is a continuous numerical measurement, which defines a regression problem."
+    },
+    {
+      "question": "If a smartphone app identifies whether a photo shows an 'Apple', 'Banana', or 'Orange', what kind of problem is this?",
+      "options": [
+        "Multiclass Classification",
+        "Regression",
+        "Reinforcement Learning",
+        "Dimensionality Reduction"
+      ],
+      "correct": 0,
+      "explanation": "Choosing one category from three or more options is called Multiclass Classification."
+    },
+    {
+      "question": "If a real estate app predicts that a house will sell for $425,000, what kind of problem is this?",
+      "options": [
+        "Binary Classification",
+        "Regression",
+        "Clustering",
+        "Reinforcement Learning"
+      ],
+      "correct": 1,
+      "explanation": "Predicting a dollar amount is continuous numerical regression."
+    },
+    {
+      "question": "What makes Unsupervised Learning 'unsupervised'?",
+      "options": [
+        "The algorithm runs without any electricity",
+        "The training data has NO labels or correct answers; the algorithm must find patterns on its own",
+        "The algorithm cannot run on Linux",
+        "A human programmer must approve every single calculation"
+      ],
+      "correct": 1,
+      "explanation": "Unsupervised learning operates on raw data without any answer keys or target labels."
+    },
+    {
+      "question": "What is 'Clustering' in unsupervised learning?",
+      "options": [
+        "Grouping similar data points together based on their shared characteristics",
+        "Deleting duplicate photos from a phone",
+        "Connecting computers with network cables",
+        "Adding numbers together in a spreadsheet"
+      ],
+      "correct": 0,
+      "explanation": "Clustering automatically groups similar examples together (e.g. grouping customers with similar shopping habits)."
+    },
+    {
+      "question": "A department store wants to group its 50,000 customers into 4 shopper types based on spending habits, without any predefined categories. Which type of ML should it use?",
+      "options": [
+        "Supervised Regression",
+        "Unsupervised Clustering",
+        "Reinforcement Learning",
+        "Linear Classification"
+      ],
+      "correct": 1,
+      "explanation": "Since there are no predefined labels or answers, unsupervised clustering is the right tool to discover natural customer segments."
+    },
+    {
+      "question": "How does Reinforcement Learning work in simple terms?",
+      "options": [
+        "A model reads a textbook and memorizes definitions",
+        "An agent takes actions in an environment and learns through rewards for good moves and penalties for bad moves",
+        "A human writes 500 rules in Python",
+        "A database sorts rows in alphabetical order"
+      ],
+      "correct": 1,
+      "explanation": "Reinforcement learning is based on trial and error: taking actions, getting feedback (rewards/penalties), and learning the best strategy over time."
+    },
+    {
+      "question": "Which everyday analogy best describes Reinforcement Learning?",
+      "options": [
+        "Studying with flashcards that have the answers on the back",
+        "Training a puppy by giving it treats when it sits and saying 'No' when it jumps on guests",
+        "Sorting your sock drawer by color",
+        "Reading an encyclopedia from cover to cover"
+      ],
+      "correct": 1,
+      "explanation": "Rewarding desired actions and discouraging bad ones is exactly how reinforcement learning algorithms learn."
+    },
+    {
+      "question": "An AI learning to master Chess or video games by playing millions of practice rounds against itself is an example of:",
+      "options": [
+        "Unsupervised Clustering",
+        "Reinforcement Learning",
+        "Supervised Regression",
+        "Traditional if/else scripting"
+      ],
+      "correct": 1,
+      "explanation": "Game-playing AI uses reinforcement learning to discover winning strategies through trial, error, and score rewards."
+    },
+    {
+      "question": "In Reinforcement Learning, what do we call the decision-maker that takes actions?",
+      "options": [
+        "The Agent",
+        "The Environment",
+        "The Reward",
+        "The Feature"
+      ],
+      "correct": 0,
+      "explanation": "The Agent is the AI entity that observes the state of the world and decides which action to take."
+    },
+    {
+      "question": "In Reinforcement Learning, what do we call the world or simulation the agent lives and acts in?",
+      "options": [
+        "The Environment",
+        "The Spreadsheet",
+        "The Feature Store",
+        "The Dataset"
+      ],
+      "correct": 0,
+      "explanation": "The Environment is the external world (e.g. a chessboard, a video game screen, or a virtual driving track) that the agent interacts with."
+    },
+    {
+      "question": "In Reinforcement Learning, what do we call the numerical feedback signal the agent receives after making a move?",
+      "options": [
+        "The Reward",
+        "The Hyperparameter",
+        "The Feature",
+        "The Column"
+      ],
+      "correct": 0,
+      "explanation": "The Reward is the score signal (positive for good actions, negative for mistakes) that guides the agent."
+    },
+    {
+      "question": "What is 'Semi-Supervised Learning'?",
+      "options": [
+        "Learning that only works on half-sized computers",
+        "Using a small amount of labeled data combined with a large amount of cheap unlabeled data",
+        "A model that is only trained on weekends",
+        "A model that is half-accurate"
+      ],
+      "correct": 1,
+      "explanation": "Semi-supervised learning combines a few expensive hand-labeled examples with vast amounts of free unlabeled data."
+    },
+    {
+      "question": "Why is Semi-Supervised Learning helpful in real-world industries?",
+      "options": [
+        "Because computers cannot read more than 100 files",
+        "Because getting human experts (like doctors) to label data is slow and expensive, but raw unlabelled data is abundant",
+        "Because it uses zero electricity",
+        "Because it eliminates the need for math"
+      ],
+      "correct": 1,
+      "explanation": "Medical scans or legal contracts are expensive to label manually, so models leverage abundant unlabelled records to boost accuracy."
+    },
+    {
+      "question": "What is 'Self-Supervised Learning' (the method used to train modern AI like ChatGPT)?",
+      "options": [
+        "An AI that writes its own code from scratch",
+        "The model creates its own training puzzles from raw text, like hiding the next word in a sentence and trying to guess it",
+        "An AI that watches YouTube videos for fun",
+        "A model trained without any data at all"
+      ],
+      "correct": 1,
+      "explanation": "Self-supervised models create their own learning tasks (like predicting masked or future words) from raw uncurated text."
+    },
+    {
+      "question": "When large language models like GPT are pretrained on billions of internet articles, what simple task do they practice over and over?",
+      "options": [
+        "Sorting numbers from smallest to largest",
+        "Predicting the very next word in a sentence",
+        "Translating words into Morse code",
+        "Calculating tax returns"
+      ],
+      "correct": 1,
+      "explanation": "By predicting the next word across trillions of sentences, language models learn grammar, reasoning, facts, and context."
+    },
+    {
+      "question": "If you want to predict whether a customer will cancel their subscription (Yes or No), what kind of problem is this?",
+      "options": [
+        "Binary Classification",
+        "Continuous Regression",
+        "Unsupervised Clustering",
+        "Reinforcement Learning"
+      ],
+      "correct": 0,
+      "explanation": "When there are only two possible outcomes (Yes or No, 1 or 0), it is a Binary Classification problem."
+    },
+    {
+      "question": "If a bank wants to detect unusual credit card charges that look completely unlike a customer's normal spending habits, which approach is used?",
+      "options": [
+        "Anomaly Detection (often unsupervised)",
+        "Linear Regression",
+        "Playing chess with RL",
+        "Sorting strings alphabetically"
+      ],
+      "correct": 0,
+      "explanation": "Anomaly detection flags rare transactions that deviate significantly from a customer's typical spending patterns."
+    },
+    {
+      "question": "If an algorithm organizes news articles into 'Sports', 'Politics', and 'Tech' because you gave it 5,000 articles already tagged with those names, what type of learning is this?",
+      "options": [
+        "Supervised Learning",
+        "Unsupervised Learning",
+        "Reinforcement Learning",
+        "Zero-shot learning"
+      ],
+      "correct": 0,
+      "explanation": "Because you provided the correct category tags (labels) for each article, it is Supervised Learning."
+    },
+    {
+      "question": "If an algorithm groups news articles into clusters on its own without any category names or human tags, what type of learning is this?",
+      "options": [
+        "Supervised Learning",
+        "Unsupervised Learning",
+        "Reinforcement Learning",
+        "Linear Regression"
+      ],
+      "correct": 1,
+      "explanation": "Finding natural groupings without pre-existing labels is Unsupervised Learning."
+    },
+    {
+      "question": "Which type of machine learning would you use to teach a robotic arm how to grasp objects without knocking them over?",
+      "options": [
+        "Supervised Linear Regression",
+        "Reinforcement Learning",
+        "Unsupervised Clustering",
+        "Binary Classification"
+      ],
+      "correct": 1,
+      "explanation": "Robotics locomotion and manipulation tasks rely on reinforcement learning to master motor control via trial and error."
+    },
+    {
+      "question": "What does the word 'binary' mean in Binary Classification?",
+      "options": [
+        "The computer uses 1s and 0s internally",
+        "There are exactly two possible choices or categories (like Yes/No, True/False, Pass/Fail)",
+        "The model takes two days to train",
+        "The model requires two GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Binary classification specifically refers to problems with exactly two outcome classes."
+    },
+    {
+      "question": "What does 'Multiclass' mean in Multiclass Classification?",
+      "options": [
+        "A class taught to multiple students",
+        "There are three or more distinct categories, and each example belongs to exactly one of them",
+        "The model is trained on multiple laptops",
+        "The dataset has multiple spreadsheets"
+      ],
+      "correct": 1,
+      "explanation": "Multiclass problems involve picking one label from three or more possible categories (e.g. Dog, Cat, Bird, Horse)."
+    },
+    {
+      "question": "In a used car spreadsheet with columns [Year, Mileage, Color, Price], if we want to predict 'Price', what is 'Price' called?",
+      "options": [
+        "The Target (or Label)",
+        "The Feature",
+        "The Hyperparameter",
+        "The Index"
+      ],
+      "correct": 0,
+      "explanation": "The column you want to predict is always the target (label)."
+    },
+    {
+      "question": "In the same used car spreadsheet, what are [Year, Mileage, Color] called?",
+      "options": [
+        "The Input Features",
+        "The Labels",
+        "The Predictions",
+        "The Targets"
+      ],
+      "correct": 0,
+      "explanation": "The descriptive clues used to make the prediction are called input features."
+    },
+    {
+      "question": "What happens if you try to use Supervised Learning on a dataset that has no labels or answers at all?",
+      "options": [
+        "It will work normally",
+        "It will fail, because supervised learning strictly requires correct answers to learn from",
+        "It will automatically convert into reinforcement learning",
+        "The computer will catch on fire"
+      ],
+      "correct": 1,
+      "explanation": "Supervised algorithms cannot function without target labels; they require pairs of inputs and answers to learn the mapping."
+    },
+    {
+      "question": "What is 'Dimensionality Reduction' in simple, plain English?",
+      "options": [
+        "Shrinking the physical size of a computer monitor",
+        "Simplifying data by reducing the number of features while keeping the most important information",
+        "Deleting all numbers from a spreadsheet",
+        "Compressing a JPEG photo"
+      ],
+      "correct": 1,
+      "explanation": "Dimensionality reduction simplifies complex data with hundreds of columns down to a few key summary features."
+    },
+    {
+      "question": "Why do modern self-driving cars use a combination of different ML types?",
+      "options": [
+        "Because one type cannot do everything: supervised vision spots pedestrians, while reinforcement learning helps plan smooth steering actions",
+        "Because car batteries require multiple algorithms",
+        "Because it is required by traffic laws",
+        "To make the car drive faster than the speed limit"
+      ],
+      "correct": 0,
+      "explanation": "Complex real-world systems combine multiple specialized models: vision classifiers, path-planning RL agents, and sensor anomaly detectors."
+    },
+    {
+      "question": "Can an organization use multiple different types of Machine Learning at the same time?",
+      "options": [
+        "No, a company is legally restricted to one ML type",
+        "Yes, a company might use supervised learning for sales forecasts, unsupervised learning for customer groups, and reinforcement learning for warehouse robots",
+        "Only if they use supercomputers",
+        "No, algorithms will conflict with each other"
+      ],
+      "correct": 1,
+      "explanation": "Companies routinely deploy different types of machine learning suited to different specific business problems."
+    },
+    {
+      "question": "What is the single most important question to ask when deciding between Supervised and Unsupervised learning?",
+      "options": [
+        "'What color is the computer?'",
+        "'Do I already have historical data with the correct answers (labels) attached?'",
+        "'How fast is my internet connection?'",
+        "'What programming language is the most popular?'"
+      ],
+      "correct": 1,
+      "explanation": "If you have reliable historical labels, you use Supervised Learning. If you have only raw unlabeled data and want to discover patterns, you use Unsupervised Learning."
+    }
+  ],
+  "level": "novice"
+}

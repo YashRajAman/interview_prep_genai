@@ -1,0 +1,461 @@
+{
+  "id": "llm-fine-tuning",
+  "title": "LLM Fine-Tuning & Alignment (LoRA & DPO)",
+  "description": "Supervised Fine-Tuning (SFT), Parameter-Efficient Fine-Tuning (PEFT: LoRA, QLoRA), and Alignment (RLHF vs DPO).",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "LLM Adaptation, PEFT & Preference Alignment",
+        "subtitle": "Transforming Raw Base Foundation Models into Aligned, Specialized Assistants"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Post-Pretraining Journey",
+        "text": "Raw base foundation models (e.g., Llama-3-8B-Base) are trained purely for next-token continuation over trillions of web tokens. Turning them into reliable assistants involves two critical post-training phases:\n1. **Instruction Tuning / SFT (Supervised Fine-Tuning):** Teaches the model conversational interaction patterns, formatting compliance, and tool-use syntax.\n2. **Preference Alignment (RLHF / DPO):** Aligns outputs with human values of **Helpfulness, Honesty, and Harmlessness (HHH)**."
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "LoRA: Low-Rank Adaptation (Hu et al., Microsoft 2021)",
+        "text": "Full fine-tuning updates the entire parameter matrix $W_0 \\in \\mathbb{R}^{d \\times k}$. **LoRA** hypothesizes that weight changes $\\Delta W$ have a low **intrinsic rank** $r \\ll \\min(d, k)$. It freezes $W_0$ and decomposes updates into two low-rank matrices:\n\n$$W = W_0 + \\Delta W = W_0 + \\frac{\\alpha}{r} (B \\cdot A)$$\n\nWhere $A \\in \\mathbb{R}^{r \\times k}$ is initialized with Gaussian noise $\\mathcal{N}(0, \\sigma^2)$, $B \\in \\mathbb{R}^{d \\times r}$ is initialized to zero, and $\\alpha$ is a constant scaling hyperparameter.\n\n- **Zero Inference Latency:** During deployment, $B \\cdot A$ is mathematically added directly to $W_0$, introducing zero latency overhead!\n- **VRAM Savings:** For $r=8$ or $16$, trainable parameters drop by **$99.9\\%$**, slashing optimizer VRAM requirements."
+      },
+      {
+        "type": "table",
+        "title": "Evolution of LLM Alignment Paradigms",
+        "headers": [
+          "Alignment Paradigm",
+          "Methodology & Architecture",
+          "Pros",
+          "Cons & Challenges"
+        ],
+        "rows": [
+          [
+            "RLHF (PPO)",
+            "Train a Reward Model $R(x, y)$ on human pairwise rankings; optimize policy $\\pi_\\theta$ via Proximal Policy Optimization (PPO) with a KL divergence penalty to reference model $\\pi_{ref}$.",
+            "Gold standard for nuanced human preference; powerful exploration.",
+            "Extremely complex pipeline: requires maintaining 4 models concurrently in VRAM (Actor, Critic, Reference, Reward)."
+          ],
+          [
+            "Direct Preference Optimization (DPO)",
+            "Mathematically proves that the constrained RL objective can be reparameterized to express the reward directly in terms of policy probability ratios $\\frac{\\pi_\\theta(y|x)}{\\pi_{ref}(y|x)}$.",
+            "Requires NO reward model and NO reinforcement learning loop; stable supervised loss.",
+            "Sensitive to noisy preference labels; susceptible to likelihood displacement on out-of-distribution prompts."
+          ],
+          [
+            "Kahneman-Tversky Optimization (KTO)",
+            "Aligns models directly on binary signals (thumbs up / thumbs down) using Prospect Theory utility functions.",
+            "Eliminates the need for paired $(y_{win}, y_{lose})$ data; works on cheaper unpaired feedback.",
+            "Slightly less sample efficient on subtle ranking nuances."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "QLoRA: Quantized Low-Rank Adaptation (Dettmers et al., 2023)",
+        "text": "**QLoRA** enables fine-tuning a 70B parameter model on a single 48GB GPU by combining:\n1. **4-bit NormalFloat (NF4):** Information-theoretically optimal quantile quantization for normally distributed weights.\n2. **Double Quantization (DQ):** Quantizes the quantization constants themselves, saving $0.37$ bits per parameter.\n3. **Paged Optimizers:** Uses CUDA Unified Memory to automatically page optimizer states to CPU RAM during memory spikes."
+      }
+    ],
+    "code_example": {
+      "title": "LoRA Linear Layer Forward and Merge in NumPy",
+      "code": "import numpy as np\n\nclass LoRALinear:\n    def __init__(self, in_features, out_features, rank=4, lora_alpha=16):\n        self.in_features = in_features\n        self.out_features = out_features\n        self.rank = rank\n        self.scaling = lora_alpha / rank\n        \n        # Frozen base weights (simulating 8B parameter weights)\n        self.W0 = np.random.randn(out_features, in_features) * 0.02\n        self.W0_frozen = True\n        \n        # Trainable low-rank adapter matrices\n        self.A = np.random.randn(rank, in_features) * 0.01  # Gaussian init\n        self.B = np.zeros((out_features, rank))             # Zero init so delta starts at 0\n        \n    def forward(self, x):\n        # Base output + scaled low-rank output\n        base_out = np.dot(x, self.W0.T)\n        lora_out = np.dot(np.dot(x, self.A.T), self.B.T) * self.scaling\n        return base_out + lora_out\n        \n    def merge_weights_for_inference(self):\n        # Permanently fold delta into W0: Zero inference latency overhead!\n        self.W0 += (np.dot(self.B, self.A) * self.scaling)\n        self.B = None\n        self.A = None\n        print('LoRA successfully merged into base weights!')\n\n# Instantiate layer: 4096 -> 4096 with rank r=8\nlayer = LoRALinear(in_features=4096, out_features=4096, rank=8, lora_alpha=16)\nx = np.random.randn(2, 4096)\ny_before = layer.forward(x)\n\n# Mock training step updating B\nlayer.B += np.random.randn(4096, 8) * 0.05\ny_after = layer.forward(x)\nprint(f'Difference in output after adapter update: {np.linalg.norm(y_after - y_before):.4f}')\n\n# Merge for production serving\nlayer.merge_weights_for_inference()\ny_merged = np.dot(x, layer.W0.T)\nprint(f'Max difference between merged W0 and adapter forward pass: {np.max(np.abs(y_merged - y_after)):.2e}')"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What is the primary difference between a Base foundation model and an Instruct/Chat model?",
+      "options": [
+        "Base models are pretrained purely for next-token prediction; Instruct models undergo supervised fine-tuning and alignment to follow user conversational instructions",
+        "Base models have fewer parameters",
+        "Instruct models cannot generate code",
+        "Base models run only on CPUs"
+      ],
+      "correct": 0,
+      "explanation": "Base models predict raw text continuations (and often complete user prompts with more questions); Instruct models are fine-tuned to answer prompts helpfully."
+    },
+    {
+      "question": "What is Supervised Fine-Tuning (SFT) in the LLM post-training pipeline?",
+      "options": [
+        "Training the pretrained model on curated (prompt, response) instruction demonstrations using standard causal cross-entropy loss",
+        "Fine-tuning without labels",
+        "Training the tokenizer on code",
+        "Running reinforcement learning with human feedback"
+      ],
+      "correct": 0,
+      "explanation": "SFT fine-tunes the base model on high-quality demonstration dialogues, teaching it to respond as an assistant rather than just continuing raw text."
+    },
+    {
+      "question": "What hypothesis underpins Low-Rank Adaptation (LoRA, Hu et al., 2021)?",
+      "options": [
+        "The weight updates Delta W during task adaptation have a very low intrinsic dimension / rank r relative to the full weight dimension",
+        "Weights in deep models are all identical",
+        "Models only need 1 layer to learn",
+        "Rank cannot exceed 2"
+      ],
+      "correct": 0,
+      "explanation": "Hu et al. demonstrated that fine-tuning adaptation changes reside in a very low-dimensional subspace (intrinsic rank r << d), enabling low-rank decomposition."
+    },
+    {
+      "question": "In LoRA, how is the adapter matrix B initialized, and why?",
+      "options": [
+        "Initialized to all zeros, ensuring that at step 0 the adaptation Delta W = B * A is exactly zero, leaving pretrained behavior unaffected",
+        "Initialized to random Gaussian noise",
+        "Initialized to all ones",
+        "Initialized with identity matrix"
+      ],
+      "correct": 0,
+      "explanation": "Initializing B to zero ensures Delta W = 0 initially, meaning the model's forward pass begins exactly identically to the pretrained foundation model."
+    },
+    {
+      "question": "In LoRA, how is the adapter matrix A initialized?",
+      "options": [
+        "Initialized with random Gaussian values N(0, sigma^2) to break symmetry",
+        "Initialized to all zeros",
+        "Initialized to all negative numbers",
+        "Initialized with the identity matrix"
+      ],
+      "correct": 0,
+      "explanation": "Matrix A is initialized randomly from a Gaussian distribution to break symmetry, while B=0 ensures initial product B*A = 0."
+    },
+    {
+      "question": "What is the primary inference latency advantage of LoRA over other adapter methods?",
+      "options": [
+        "LoRA weights can be folded (merged) directly into the frozen base weights via W = W0 + (alpha/r)*B*A, adding zero additional computation or latency at inference",
+        "LoRA cuts inference time by 10x",
+        "LoRA eliminates the tokenizer",
+        "LoRA runs without GPUs"
+      ],
+      "correct": 0,
+      "explanation": "Because matrix multiplication is linear, B*A can be precomputed and added directly to W0 before deploying, introducing zero runtime latency penalty."
+    },
+    {
+      "question": "Why does LoRA drastically reduce GPU VRAM requirements during training?",
+      "options": [
+        "It freezes the massive base model and only stores gradients and optimizer states (Adam moments) for the tiny r x d matrices, saving up to 75% VRAM",
+        "It converts the model to a decision tree",
+        "It deletes half the layers",
+        "It moves all tensors to CPU disk"
+      ],
+      "correct": 0,
+      "explanation": "Optimizer states (Adam requires 8 bytes per trainable parameter) dominate training VRAM; reducing trainable parameters by 99% eliminates optimizer memory overhead."
+    },
+    {
+      "question": "What is QLoRA (Dettmers et al., 2023)?",
+      "options": [
+        "Quantizing the frozen base model to 4-bit NormalFloat (NF4) while training 16-bit LoRA adapters on top, enabling fine-tuning of 70B models on a single 48GB GPU",
+        "A model that runs on quantum computers",
+        "A 1-bit neural network",
+        "A library for SQL queries"
+      ],
+      "correct": 0,
+      "explanation": "QLoRA combines NF4 4-bit base weight quantization with Double Quantization and Paged Optimizers to fine-tune massive LLMs on consumer GPUs."
+    },
+    {
+      "question": "What is the 4-bit NormalFloat (NF4) data type in QLoRA?",
+      "options": [
+        "An information-theoretically optimal quantile quantization scheme where each bin contains an equal number of expected values for normally distributed weights",
+        "A standard IEEE 754 float",
+        "An integer with 4 bits",
+        "A floating point with 4 exponent bits and 0 mantissa"
+      ],
+      "correct": 0,
+      "explanation": "Since pretrained weights naturally follow a zero-mean normal distribution, NF4 spaces quantization bins so that each bin has equal probability under N(0, 1)."
+    },
+    {
+      "question": "What is Double Quantization in QLoRA?",
+      "options": [
+        "Quantizing the quantization scaling constants themselves from FP32 to FP8, saving approximately 0.37 bits per parameter",
+        "Quantizing the model twice",
+        "Using two 4-bit GPUs",
+        "Multiplying weights by 2"
+      ],
+      "correct": 0,
+      "explanation": "Double quantization reduces the memory footprint of the quantization scale factors by compressing them into 8-bit floats."
+    },
+    {
+      "question": "What is the HHH alignment criterion defined by Anthropic?",
+      "options": [
+        "Helpful, Honest, and Harmless",
+        "High-throughput, High-accuracy, and High-speed",
+        "Hierarchical, Heuristic, and Holistic",
+        "Hybrid, Heterogeneous, and Hardware-accelerated"
+      ],
+      "correct": 0,
+      "explanation": "The HHH framework sets the standard safety alignment targets: helpful to user queries, honest/truthful without fabrication, and harmless/non-toxic."
+    },
+    {
+      "question": "What are the four models concurrently maintained in GPU memory during standard RLHF with PPO?",
+      "options": [
+        "Actor (policy being updated), Critic (value function), Reference model (frozen baseline), and Reward model",
+        "Student, Teacher, Assistant, and Proctor",
+        "Encoder, Decoder, Classifier, and Discriminator",
+        "Four identical copies of GPT-4"
+      ],
+      "correct": 0,
+      "explanation": "PPO requires: 1. Actor (generating tokens), 2. Critic (estimating state values), 3. Reference model (computing KL penalty), 4. Reward model (scoring output quality)."
+    },
+    {
+      "question": "What is the purpose of the KL divergence penalty in the RLHF PPO objective?",
+      "options": [
+        "To prevent the policy model from drifting too far from the original reference model and collapsing into gibberish or adversarial reward hacking",
+        "To calculate learning rate",
+        "To compress weights",
+        "To speed up generation"
+      ],
+      "correct": 0,
+      "explanation": "Without the KL penalty, the policy exploits imperfections in the reward model ('reward hacking') and degrades conversational fluency."
+    },
+    {
+      "question": "What is Reward Hacking in reinforcement learning from human feedback?",
+      "options": [
+        "When the policy discovers degenerate token sequences or superficial patterns (e.g. excessively long text or repetitive sycophancy) that achieve high reward without truly being good",
+        "Hacking into a cloud server to steal rewards",
+        "Using an unauthorized credit card for API calls",
+        "A hardware fault in GPU registers"
+      ],
+      "correct": 0,
+      "explanation": "Reward models are imperfect proxies; unconstrained RL policies learn to exploit these flaws rather than truly satisfying user intent."
+    },
+    {
+      "question": "What is Direct Preference Optimization (DPO, Rafailov et al., Stanford 2023)?",
+      "options": [
+        "An alignment algorithm that reparameterizes the RL objective to optimize the policy directly on preference pairs (y_win, y_lose) via supervised loss without an explicit reward model or RL loop",
+        "A direct search algorithm for hyperparameter optimization",
+        "A method for directly training without data",
+        "A tool for directing traffic on network switches"
+      ],
+      "correct": 0,
+      "explanation": "DPO analytically solves the optimal reward formulation in terms of the policy itself, replacing complex PPO loops with a stable, closed-form cross-entropy loss."
+    },
+    {
+      "question": "What is the mathematical form of the DPO loss for preference pair (x, y_w, y_l)?",
+      "options": [
+        "- log sigma( beta * log( pi_theta(y_w|x) / pi_ref(y_w|x) ) - beta * log( pi_theta(y_l|x) / pi_ref(y_l|x) ) )",
+        "Loss = (y_w - y_l)^2",
+        "Loss = max(0, 1 - y_w + y_l)",
+        "Loss = - y_w * log(y_l)"
+      ],
+      "correct": 0,
+      "explanation": "DPO computes the implicit reward difference between the winning and losing response relative to the reference model, squashed through a sigmoid function."
+    },
+    {
+      "question": "What is Kahneman-Tversky Optimization (KTO, Ethayarajh et al., 2024)?",
+      "options": [
+        "An alignment method inspired by behavioral economics (Prospect Theory) that optimizes models directly from binary feedback (desirable vs undesirable) without requiring paired preferences",
+        "A game theory algorithm for chess",
+        "A theory of cognitive psychology for humans only",
+        "A loss function for linear regression"
+      ],
+      "correct": 0,
+      "explanation": "KTO aligns models on individual thumbs-up / thumbs-down ratings using utility functions that model human loss aversion, avoiding costly pairwise ranking annotations."
+    },
+    {
+      "question": "What is Reinforcement Learning from AI Feedback (RLAIF / Constitutional AI, Anthropic 2022)?",
+      "options": [
+        "Using a strong LLM to critique and score responses based on a defined set of constitutional principles, replacing human annotators in alignment",
+        "Training an AI to play video games",
+        "Using neural networks to grade student exams",
+        "A computer chip designed for AI feedback"
+      ],
+      "correct": 0,
+      "explanation": "Constitutional AI automates alignment by having an AI model evaluate, revise, and score responses against a codified constitution of principles."
+    },
+    {
+      "question": "What is 'Sycophancy' in aligned language models?",
+      "options": [
+        "The tendency of an LLM to flatter or agree with the user's stated opinion even when the user is demonstrably factually incorrect",
+        "The model crashing when given conflicting prompts",
+        "The model refusing to answer any question",
+        "The model generating random poetry"
+      ],
+      "correct": 0,
+      "explanation": "RLHF models often overfit to human feedback signals, learning that agreeing with the user's preconceptions garners higher approval ratings."
+    },
+    {
+      "question": "What is 'Refusal Bias' or 'Over-refusal' in safety-aligned models?",
+      "options": [
+        "The model erroneously refusing to answer benign, benignly educational, or fictional prompts because they contain keywords superficially resembling harmful queries",
+        "Refusing to accept payment for API tokens",
+        "The GPU refusing to execute CUDA kernels",
+        "A network timeout on the API gateway"
+      ],
+      "correct": 0,
+      "explanation": "Aggressive alignment often causes models to reject harmless historical or creative prompts (e.g. 'How did medieval armies make smoke bombs?') out of excessive caution."
+    },
+    {
+      "question": "What is Prompt Tuning (Lester et al., 2021)?",
+      "options": [
+        "Prepending a small sequence of learnable continuous virtual token embeddings to the input sequence while keeping all model parameters completely frozen",
+        "Rewriting English prompts manually",
+        "Using prompt engineering templates",
+        "Tuning the temperature parameter"
+      ],
+      "correct": 0,
+      "explanation": "Prompt tuning freezes the entire model and trains only a sequence of continuous prompt embedding vectors prepended to the input."
+    },
+    {
+      "question": "What is Prefix Tuning (Li & Liang, 2021)?",
+      "options": [
+        "Prepending trainable continuous virtual Key and Value vectors to every self-attention layer in the network while keeping original weights frozen",
+        "Adding a prefix string to the prompt",
+        "Tuning the first layer of an MLP",
+        "Using Greek prefixes in variable names"
+      ],
+      "correct": 0,
+      "explanation": "Prefix tuning prepends learnable prefix vectors to the keys and values across all attention layers, offering higher capacity than input prompt tuning."
+    },
+    {
+      "question": "What is (IA)^3 (Liu et al., 2022)?",
+      "options": [
+        "Infused Adapter by Inhibiting and Amplifying Inner Activations: a PEFT method that scales activations with learned vectors, updating 10x fewer parameters than LoRA",
+        "An artificial intelligence equation",
+        "A 3-dimensional convolutional network",
+        "A method for image augmentation"
+      ],
+      "correct": 0,
+      "explanation": "(IA)^3 rescales intermediate key, value, and FFN activations using element-wise learned vectors, introducing less than 0.01% trainable parameters."
+    },
+    {
+      "question": "What is ChatML or the role-based prompt format (`<|im_start|>user ... <|im_end|>`)?",
+      "options": [
+        "A structured markup standard that cleanly separates user queries, assistant responses, and system instructions to prevent prompt injection attacks",
+        "A proprietary programming language for chatbots",
+        "A compiler for HTML in Python",
+        "A chat application UI library"
+      ],
+      "correct": 0,
+      "explanation": "Structured role tokens delineate conversation turns unambiguously, ensuring the model distinguishes trusted system rules from untrusted user inputs."
+    },
+    {
+      "question": "What is 'Jailbreaking' in foundation models?",
+      "options": [
+        "Crafting adversarial prompts designed to bypass safety guardrails and alignment filters to elicit harmful or prohibited outputs",
+        "Rooting an iPhone with a USB cable",
+        "Escaping a Docker container sandbox",
+        "Overclocking a GPU"
+      ],
+      "correct": 0,
+      "explanation": "Jailbreaking exploits complex hypothetical framings, cipher encodings, or roleplay scenarios to circumvent alignment restrictions."
+    },
+    {
+      "question": "What is 'Catastrophic Drift' during supervised fine-tuning of LLMs?",
+      "options": [
+        "The model rapidly losing general reasoning, coding, or mathematical abilities after being narrowly fine-tuned on a specific niche domain task",
+        "The model drifting into another cloud datacenter",
+        "A clock synchronization error in distributed training",
+        "The weights decaying to zero"
+      ],
+      "correct": 0,
+      "explanation": "Narrow task fine-tuning distorts pre-trained representations, severely degrading general knowledge unless mixed with general rehearsal data."
+    },
+    {
+      "question": "What is Replay / Rehearsal Data mixing in fine-tuning?",
+      "options": [
+        "Mixing a fraction (e.g. 10-20%) of general pretraining / instruction data into domain-specific fine-tuning datasets to preserve broad model capabilities",
+        "Replaying recorded video of training runs",
+        "Re-running old test sets",
+        "Playing audio signals to the GPU"
+      ],
+      "correct": 0,
+      "explanation": "Injecting general instruction-following and reasoning examples into domain datasets prevents catastrophic forgetting."
+    },
+    {
+      "question": "What is Self-Instruct (Wang et al., 2022)?",
+      "options": [
+        "A semi-automated framework where an LLM bootstraps its own instruction-following dataset by generating new tasks and instructions from seed examples",
+        "A self-help book for software engineers",
+        "An instruction manual written by AI",
+        "A Python decorator for class methods"
+      ],
+      "correct": 0,
+      "explanation": "Self-Instruct generates thousands of synthetic diverse instruction-response pairs using a foundation model, dramatically reducing human annotation costs."
+    },
+    {
+      "question": "What is the Alpaca approach (Taori et al., Stanford 2023)?",
+      "options": [
+        "Generating 52,000 instruction-following examples using OpenAI's text-davinci-003 and fine-tuning a LLaMA-7B base model for under $500",
+        "A new computer vision architecture",
+        "A database system written in Go",
+        "An animal recognition algorithm"
+      ],
+      "correct": 0,
+      "explanation": "Stanford Alpaca demonstrated that instruction distillation from commercial frontier models could yield highly capable open-source models at trivial cost."
+    },
+    {
+      "question": "What is Identity Trick / Reference Trick in DPO?",
+      "options": [
+        "Expressing the unnormalized ground-truth reward function directly as r(x, y) = beta * log(pi(y|x) / pi_ref(y|x))",
+        "Faking user identity in API requests",
+        "Using identity matrix for weight initialization",
+        "Assigning UUIDs to models"
+      ],
+      "correct": 0,
+      "explanation": "Rafailov et al. substituted the closed-form optimal policy back into the objective, proving that the policy's log-ratio to reference is mathematically equivalent to the optimal reward."
+    },
+    {
+      "question": "Why must the Reference Model (pi_ref) be frozen during DPO training?",
+      "options": [
+        "To serve as a fixed baseline anchor preventing the active policy from drifting and ensuring mathematically valid implicit reward differences",
+        "Because PyTorch does not allow training two models",
+        "To save hard drive space",
+        "Because reference models have no gradients"
+      ],
+      "correct": 0,
+      "explanation": "The reference model must remain static to define the reference probability distribution against which policy improvements are measured."
+    },
+    {
+      "question": "What is Length Bias in RLHF and DPO, and how is it addressed?",
+      "options": [
+        "Models learn that generating unnecessarily verbose, long-winded answers yields higher reward scores from reward models and human raters",
+        "Models running out of context tokens",
+        "Prompts being too short to understand",
+        "Tokenizers producing long words"
+      ],
+      "correct": 0,
+      "explanation": "Reward models and human evaluators frequently equate verbosity with quality; length penalties or length-controlled DPO mitigate this artificial bias."
+    },
+    {
+      "question": "What is IPO (Identity-PO, Azar et al., DeepMind 2023)?",
+      "options": [
+        "A regularized variant of DPO that prevents the implicit reward gap from growing unbounded and avoids overfitting to deterministic preference labels",
+        "An Initial Public Offering of an AI company",
+        "An input-processing-output pipeline",
+        "An integer programming optimizer"
+      ],
+      "correct": 0,
+      "explanation": "IPO adds a regularization term to the DPO objective that prevents the policy from driving preference log-likelihood ratios to infinity on small datasets."
+    },
+    {
+      "question": "What is ORPO (Odds Ratio Preference Optimization, Hong et al., 2024)?",
+      "options": [
+        "A method that combines supervised fine-tuning (SFT) and preference alignment into a single monolithic objective without needing a reference model",
+        "An optimization algorithm for odds in sports betting",
+        "A method using odds ratios in logistic regression",
+        "An optical character recognition tool"
+      ],
+      "correct": 0,
+      "explanation": "ORPO appends an odds-ratio penalty directly to standard cross-entropy loss, performing instruction tuning and preference alignment in a single training step."
+    },
+    {
+      "question": "What is Unlearning / Machine Unlearning in aligned LLMs?",
+      "options": [
+        "Selectively removing hazardous knowledge (e.g. bioweapon manufacturing, copyrighted books) from a trained model without retraining the entire model from scratch",
+        "Deleting model files from storage",
+        "Forgetting the API key",
+        "Clearing the GPU cache"
+      ],
+      "correct": 0,
+      "explanation": "Machine unlearning uses gradient ascent or representation editing to expunge targeted concepts while preserving general intelligence."
+    }
+  ],
+  "level": "professional"
+}

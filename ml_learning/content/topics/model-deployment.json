@@ -1,0 +1,472 @@
+{
+  "id": "model-deployment",
+  "title": "Model Serving & High-Throughput Inference",
+  "description": "FastAPI serving, ONNX Runtime, TensorRT, vLLM, PagedAttention, KV-caching, Quantization (AWQ/GPTQ), and SLA percentiles.",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Production Model Serving & High-Throughput Inference",
+        "subtitle": "Bridging Research Checkpoints to Sub-Millisecond, Highly Scalable Production Systems"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Production Inference Landscape",
+        "text": "Training optimizes for gradient throughput across static datasets. In production, serving systems optimize for fundamentally different constraints: **Time to First Token (TTFT)**, **Inter-Token Latency (ITL)**, **P99 latency SLAs**, and **Token Throughput per Dollar**. Raw PyTorch models in standard Python servers suffer from Python Global Interpreter Lock (GIL) contention, memory fragmentation, and unoptimized CUDA execution."
+      },
+      {
+        "type": "table",
+        "title": "Inference Optimization & Acceleration Stack",
+        "headers": [
+          "Technology",
+          "Optimization Domain",
+          "Key Acceleration Mechanics",
+          "Target Use Case"
+        ],
+        "rows": [
+          [
+            "FastAPI + Uvicorn",
+            "API Gateway & Async Serving",
+            "Asynchronous non-blocking event loops, Pydantic validation, concurrent request queueing.",
+            "Microservice wrappers, REST/gRPC endpoints."
+          ],
+          [
+            "ONNX Runtime",
+            "Model Graph Optimization",
+            "Hardware-agnostic graph fusion (Conv+BN+ReLU $\\to$ single kernel), constant folding, dead-node elimination.",
+            "Cross-platform deployment (CPU, GPU, mobile, edge)."
+          ],
+          [
+            "NVIDIA TensorRT",
+            "Hardware-Specific Compilation",
+            "Kernel auto-tuning for specific GPU architectures, layer fusion, dynamic tensor memory allocation.",
+            "Ultra-low latency computer vision and deep learning inference on NVIDIA GPUs."
+          ],
+          [
+            "vLLM & PagedAttention",
+            "LLM High-Throughput Serving",
+            "Paged virtual memory management for KV-cache, continuous iteration-level batching.",
+            "Production multi-user LLM serving (up to 4x higher throughput)."
+          ],
+          [
+            "Triton Inference Server",
+            "Enterprise Orchestration",
+            "Dynamic batching, concurrent model execution across multiple GPUs, multi-framework support.",
+            "Enterprise-grade scalable serving clusters."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Weight Quantization Mechanics: Symmetric vs Asymmetric",
+        "text": "Quantization maps 32-bit floating point weights ($W \\in \\mathbb{R}$) to lower-bit integers ($q \\in \\mathbb{Z}_{\\text{int8}}$):\n\n$$q = \\text{clip}\\left( \\left\\lfloor \\frac{W}{S} \\right\\rceil + Z, \\; q_{min}, \\; q_{max} \\right)$$\n\n$$\\tilde{W} = S \\cdot (q - Z)$$\n\nWhere $S = \\frac{W_{max} - W_{min}}{q_{max} - q_{min}}$ is the **Scale Factor**, and $Z$ is the integer **Zero-Point**.\n\n- **Symmetric Quantization ($Z = 0$):** Constrains scale to $S = \\frac{\\max(|W|)}{q_{max}}$, saving computation on zero-point additions.\n- **Modern LLM Quantization (AWQ / GPTQ):** Compresses 16-bit weights to **INT4** (4 bits per weight), slashing model VRAM by **$75\\%$** (e.g. 70B model drops from 140GB to 35GB) with negligible perplexity degradation."
+      },
+      {
+        "type": "text",
+        "title": "Continuous (Iteration-Level) Batching vs Static Batching",
+        "body": "- **Static Batching:** Waits for $B$ requests, batches them together, and runs forward passes until all sequences complete. Slowest request bottlenecks the entire batch, leaving GPU cores idle (head-of-line blocking).\n- **Continuous Batching (Orca / vLLM):** Operates at the iteration level. As soon as sequence $A$ emits `<EOS>`, it is immediately evicted from the batch and a newly arrived request $D$ is spliced into the vacant slot on the very next token generation step, achieving **$100\\%$ GPU core saturation**."
+      }
+    ],
+    "code_example": {
+      "title": "Minimal Production FastAPI Model Serving Pattern with Lifespan",
+      "code": "from fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel\nimport numpy as np\nfrom contextlib import asynccontextmanager\n\n# Simulated Model Runtime\nclass ProductionModel:\n    def __init__(self):\n        self.weights = np.random.randn(10, 4) * 0.1\n    def predict(self, x):\n        return np.dot(x, self.weights.T).tolist()\n\nmodel_registry = {}\n\n@asynccontextmanager\nasync def lifespan(app: FastAPI):\n    # Startup: Load model into memory / warm up CUDA kernels\n    print('Loading production model checkpoint...')\n    model_registry['classifier'] = ProductionModel()\n    print('Model successfully loaded and ready for traffic!')\n    yield\n    # Shutdown: Clean up resources\n    model_registry.clear()\n    print('Cleaned up model memory.')\n\napp = FastAPI(title='ML Serving Gateway', lifespan=lifespan)\n\nclass PredictionRequest(BaseModel):\n    features: list[float]\n\n@app.post('/predict')\nasync def predict(req: PredictionRequest):\n    if len(req.features) != 4:\n        raise HTTPException(status_code=400, detail='Expected 4 input features')\n    model = model_registry['classifier']\n    scores = model.predict(np.array(req.features))\n    return {'predicted_class': int(np.argmax(scores)), 'scores': scores}\n\nprint('FastAPI inference application configured successfully!')"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Why is deploying raw PyTorch models directly inside standard Python WSGI servers (e.g. Flask/Gunicorn) suboptimal for high-throughput serving?",
+      "options": [
+        "Python's Global Interpreter Lock (GIL) limits multi-threaded CPU concurrency, and lack of dynamic batching causes poor GPU saturation",
+        "PyTorch cannot run outside Jupyter notebooks",
+        "Flask deletes model weights on each request",
+        "PyTorch only runs on MacOS"
+      ],
+      "correct": 0,
+      "explanation": "Python's GIL restricts concurrency and raw PyTorch lacks specialized memory management (like PagedAttention) and dynamic request batching."
+    },
+    {
+      "question": "What is Time to First Token (TTFT) in LLM serving?",
+      "options": [
+        "The latency from when a user sends a prompt until the model begins streaming the very first generated output token",
+        "The time it takes to train the model",
+        "The time to download the model from Hugging Face",
+        "The time to tokenize the vocabulary"
+      ],
+      "correct": 0,
+      "explanation": "TTFT measures the prompt-processing (prefill) latency before generation begins, critical for user-perceived responsiveness."
+    },
+    {
+      "question": "What is Inter-Token Latency (ITL) or Time Per Output Token (TPOT)?",
+      "options": [
+        "The average time elapsed between generating consecutive output tokens during the autoregressive decoding phase",
+        "The time between user keystrokes",
+        "The latency of the internet router",
+        "The time to shut down the server"
+      ],
+      "correct": 0,
+      "explanation": "ITL measures the decoding speed (e.g. 25ms per token = 40 tokens/sec), determining how smoothly text streams to the user."
+    },
+    {
+      "question": "What is the difference between P50, P95, and P99 latency percentiles?",
+      "options": [
+        "P99 is the latency threshold below which 99% of requests complete, capturing worst-case tail latency spikes for SLA guarantees",
+        "P99 is the average latency plus 99ms",
+        "P50 is the maximum latency",
+        "P95 measures memory usage"
+      ],
+      "correct": 0,
+      "explanation": "Percentiles quantify the latency distribution: P50 is median, while P99 captures outlier latency experienced by the slowest 1% of users."
+    },
+    {
+      "question": "What is Open Neural Network Exchange (ONNX)?",
+      "options": [
+        "An open standard format for representing machine learning models that allows exporting models from PyTorch/TensorFlow and running them on diverse runtimes",
+        "A stock exchange for AI startups",
+        "A networking protocol for GPUs",
+        "A dataset of open neural nets"
+      ],
+      "correct": 0,
+      "explanation": "ONNX provides an open computational graph representation that decouples training frameworks from production deployment runtimes."
+    },
+    {
+      "question": "What is Operator Fusion (Kernel Fusion) in inference optimization engines (like ONNX Runtime or TensorRT)?",
+      "options": [
+        "Combining consecutive operations (such as Conv + BatchNorm + ReLU) into a single fused GPU kernel to eliminate redundant memory read/write passes to global VRAM",
+        "Fusing two models into one",
+        "Connecting two GPUs with a physical wire",
+        "Merging two Python scripts"
+      ],
+      "correct": 0,
+      "explanation": "Kernel fusion executes sequential operations in on-chip GPU registers/SRAM, avoiding expensive round-trips to high-bandwidth global memory."
+    },
+    {
+      "question": "What is NVIDIA TensorRT?",
+      "options": [
+        "An inference compiler and runtime that optimizes neural networks specifically for NVIDIA GPUs via layer fusion, precision calibration, and kernel auto-tuning",
+        "A library for training deep networks on CPUs",
+        "A 3D rendering engine for games",
+        "A tensor database"
+      ],
+      "correct": 0,
+      "explanation": "TensorRT compiles models directly into hardware-optimized binary execution plans for specific GPU architectures."
+    },
+    {
+      "question": "What is Constant Folding in graph compilation?",
+      "options": [
+        "Pre-computing operations that involve only compile-time constants so they do not execute at runtime during inference",
+        "Folding weights like paper to save space",
+        "Setting all constants to zero",
+        "Compressing constants with zip"
+      ],
+      "correct": 0,
+      "explanation": "Constant folding simplifies graph nodes whose inputs are static at build time, eliminating unnecessary runtime computation."
+    },
+    {
+      "question": "What is Continuous Batching (Iteration-Level Batching, Orca / vLLM)?",
+      "options": [
+        "Dynamically inserting new incoming requests and evicting completed sequences at every individual token decoding step rather than waiting for an entire batch to finish",
+        "Batching data continuously for 24 hours",
+        "Processing one token per day",
+        "Training while serving simultaneously"
+      ],
+      "correct": 0,
+      "explanation": "Continuous batching eliminates idle GPU capacity caused by varying request lengths, dramatically increasing serving throughput."
+    },
+    {
+      "question": "How does PagedAttention (vLLM) resolve the memory waste of standard KV-caching?",
+      "options": [
+        "By storing KV cache states in non-contiguous virtual memory blocks (pages), eliminating internal memory fragmentation and pre-allocation waste",
+        "By paging GPU memory to the hard drive",
+        "By compressing tokens into 1-bit codes",
+        "By deleting old tokens from cache"
+      ],
+      "correct": 0,
+      "explanation": "Traditional serving pre-allocates contiguous memory for maximum sequence lengths, wasting 60-80% of VRAM; PagedAttention allocates blocks dynamically on-demand."
+    },
+    {
+      "question": "What is Weight-Only Quantization vs Weight-and-Activation Quantization?",
+      "options": [
+        "Weight-only (e.g. W4A16) quantizes stored weights while computing matmuls in FP16; weight-and-activation (W8A8) quantizes both, using fast INT8 tensor cores",
+        "Weight-only only works on CPUs",
+        "Weight-and-activation deletes activations",
+        "Weight-only doubles memory usage"
+      ],
+      "correct": 0,
+      "explanation": "Weight-only quantization saves memory bandwidth for memory-bound decoding; W8A8 accelerates compute-bound operations using INT8 GEMM kernels."
+    },
+    {
+      "question": "What is AWQ (Activation-aware Weight Quantization, Lin et al., 2023)?",
+      "options": [
+        "Protecting the 1% most salient weights (identified by observing activation magnitudes) by scaling them up before quantizing remaining weights to INT4",
+        "An audio quantization algorithm",
+        "A tool for automatic weight pruning",
+        "A quantization scheme for web servers"
+      ],
+      "correct": 0,
+      "explanation": "AWQ preserves the critical top 1% outlier weights that protect perplexity while quantizing the remaining 99% of weights to 4 bits."
+    },
+    {
+      "question": "What is GPTQ (Frantar et al., 2022)?",
+      "options": [
+        "A one-shot weight quantization method based on Approximate Second-Order Information (Hessian inverse) that quantizes weights to 3-bit or 4-bit in a few GPU hours",
+        "A language model developed by OpenAI",
+        "A queue system for GPT models",
+        "A method for generating text queries"
+      ],
+      "correct": 0,
+      "explanation": "GPTQ solves an optimal brain surgeon error minimization problem using inverse Hessians to quantize 175B models accurately in minimal time."
+    },
+    {
+      "question": "What is Post-Training Quantization (PTQ) vs Quantization-Aware Training (QAT)?",
+      "options": [
+        "PTQ quantizes weights after training without full retraining; QAT models quantization errors during training using fake-quantization operators",
+        "PTQ requires 100 GPUs; QAT requires none",
+        "QAT is only for vision models",
+        "PTQ converts models to C++"
+      ],
+      "correct": 0,
+      "explanation": "PTQ is fast and requires only a small calibration dataset; QAT simulates quantization noise during backprop to achieve maximum accuracy at low bit-widths (e.g. INT4)."
+    },
+    {
+      "question": "What is Dynamic Batching in model serving (e.g. Triton Inference Server)?",
+      "options": [
+        "Aggregating individual client requests that arrive within a short time window (e.g. 5ms) into a single batch to maximize GPU parallelism",
+        "Changing batch size randomly during inference",
+        "Running batch jobs at midnight",
+        "Splitting a request across multiple users"
+      ],
+      "correct": 0,
+      "explanation": "Dynamic batching buffers incoming concurrent requests up to a max queue delay, combining them into efficient batched matrix operations."
+    },
+    {
+      "question": "What is Tensor Parallelism (Megatron-LM, Shoeybi et al.)?",
+      "options": [
+        "Splitting individual weight matrices (such as attention projections) across multiple GPUs within the same server node via high-speed NVLink interconnects",
+        "Running multiple models on one GPU",
+        "Running PyTorch on tensors",
+        "Splitting batches across different nodes"
+      ],
+      "correct": 0,
+      "explanation": "Tensor parallelism partitions large matrix multiplications (column-parallel and row-parallel) across GPUs connected by NVLink for ultra-fast intra-node execution."
+    },
+    {
+      "question": "What is Pipeline Parallelism (GPipe / Megatron-LM)?",
+      "options": [
+        "Partitioning the sequential layers of a deep network across different GPU devices, passing intermediate activations forward and backward along a pipeline",
+        "Piping Unix shell commands into Python",
+        "Running data through a physical water pipe",
+        "Connecting GPUs with Ethernet cables"
+      ],
+      "correct": 0,
+      "explanation": "Pipeline parallelism assigns blocks of consecutive layers to different GPUs, managing execution bubbles via micro-batching."
+    },
+    {
+      "question": "What is Data Parallelism (DDP) in distributed ML?",
+      "options": [
+        "Replicating the entire model on every GPU, feeding each GPU a distinct slice of the mini-batch, and synchronizing gradients via All-Reduce",
+        "Storing data on multiple hard drives",
+        "Splitting database tables across tables",
+        "Copying the dataset 100 times"
+      ],
+      "correct": 0,
+      "explanation": "DistributedDataParallel (DDP) replicates model weights across workers, executing parallel forward passes and synchronizing gradients with Ring AllReduce."
+    },
+    {
+      "question": "What is ZeRO (Zero Redundancy Optimizer, Rajbhandari et al., DeepSpeed)?",
+      "options": [
+        "Eliminating memory redundancy in data parallelism by sharding optimizer states (Stage 1), gradients (Stage 2), and model parameters (Stage 3) across GPUs",
+        "An optimizer with zero learning rate",
+        "A model with zero parameters",
+        "A library for running models on zero GPUs"
+      ],
+      "correct": 0,
+      "explanation": "DeepSpeed ZeRO removes the duplicate memory footprint of data parallelism by partitioning optimizer states, gradients, and parameters across workers."
+    },
+    {
+      "question": "What is FlashDecoding / FlashDecoding++?",
+      "options": [
+        "Optimizing attention decoding for long contexts by parallelizing the reduction across the sequence length dimension in addition to batch and head dimensions",
+        "A flash drive for storing models",
+        "Decoding text in Adobe Flash",
+        "Compressing output tokens"
+      ],
+      "correct": 0,
+      "explanation": "While FlashAttention parallelizes across batch and heads, FlashDecoding parallelizes across the keys/values sequence dimension, speeding up long-context generation by up to 8x."
+    },
+    {
+      "question": "What is Speculative Decoding?",
+      "options": [
+        "Drafting K tokens quickly using a smaller draft model and verifying them simultaneously in a single forward pass of the large target model",
+        "Guessing what the user will type next",
+        "Evaluating models with speculative investments",
+        "Sampling tokens with high temperature"
+      ],
+      "correct": 0,
+      "explanation": "Speculative decoding accelerates autoregressive generation by turning K sequential passes into 1 parallel verification pass for accepted tokens."
+    },
+    {
+      "question": "What is Model Pruning (Magnitude Pruning)?",
+      "options": [
+        "Setting small weight values below a threshold to zero and converting dense tensors into sparse matrices to reduce memory and compute",
+        "Deleting old model checkpoints from disk",
+        "Removing comments from code",
+        "Cutting model training time in half"
+      ],
+      "correct": 0,
+      "explanation": "Magnitude pruning removes insignificant weights whose absolute values are close to zero, creating sparse networks."
+    },
+    {
+      "question": "What is Structured Pruning vs Unstructured Pruning?",
+      "options": [
+        "Structured pruning removes entire channels, attention heads, or layers, yielding direct hardware speedups without sparse matrix libraries; unstructured zeros individual weights",
+        "Structured pruning is for SQL databases; unstructured is for text",
+        "Unstructured pruning is faster on GPUs",
+        "They are identical"
+      ],
+      "correct": 0,
+      "explanation": "Structured pruning removes complete hardware blocks (e.g. 20% of channels), running efficiently on standard dense matrix hardware."
+    },
+    {
+      "question": "What is Knowledge Distillation for model compression?",
+      "options": [
+        "Training a compact student network to match the probability distribution and latent features of a massive teacher model",
+        "Boiling data to remove noise",
+        "Saving model weights in a zip file",
+        "Extracting text from a PDF"
+      ],
+      "correct": 0,
+      "explanation": "Knowledge distillation compresses a huge model (e.g. 70B teacher) into a nimble model (e.g. 7B student) with minimal degradation."
+    },
+    {
+      "question": "What is Triton Inference Server (NVIDIA)?",
+      "options": [
+        "An enterprise open-source model serving software that supports multiple framework backends, concurrent models, dynamic batching, and GPU metrics",
+        "A programming language developed by OpenAI",
+        "A GPU hardware card",
+        "An operating system for supercomputers"
+      ],
+      "correct": 0,
+      "explanation": "NVIDIA Triton provides unified production serving for PyTorch, TensorRT, ONNX, and vLLM backends with dynamic batching and autoscaling."
+    },
+    {
+      "question": "In high-throughput serving, what does 'GPU Compute Bound' vs 'GPU Memory Bandwidth Bound' mean?",
+      "options": [
+        "Compute bound means the arithmetic processing units (Tensor Cores) are saturated; memory bandwidth bound means execution waits on transferring weights from VRAM to SRAM",
+        "Compute bound means the CPU is slow",
+        "Memory bound means hard drive is full",
+        "They mean the same thing"
+      ],
+      "correct": 0,
+      "explanation": "Prefill (prompt processing) is compute-bound (massive parallel matrix multiplication); autoregressive decoding is memory-bandwidth bound (reading gigabytes of weights for 1 token)."
+    },
+    {
+      "question": "Why is autoregressive token generation in LLMs predominantly Memory Bandwidth Bound?",
+      "options": [
+        "Generating each single token requires loading the entire model's multi-gigabyte weight tensors from VRAM into the compute cores for just one matrix-vector product",
+        "Because tokens are very long strings",
+        "Because GPUs lack memory",
+        "Because Python is slow"
+      ],
+      "correct": 0,
+      "explanation": "Each token requires reading billions of parameters from VRAM (e.g. 14GB for 7B FP16) to perform minimal arithmetic for one token, capping speed by memory bus bandwidth."
+    },
+    {
+      "question": "What is Prefix Caching (Prompt Caching) in LLM inference engines?",
+      "options": [
+        "Reusing the computed KV cache of common prompt prefixes (system instructions, multi-shot examples, large documents) across multiple requests",
+        "Caching website URLs",
+        "Saving user passwords in cache",
+        "Storing tokens in Redis"
+      ],
+      "correct": 0,
+      "explanation": "Prefix caching skips the compute-heavy prefill phase for shared system prompts, drastically reducing TTFT and cutting compute costs by up to 80%."
+    },
+    {
+      "question": "What is Out-Of-Distribution (OOD) input detection in production serving?",
+      "options": [
+        "A monitoring mechanism that flags incoming inference queries whose feature distribution deviates significantly from the training distribution",
+        "Detecting requests from foreign countries",
+        "Detecting corrupted JSON syntax",
+        "Detecting requests that timeout"
+      ],
+      "correct": 0,
+      "explanation": "OOD detectors identify anomalous queries where the model's predictions are likely unreliable or severely miscalibrated."
+    },
+    {
+      "question": "What is A/B Testing in machine learning deployment?",
+      "options": [
+        "Splitting live user traffic between model version A and model version B to statistically compare business and operational metrics",
+        "Testing models on datasets A and B locally",
+        "Testing with two different Python versions",
+        "Testing on AMD vs NVIDIA GPUs"
+      ],
+      "correct": 0,
+      "explanation": "A/B testing routes a fraction of production traffic to candidate models to rigorously measure performance differences on real users."
+    },
+    {
+      "question": "What is Shadow Deployment (Dark Launching)?",
+      "options": [
+        "Routing live production requests to a new candidate model in the background without returning its outputs to users, evaluating its latency and accuracy safely",
+        "Deploying models at night",
+        "Deploying models in stealth mode to avoid hackers",
+        "Running models with black backgrounds"
+      ],
+      "correct": 0,
+      "explanation": "Shadow deployment tests real-world operational load and output quality with zero risk of user-facing errors."
+    },
+    {
+      "question": "What is Canary Deployment in ML operations?",
+      "options": [
+        "Gradually rolling out a new model version to a tiny percentage of users (e.g. 2%), monitoring errors/latency before rolling out to 100%",
+        "Using a canary bird in the datacenter",
+        "Testing models on bird recognition datasets",
+        "Deploying models on yellow servers"
+      ],
+      "correct": 0,
+      "explanation": "Canary releases limit blast radius if a newly deployed model contains unexpected regressions or memory leaks."
+    },
+    {
+      "question": "What is gRPC and why is it frequently preferred over REST for internal microservice ML inference?",
+      "options": [
+        "gRPC uses HTTP/2 with binary protocol buffers (Protobuf), providing significantly lower serialization overhead and faster streaming than text-based JSON REST",
+        "gRPC is easier to read in a browser",
+        "gRPC only works with Python",
+        "gRPC does not require network connections"
+      ],
+      "correct": 0,
+      "explanation": "Protobuf binary serialization and multiplexed HTTP/2 streaming make gRPC substantially faster and more efficient for high-frequency model calls."
+    },
+    {
+      "question": "What is Circuit Breaking in an inference serving architecture?",
+      "options": [
+        "An architectural pattern that automatically stops sending requests to a degraded or failing backend service, returning fallbacks to prevent cascading system failures",
+        "Cutting physical power cords to servers",
+        "Breaking encryption keys",
+        "Halting training when loss plateaus"
+      ],
+      "correct": 0,
+      "explanation": "Circuit breakers detect failing model replicas and fail fast or route to fallback caches, protecting upstream microservices."
+    },
+    {
+      "question": "What is Graceful Degradation in an ML serving system?",
+      "options": [
+        "Falling back to a faster, smaller model or cached heuristic responses when the primary heavy model cluster is overloaded or experiencing failures",
+        "Letting servers crash cleanly",
+        "Slowly deleting model weights",
+        "Lowering screen resolution for users"
+      ],
+      "correct": 0,
+      "explanation": "Graceful degradation ensures the system remains functional under extreme traffic spikes rather than suffering total outage."
+    }
+  ],
+  "level": "professional"
+}

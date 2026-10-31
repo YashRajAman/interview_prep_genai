@@ -1,0 +1,471 @@
+{
+  "id": "knn",
+  "title": "K-Nearest Neighbors (KNN)",
+  "description": "Instance-based non-parametric learning, distance metrics (Euclidean, Manhattan, Minkowski, Cosine), choice of K, Voronoi tessellations, KD-trees, and curse of dimensionality.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "K-Nearest Neighbors (KNN)",
+        "subtitle": "Non-Parametric, Memory-Based (Lazy) Learning for Classification and Regression"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Core Algorithm Mechanism",
+        "content": "KNN is a **non-parametric, instance-based (lazy)** learning algorithm. It makes zero explicit assumptions about the underlying distribution and performs **no training phase**.\n\nTo predict a new query point $\\mathbf{x}_q$:\n1. Compute the distance between $\\mathbf{x}_q$ and all $N$ points in the training dataset.\n2. Identify the $K$ closest training points (nearest neighbors).\n3. **Classification:** Return the **majority vote** (mode) among the $K$ labels.\n4. **Regression:** Return the **mean average** of the $K$ target values."
+      },
+      {
+        "type": "text",
+        "title": "Standard Distance Metrics",
+        "content": "- **Euclidean Distance ($L_2$):** Straight-line geometric distance:\n$$d(\\mathbf{u}, \\mathbf{v}) = \\sqrt{\\sum_{i=1}^d (u_i - v_i)^2}$$\n\n- **Manhattan Distance ($L_1$):** Taxicab grid distance (sum of absolute coordinate differences):\n$$d(\\mathbf{u}, \\mathbf{v}) = \\sum_{i=1}^d |u_i - v_i|$$\n\n- **Minkowski Distance ($L_p$):** Generalized distance ($p=1$ is Manhattan, $p=2$ is Euclidean):\n$$d(\\mathbf{u}, \\mathbf{v}) = \\left( \\sum_{i=1}^d |u_i - v_i|^p \\right)^{1/p}$$\n\n- **Cosine Distance:** $1 - \\text{CosineSimilarity}(\\mathbf{u}, \\mathbf{v})$, measuring directional difference independently of vector magnitude."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "The Impact of Hyperparameter K: Bias-Variance Tradeoff",
+        "content": "| Value of K | Model Complexity | Decision Boundary | Risk |\n|---|---|---|---|\n| **$K = 1$** | Maximum complexity | Extremely jagged, wraps around individual training noise points | **Severe Overfitting** (High Variance) |\n| **Optimal $K$ (e.g. 5-15)** | Balanced | Smooth, robust boundary capturing true class regions | **Optimal Generalization** |\n| **Large $K$ ($K \\rightarrow N$)** | Minimum complexity | Trivial; predicts only the majority class of the entire dataset | **Severe Underfitting** (High Bias) |"
+      },
+      {
+        "type": "text",
+        "title": "Computational Bottleneck & Spatial Indexing",
+        "content": "Because KNN computes distances to every training sample during inference:\n- **Brute Force:** $O(N \\cdot d)$ per test query. Slow for large datasets!\n- **KD-Tree:** Hierarchical space-partitioning binary tree, achieving $O(\\log N)$ search time in low dimensions ($d < 20$).\n- **Ball Tree:** Partitions points into nested hyperspheres, outperforming KD-trees in higher-dimensional spaces."
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Mandatory Requirement: Feature Scaling",
+        "content": "KNN is **distance-based**. If feature $x_1$ (Income: $20,000 - $200,000) has a much larger numeric range than feature $x_2$ (Age: 18 - 80), distance calculations will be completely dominated by Income, rendering Age statistically invisible! **Always standardize features (StandardScaler) before KNN!**"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Key Takeaway",
+        "content": "KNN is intuitive and highly non-linear, but scales poorly to large inference workloads ($O(N)$ query time) and collapses in high dimensions ($d > 50$) due to the curse of dimensionality."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Voronoi Neighborhood Explorer",
+    "description": "Observe how changing K from 1 to 15 transforms the decision boundary from noisy to smooth.",
+    "items": [
+      {
+        "text": "K = 1 creates islands around single noise points",
+        "category": "Overfitting (K=1)"
+      },
+      {
+        "text": "K = 7 creates smooth class partitions",
+        "category": "Balanced (K=7)"
+      },
+      {
+        "text": "K = 100 predicts only the dominant majority class",
+        "category": "Underfitting (Large K)"
+      }
+    ],
+    "categories": [
+      "Overfitting (K=1)",
+      "Balanced (K=7)",
+      "Underfitting (Large K)"
+    ]
+  },
+  "code": {
+    "description": "Train KNN with Scikit-learn, evaluate performance across K values, and demonstrate the catastrophic impact of omitting feature scaling.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import load_iris\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.neighbors import KNeighborsClassifier\nfrom sklearn.preprocessing import StandardScaler\n\n# Load iris dataset\niris = load_iris()\nX, y = iris.data, iris.target\n\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)\n\n# Standardize features\nscaler = StandardScaler()\nX_train_scaled = scaler.fit_transform(X_train)\nX_test_scaled = scaler.transform(X_test)\n\nprint('=== Evaluating Accuracy Across Different K Values ===')\nfor k in [1, 3, 5, 11, 25]:\n    knn = KNeighborsClassifier(n_neighbors=k)\n    knn.fit(X_train_scaled, y_train)\n    acc = knn.score(X_test_scaled, y_test)\n    print(f'K = {k:2d}: Test Accuracy = {acc * 100:.2f}%')\n"
+  },
+  "quiz": [
+    {
+      "question": "Why is K-Nearest Neighbors (KNN) described as a 'lazy learning' algorithm?",
+      "options": [
+        "It uses very little CPU during inference",
+        "It performs no explicit training phase; it simply stores the training dataset and defers all computation to inference time",
+        "It was written in an outdated programming language",
+        "It only trains on a subset of features"
+      ],
+      "correct": 1,
+      "explanation": "Lazy learners construct no explicit parameterized model during training; all computation occurs during prediction."
+    },
+    {
+      "question": "What is the decision rule for KNN in a classification task?",
+      "options": [
+        "Calculate the mean of all training points",
+        "Assign the query point to the majority class among its K closest neighbors",
+        "Draw a linear hyperplane",
+        "Run gradient descent on weights"
+      ],
+      "correct": 1,
+      "explanation": "Classification takes a majority vote among the labels of the K closest training points."
+    },
+    {
+      "question": "What is the decision rule for KNN in a regression task?",
+      "options": [
+        "Assign the mode of the neighbors",
+        "Calculate the average (mean or median) of the continuous target values of the K nearest neighbors",
+        "Calculate the matrix inverse",
+        "Predict zero"
+      ],
+      "correct": 1,
+      "explanation": "KNN regression averages the continuous target values of the K nearest neighbors to predict $\\hat{y}$."
+    },
+    {
+      "question": "What happens when $K = 1$ in K-Nearest Neighbors?",
+      "options": [
+        "The model has high bias and underfits",
+        "The model achieves 100% accuracy on training data and has extreme variance, overfitting to every individual noise point",
+        "The decision boundary becomes a straight line",
+        "The model predicts the global mean"
+      ],
+      "correct": 1,
+      "explanation": "With $K = 1$, each training point forms its own neighborhood; training error is 0%, but the model overfits training noise."
+    },
+    {
+      "question": "What happens when $K$ is set equal to the total number of training samples ($K = N$)?",
+      "options": [
+        "The model overfits completely",
+        "The model achieves maximum complexity",
+        "The model underfits completely, predicting only the global majority class for all inputs regardless of feature values",
+        "The computer runs out of memory"
+      ],
+      "correct": 2,
+      "explanation": "When $K = N$, every prediction considers the entire dataset, trivially outputting the overall dataset mode (high bias)."
+    },
+    {
+      "question": "Why is feature scaling (e.g. StandardScaler) strictly mandatory before applying KNN?",
+      "options": [
+        "Because scikit-learn will throw a syntax error without scaling",
+        "Features with larger numerical ranges will dominate distance metrics, rendering features with smaller scales completely irrelevant",
+        "Because scaling reduces the number of dimensions",
+        "Because unscaled features cause negative distances"
+      ],
+      "correct": 1,
+      "explanation": "Distance formulas treat all coordinates equally; unscaled features with large values dominate distances completely."
+    },
+    {
+      "question": "What is the Euclidean distance between points $\\mathbf{a} = (1, 2)$ and $\\mathbf{b} = (4, 6)$?",
+      "options": [
+        "3",
+        "4",
+        "5",
+        "7"
+      ],
+      "correct": 2,
+      "explanation": "$d = \\sqrt{(4-1)^2 + (6-2)^2} = \\sqrt{3^2 + 4^2} = \\sqrt{9 + 16} = \\sqrt{25} = 5$."
+    },
+    {
+      "question": "What is the Manhattan distance ($L_1$) between points $\\mathbf{a} = (1, 2)$ and $\\mathbf{b} = (4, 6)$?",
+      "options": [
+        "5",
+        "7",
+        "1",
+        "12"
+      ],
+      "correct": 1,
+      "explanation": "$d = |4 - 1| + |6 - 2| = 3 + 4 = 7$."
+    },
+    {
+      "question": "Under what scenario is Manhattan distance ($L_1$) generally preferred over Euclidean distance ($L_2$)?",
+      "options": [
+        "When features are plotted in 3D",
+        "When data points represent grid-like movements (e.g. city streets) or in moderately higher-dimensional spaces where $L_1$ is less sensitive to extreme outliers",
+        "When all numbers are negative",
+        "When $K = 1$"
+      ],
+      "correct": 1,
+      "explanation": "Manhattan distance measures grid path distances and suffers less severe inflation from single coordinate outliers."
+    },
+    {
+      "question": "What is the Minkowski distance formula?",
+      "options": [
+        "$\\sum |u_i - v_i|$",
+        "$\\left( \\sum |u_i - v_i|^p \\right)^{1/p}$",
+        "$\\sqrt{\\sum u_i v_i}$",
+        "$\\frac{\\mathbf{u} \\cdot \\mathbf{v}}{\\|\\mathbf{u}\\| \\|\\mathbf{v}\\|}$"
+      ],
+      "correct": 1,
+      "explanation": "Minkowski is the generalized $L_p$ metric: $p=1$ yields Manhattan, $p=2$ yields Euclidean."
+    },
+    {
+      "question": "Why is choosing an odd value for $K$ (e.g., $K = 3, 5, 7$) recommended in binary classification?",
+      "options": [
+        "Odd numbers execute faster on multi-core processors",
+        "It avoids ties in majority voting when there are two classes",
+        "Even numbers cause memory overflow in Python",
+        "Odd numbers guarantee zero validation error"
+      ],
+      "correct": 1,
+      "explanation": "An odd $K$ prevents 50-50 voting deadlocks in binary classification."
+    },
+    {
+      "question": "What is the time complexity of predicting a single query point using brute-force KNN on $N$ samples with $D$ features?",
+      "options": [
+        "$O(1)$",
+        "$O(N \\cdot D)$",
+        "$O(\\log N)$",
+        "$O(D^2)$"
+      ],
+      "correct": 1,
+      "explanation": "Brute-force requires computing distance to all $N$ samples across $D$ coordinates: $O(N \\cdot D)$."
+    },
+    {
+      "question": "How does a KD-Tree accelerate nearest neighbor search?",
+      "options": [
+        "By compressing the dataset into a ZIP file",
+        "By partitioning data space with a binary tree along alternating axis-aligned hyperplanes, reducing average search time to $O(\\log N)$",
+        "By deleting half the training samples",
+        "By running on GPU tensor cores"
+      ],
+      "correct": 1,
+      "explanation": "KD-trees hierarchically partition space to rapidly eliminate distant subtrees during nearest neighbor queries."
+    },
+    {
+      "question": "Why does KD-Tree performance degrade to brute-force $O(N)$ when dimensionality $D$ is high (e.g., $D > 30$)?",
+      "options": [
+        "KD-trees only work in 2D",
+        "The curse of dimensionality forces the search algorithm to inspect almost all leaf nodes as points become equidistant",
+        "Python recursion depth limits binary trees",
+        "Memory allocation limits"
+      ],
+      "correct": 1,
+      "explanation": "In high dimensions, hyperspheres overlap with almost all bounding boxes, rendering spatial pruning ineffective."
+    },
+    {
+      "question": "What spatial indexing structure generally outperforms KD-Trees in higher dimensions?",
+      "options": [
+        "Ball Tree",
+        "Bubble Sort",
+        "Linear Array",
+        "Linked List"
+      ],
+      "correct": 0,
+      "explanation": "Ball trees partition space into nested hyperspheres, performing more effective bounding pruning in higher dimensions."
+    },
+    {
+      "question": "What is distance-weighted KNN (e.g. `weights='distance'` in scikit-learn)?",
+      "options": [
+        "Multiplying the weights by a constant",
+        "Giving closer neighbors greater voting weight proportional to the inverse of their distance ($w_i = 1 / d_i$)",
+        "Deleting distant neighbors completely",
+        "Weighting samples by their index in the CSV"
+      ],
+      "correct": 1,
+      "explanation": "Distance weighting ensures immediate close neighbors exert more influence on the prediction than distant marginal neighbors."
+    },
+    {
+      "question": "What is the curse of dimensionality's effect on distance metrics in KNN?",
+      "options": [
+        "Distances become negative",
+        "As dimensions increase, the ratio of the distance to the nearest neighbor vs the farthest neighbor approaches 1 (points become equidistant)",
+        "The Euclidean distance collapses to zero",
+        "Distances become integers"
+      ],
+      "correct": 1,
+      "explanation": "In high dimensions, all pairwise distances concentrate around the same value, destroying the meaningfulness of proximity."
+    },
+    {
+      "question": "What is a Voronoi diagram (Voronoi tessellation)?",
+      "options": [
+        "A plot of loss versus epochs",
+        "A partitioning of a plane into convex polygons such that each polygon contains all points closest to a specific seed training point",
+        "A confusion matrix visualization",
+        "A decision tree diagram"
+      ],
+      "correct": 1,
+      "explanation": "Voronoi cells map the exact decision regions corresponding to a 1-NN classifier across continuous space."
+    },
+    {
+      "question": "How does increasing $K$ affect the smoothness of the decision boundary in KNN?",
+      "options": [
+        "The boundary becomes more jagged and fragmented",
+        "The boundary becomes smoother and more generalized",
+        "The boundary disappears entirely",
+        "The boundary becomes non-linear"
+      ],
+      "correct": 1,
+      "explanation": "Larger $K$ aggregates over wider neighborhoods, smoothing out high-variance local irregularities."
+    },
+    {
+      "question": "Is KNN sensitive to noisy labels or mislabeled training points?",
+      "options": [
+        "No, KNN is immune to noise",
+        "Yes, especially with small $K$ (like $K=1$), where a single mislabeled outlier creates an incorrect decision island",
+        "Only when using Manhattan distance",
+        "Only when scaling is applied"
+      ],
+      "correct": 1,
+      "explanation": "Small $K$ memorizes individual mislabeled samples; increasing $K$ provides voting redundancy against noise."
+    },
+    {
+      "question": "What is the space (memory) complexity of storing a trained KNN model?",
+      "options": [
+        "$O(1)$ constant memory",
+        "$O(N \\cdot D)$ because it must retain the entire training dataset in memory",
+        "$O(K)$ memory",
+        "$O(\\log N)$ memory"
+      ],
+      "correct": 1,
+      "explanation": "Because KNN is non-parametric, the entire training dataset of $N$ points with $D$ features must reside in memory."
+    },
+    {
+      "question": "Can KNN handle categorical features directly without preprocessing?",
+      "options": [
+        "Yes, KNN naturally handles strings",
+        "No, distance metrics require numeric coordinates; categorical variables must be encoded (e.g. One-Hot or Gower distance)",
+        "Only if categories are sorted alphabetically",
+        "Only if $K > 10$"
+      ],
+      "correct": 1,
+      "explanation": "Standard Euclidean distance cannot subtract strings; categories must be encoded or evaluated via custom distance metrics."
+    },
+    {
+      "question": "What is Gower's distance used for?",
+      "options": [
+        "Measuring distances in outer space",
+        "Calculating similarity across datasets containing mixed data types (continuous, nominal, ordinal, and binary)",
+        "Measuring network latency",
+        "Evaluating clustering algorithms"
+      ],
+      "correct": 1,
+      "explanation": "Gower's distance combines appropriate distance measures for continuous, nominal, and binary features into a unified scale $[0, 1]$."
+    },
+    {
+      "question": "Why is KNN computationally expensive during real-time production inference compared to Logistic Regression?",
+      "options": [
+        "Because Logistic Regression has no code",
+        "KNN must evaluate distances against thousands/millions of training points per query, whereas Logistic Regression performs a single dot product",
+        "Because KNN only runs on CPUs",
+        "Because KNN produces random numbers"
+      ],
+      "correct": 1,
+      "explanation": "Logistic regression inference is a single fast dot product ($O(D)$); KNN requires querying massive datasets ($O(N \\cdot D)$)."
+    },
+    {
+      "question": "How does Approximate Nearest Neighbors (ANN) solve the inference bottleneck for massive datasets?",
+      "options": [
+        "By deleting 99% of data points",
+        "By trading a tiny percentage of search accuracy for orders-of-magnitude faster query speeds using graphs (HNSW) or locality-sensitive hashing (LSH)",
+        "By training neural networks on text",
+        "By converting data to integers"
+      ],
+      "correct": 1,
+      "explanation": "ANN algorithms (e.g. HNSW, FAISS) retrieve near-optimal neighbors in logarithmic time, enabling vector search at billion-scale."
+    },
+    {
+      "question": "What is Locality-Sensitive Hashing (LSH)?",
+      "options": [
+        "An encryption algorithm for passwords",
+        "A technique that hashes similar input items into the same hash buckets with high probability, accelerating neighbor search",
+        "A method for sorting arrays",
+        "A technique to prevent SQL injection"
+      ],
+      "correct": 1,
+      "explanation": "LSH constructs hash collisions intentionally so similar high-dimensional vectors land in identical buckets for fast lookup."
+    },
+    {
+      "question": "What is the effect of irrelevant (noise) features on KNN performance?",
+      "options": [
+        "Noise features are ignored automatically",
+        "Noise features distort distance calculations, pulling true neighbors apart and degrading accuracy severely",
+        "Noise features improve accuracy",
+        "Noise features decrease memory usage"
+      ],
+      "correct": 1,
+      "explanation": "Distance metrics sum across all dimensions; irrelevant features add random noise to distances, masking true similarity."
+    },
+    {
+      "question": "What technique is recommended to mitigate the impact of irrelevant features on KNN?",
+      "options": [
+        "Feature selection (e.g. removing low-variance features) or dimensionality reduction (PCA)",
+        "Increasing $K$ to 1,000",
+        "Deleting random rows",
+        "Using unscaled data"
+      ],
+      "correct": 0,
+      "explanation": "Pruning uninformative features eliminates noisy distance dimensions, restoring metric fidelity."
+    },
+    {
+      "question": "In KNN regression, what happens if an input query point lies far outside the range of training data (extrapolation)?",
+      "options": [
+        "It predicts infinite values",
+        "It simply predicts the average of the nearest boundary points, failing to extrapolate upward or downward trends",
+        "It crashes with an out-of-bounds error",
+        "It fits a polynomial curve"
+      ],
+      "correct": 1,
+      "explanation": "KNN cannot extrapolate outside the convex hull of training samples; it predicts boundary averages regardless of external trends."
+    },
+    {
+      "question": "What is Radius Neighbors Classifier (an alternative to KNN)?",
+      "options": [
+        "A model that only works on circles",
+        "A classifier that votes among all training points within a fixed radial distance $r$, rather than a fixed count $K$",
+        "A model that rotates features",
+        "A model used exclusively for satellite data"
+      ],
+      "correct": 1,
+      "explanation": "Radius Neighbors uses fixed geometric distance $r$, adapting neighbor count dynamically based on local data density."
+    },
+    {
+      "question": "What is the primary hyperparameter in KNN that should be tuned using cross-validation?",
+      "options": [
+        "The learning rate",
+        "$K$ (number of nearest neighbors)",
+        "The batch size",
+        "The number of epochs"
+      ],
+      "correct": 1,
+      "explanation": "Cross-validation scans $K$ values to identify the optimal tradeoff between overfitting ($K=1$) and underfitting ($K \\gg 1$)."
+    },
+    {
+      "question": "Can KNN produce class probability estimates?",
+      "options": [
+        "No, KNN can only output hard labels",
+        "Yes, by computing the proportion of neighbors belonging to each class among the $K$ nearest points: $P(y=c) = \\frac{K_c}{K}$",
+        "Only when $K = 1$",
+        "Only if all features are positive"
+      ],
+      "correct": 1,
+      "explanation": "The fraction of neighbors belonging to class $c$ serves as an empirical estimate of posterior probability $P(y=c|\\mathbf{x})$."
+    },
+    {
+      "question": "What happens to KNN probability estimates when $K = 5$?",
+      "options": [
+        "Probabilities are continuous",
+        "Probabilities are discretized into steps of 0.20 (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)",
+        "Probabilities are always zero",
+        "Probabilities exceed 1.0"
+      ],
+      "correct": 1,
+      "explanation": "With $K=5$, votes can only be $0/5, 1/5, 2/5, 3/5, 4/5, 5/5$, producing coarse discrete probabilities."
+    },
+    {
+      "question": "How does Cosine Distance relate to Cosine Similarity?",
+      "options": [
+        "$\\text{Cosine Distance} = \\text{Cosine Similarity} + 1$",
+        "$\\text{Cosine Distance} = 1 - \\text{Cosine Similarity}$",
+        "$\\text{Cosine Distance} = (\\text{Cosine Similarity})^2$",
+        "They are unrelated"
+      ],
+      "correct": 1,
+      "explanation": "Cosine distance is defined as $1 - \\cos(\\theta)$, converting directional alignment into a distance measure."
+    },
+    {
+      "question": "When is Cosine Distance preferred over Euclidean Distance in KNN?",
+      "options": [
+        "When predicting housing prices",
+        "In high-dimensional text classification or vector embeddings where document length (magnitude) should not bias semantic similarity",
+        "When features have zero correlation",
+        "When $K=1$"
+      ],
+      "correct": 1,
+      "explanation": "Cosine distance measures angle rather than magnitude, ensuring long and short articles with identical word frequencies match closely."
+    }
+  ],
+  "level": "beginner"
+}

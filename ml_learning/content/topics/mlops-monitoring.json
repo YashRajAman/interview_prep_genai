@@ -1,0 +1,460 @@
+{
+  "id": "mlops-monitoring",
+  "title": "MLOps, Monitoring & Drift Detection",
+  "description": "Model Registries, Data Drift vs Concept Drift, KS-tests, Population Stability Index (PSI), Feature Stores, and Automated Retraining.",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "MLOps, Continuous Delivery & Production Monitoring",
+        "subtitle": "Maintaining Model Reliability, Performance, and Data Integrity Across Changing Environments"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is MLOps (Machine Learning Operations)?",
+        "text": "**MLOps** is an engineering discipline that unifies Machine Learning system development (Dev) with system operations (Ops) to standardize and automate the continuous delivery of high-performing, reliable models into production. It addresses the reality that code represents only a tiny fraction (~5%) of real-world ML systems (Sculley et al., 'Hidden Technical Debt in Machine Learning Systems')."
+      },
+      {
+        "type": "table",
+        "title": "Types of Production Distribution Shift",
+        "headers": [
+          "Shift Type",
+          "Mathematical Definition",
+          "Real-World Example",
+          "Recommended Diagnostic & Remedy"
+        ],
+        "rows": [
+          [
+            "Covariate Shift (Data Drift)",
+            "$P(X)$ changes while $P(Y \\mid X)$ remains constant.",
+            "Demographic user base expands from 20-30 to 50-60 year olds, but purchasing behavior for a given age is unchanged.",
+            "Monitor feature distributions using Kolmogorov-Smirnov (KS) tests or PSI; retrain on fresh covariate samples."
+          ],
+          [
+            "Concept Drift",
+            "$P(Y \\mid X)$ changes while $P(X)$ remains constant.",
+            "Macroeconomic inflation changes customer spending habits; high-income users suddenly buy budget products.",
+            "Track rolling validation loss and ground-truth error rates; update labels and retrain model architecture."
+          ],
+          [
+            "Prior Probability Shift",
+            "$P(Y)$ changes while $P(X \\mid Y)$ remains constant.",
+            "Sudden seasonal spike in flu diagnosis during winter months.",
+            "Adjust model decision thresholds or update class prior weights in the loss function."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Population Stability Index (PSI) Formula",
+        "text": "The **Population Stability Index (PSI)** measures the difference between an initial baseline (reference) distribution $B$ and a live production (target) distribution $T$ divided into $K$ bins:\n\n$$\\text{PSI} = \\sum_{i=1}^{K} (T_i - B_i) \\times \\ln\\left( \\frac{T_i}{B_i} \\right)$$\n\n- **$\\text{PSI} < 0.10$:** Negligible shift; no action required.\n- **$0.10 \\le \\text{PSI} < 0.25$:** Moderate drift; investigate features and plan retraining.\n- **$\\text{PSI} \\ge 0.25$:** Significant drift! High risk of performance collapse; trigger immediate retraining or fallback."
+      },
+      {
+        "type": "text",
+        "title": "The Feature Store Architecture (e.g., Feast, Tecton)",
+        "body": "In production, feature pipelines often suffer from **Training-Serving Skew** (features computed differently in offline Spark jobs vs online real-time APIs). Feature stores decouple feature engineering:\n1. **Offline Store (BigQuery, Snowflake, S3):** Optimized for high-throughput batch queries across millions of historical records during model training.\n2. **Online Store (Redis, DynamoDB):** Ultra-low latency (<5ms) key-value lookup for real-time feature retrieval during inference.\n3. **Point-in-Time Correctness (Time Travel):** Guarantees zero future data leakage when generating historical training features."
+      }
+    ],
+    "code_example": {
+      "title": "Calculating Population Stability Index (PSI) in NumPy",
+      "code": "import numpy as np\n\ndef calculate_psi(expected, actual, num_bins=10):\n    # Divide expected distribution into quantile bins\n    quantiles = np.linspace(0, 100, num_bins + 1)\n    bin_edges = np.percentile(expected, quantiles)\n    bin_edges[0] -= 1e-5\n    bin_edges[-1] += 1e-5\n    \n    # Count frequencies\n    expected_counts, _ = np.histogram(expected, bins=bin_edges)\n    actual_counts, _ = np.histogram(actual, bins=bin_edges)\n    \n    # Convert to proportions with smoothing epsilon to prevent log(0)\n    e_pct = (expected_counts + 1e-4) / (len(expected) + 1e-4 * num_bins)\n    a_pct = (actual_counts + 1e-4) / (len(actual) + 1e-4 * num_bins)\n    \n    # Calculate PSI\n    psi_val = np.sum((a_pct - e_pct) * np.log(a_pct / e_pct))\n    return psi_val\n\n# Baseline reference data ~ N(0, 1)\nnp.random.seed(42)\nreference = np.random.randn(5000)\n\n# Case 1: Live traffic without drift ~ N(0.02, 1.01)\nlive_stable = np.random.randn(2000) * 1.01 + 0.02\npsi_stable = calculate_psi(reference, live_stable)\n\n# Case 2: Live traffic with significant covariate shift ~ N(0.6, 1.3)\nlive_drifted = np.random.randn(2000) * 1.3 + 0.6\npsi_drifted = calculate_psi(reference, live_drifted)\n\nprint(f'Stable Traffic PSI:  {psi_stable:.4f} -> Evaluation: {\"Healthy (<0.1)\" if psi_stable < 0.1 else \"Drifted\"}')\nprint(f'Drifted Traffic PSI: {psi_drifted:.4f} -> Evaluation: {\"CRITICAL DRIFT (>=0.25)\" if psi_drifted >= 0.25 else \"Moderate\"}')"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What is the primary objective of MLOps?",
+      "options": [
+        "Automating and standardizing the entire ML lifecycle from data ingestion to deployment, monitoring, and automated retraining for production reliability",
+        "Writing machine learning papers",
+        "Replacing all software engineers with AI",
+        "Building hardware chips for GPUs"
+      ],
+      "correct": 0,
+      "explanation": "MLOps bridges data science and software operations, creating reproducible, monitored, and automated production pipelines."
+    },
+    {
+      "question": "According to the paper 'Hidden Technical Debt in Machine Learning Systems' (Sculley et al., Google), what proportion of a real-world ML system does actual ML model code represent?",
+      "options": [
+        "A tiny fraction (often estimated at 5% or less) surrounded by massive configuration, data verification, serving, and monitoring infrastructure",
+        "Exactly 99%",
+        "Approximately 50%",
+        "100% of the codebase"
+      ],
+      "correct": 0,
+      "explanation": "Model code is a small fraction of a production system; infrastructure for data verification, feature pipelines, serving, and monitoring dominates."
+    },
+    {
+      "question": "What is Covariate Shift (Data Drift)?",
+      "options": [
+        "The input feature distribution P(X) changes over time while the conditional ground-truth relationship P(Y | X) remains unchanged",
+        "The model weights change randomly",
+        "The labels change while features remain static",
+        "The database columns are renamed"
+      ],
+      "correct": 0,
+      "explanation": "Covariate shift occurs when inputs change (e.g. users get younger) but the underlying mapping from features to outcome remains the same."
+    },
+    {
+      "question": "What is Concept Drift?",
+      "options": [
+        "The conditional probability distribution P(Y | X) changes over time, meaning the fundamental relationship between inputs and outputs has altered",
+        "A change in the user interface of an app",
+        "When code comments become outdated",
+        "When GPU drivers are upgraded"
+      ],
+      "correct": 0,
+      "explanation": "Concept drift occurs when what is being predicted changes in meaning (e.g. spending behavior changes due to an economic crisis)."
+    },
+    {
+      "question": "What is Prior Probability Shift (Label Shift)?",
+      "options": [
+        "The distribution of target classes P(Y) changes while the conditional feature distribution P(X | Y) remains constant",
+        "The learning rate priority shifts",
+        "The model prior is set to uniform",
+        "Gradients shift direction"
+      ],
+      "correct": 0,
+      "explanation": "Prior shift occurs when class proportions change (e.g. an epidemic spikes the proportion of infected patients, though symptoms for sick patients remain unchanged)."
+    },
+    {
+      "question": "What is Training-Serving Skew?",
+      "options": [
+        "Discrepancies in model performance caused by differences in data processing or feature computation between offline training and online real-time inference",
+        "A skewed training dataset",
+        "A physical slant in the datacenter rack",
+        "When models run on different operating systems"
+      ],
+      "correct": 0,
+      "explanation": "Training-serving skew occurs when features are calculated differently at inference than during training (e.g. timezone bugs, disparate code implementations)."
+    },
+    {
+      "question": "What is a Feature Store (such as Feast or Tecton)?",
+      "options": [
+        "A centralized repository for storing, discovering, and serving standardized features with separate offline (batch) and online (low-latency key-value) backends",
+        "A retail store that sells GPU features",
+        "A table in an Excel spreadsheet",
+        "A dictionary of Python function names"
+      ],
+      "correct": 0,
+      "explanation": "Feature stores ensure consistent feature transformations across both offline training (data warehouse) and online inference (low-latency cache like Redis)."
+    },
+    {
+      "question": "What is 'Point-in-Time Correctness' (Time Travel) in feature stores?",
+      "options": [
+        "Generating historical training feature values exactly as they existed at the precise timestamp of each training event, preventing future data leakage",
+        "Running models back in time",
+        "Syncing server clocks with GPS",
+        "A sci-fi simulation tool"
+      ],
+      "correct": 0,
+      "explanation": "Point-in-time joins ensure that features used for training only reflect information available at the time the prediction would have been made."
+    },
+    {
+      "question": "What is a Model Registry (such as MLflow Model Registry)?",
+      "options": [
+        "A centralized catalog that tracks model versions, artifact lineages, dependencies, transition stages (Staging, Production, Archived), and approval workflows",
+        "A Windows registry key for models",
+        "A trademark database for model names",
+        "A list of GPU hardware serial numbers"
+      ],
+      "correct": 0,
+      "explanation": "A model registry manages versioning, metadata, and deployment lifecycle states for models across environments."
+    },
+    {
+      "question": "What does the Kolmogorov-Smirnov (KS) Test measure in model drift detection?",
+      "options": [
+        "A non-parametric statistical test that compares the cumulative distributions of a continuous feature between baseline and live windows to detect drift",
+        "The speed of model inference",
+        "The accuracy of neural networks",
+        "The number of parameters in a model"
+      ],
+      "correct": 0,
+      "explanation": "The two-sample KS test computes the maximum vertical divergence between empirical cumulative distribution functions to identify significant distribution drift."
+    },
+    {
+      "question": "What is the Population Stability Index (PSI)?",
+      "options": [
+        "A statistical metric measuring how much a variable's distribution has shifted from a reference population across discrete binned buckets",
+        "The census population of a country",
+        "The stability of the electrical power grid",
+        "A measure of server CPU load"
+      ],
+      "correct": 0,
+      "explanation": "PSI evaluates population divergence: PSI < 0.1 indicates no change, 0.1-0.25 indicates moderate shift, and >= 0.25 signals critical drift."
+    },
+    {
+      "question": "What action is typically triggered when the PSI of critical input features exceeds 0.25?",
+      "options": [
+        "Alert engineers and trigger automated retraining pipelines or fallback models due to significant distribution shift",
+        "Shut down the entire company website",
+        "Delete the training dataset",
+        "Double the inference price"
+      ],
+      "correct": 0,
+      "explanation": "A PSI >= 0.25 indicates substantial shift that compromises model predictions, warranting automated retraining or routing to fallback systems."
+    },
+    {
+      "question": "What is Jensen-Shannon Divergence (JSD)?",
+      "options": [
+        "A symmetric, smoothed, and bounded version of the Kullback-Leibler (KL) divergence used to measure distance between probability distributions",
+        "The divergence between training loss and test loss",
+        "The speed difference between two GPUs",
+        "A metric for measuring code entropy"
+      ],
+      "correct": 0,
+      "explanation": "JSD is symmetric and bounded in [0, 1] (or [0, ln(2)]), making it a stable metric for tracking distribution drift."
+    },
+    {
+      "question": "What is a Canary Deployment in ML operations?",
+      "options": [
+        "Routing a small percentage of live production traffic (e.g. 5%) to a newly trained model while routing 95% to the incumbent, monitoring error metrics before full rollout",
+        "Testing models on yellow birds",
+        "Placing carbon monoxide detectors in server rooms",
+        "A backup battery for computers"
+      ],
+      "correct": 0,
+      "explanation": "Canary deployments minimize risk by exposing new models to a small fraction of users, verifying stability before total deployment."
+    },
+    {
+      "question": "What is a Blue-Green Deployment?",
+      "options": [
+        "Maintaining two identical production environments (Blue and Green), routing 100% of user traffic to Green while updating Blue, then switching the load balancer instantly",
+        "Painting server racks blue and green",
+        "A solar-powered datacenter strategy",
+        "Using two different programming languages"
+      ],
+      "correct": 0,
+      "explanation": "Blue-green deployment enables instantaneous, zero-downtime cutover and immediate rollbacks if issues occur."
+    },
+    {
+      "question": "What is Shadow Deployment (Dark Launch)?",
+      "options": [
+        "Forking live production traffic to a candidate model in parallel without serving its outputs to the end user, validating latency and accuracy safely under real load",
+        "Deploying models in secret at night",
+        "Deploying models without logging",
+        "Running servers with monitors turned off"
+      ],
+      "correct": 0,
+      "explanation": "Shadow deployment tests performance, throughput, and error rates against real production traffic without risking user experience."
+    },
+    {
+      "question": "What is Data Provenance (Data Lineage) in MLOps?",
+      "options": [
+        "A comprehensive audit trail recording the origin, transformation history, and downstream dependencies of every dataset used in model training",
+        "The geographic location of data centers",
+        "The author's identity of a Python library",
+        "The file size of datasets on disk"
+      ],
+      "correct": 0,
+      "explanation": "Data lineage records how raw data was gathered, filtered, and transformed into training sets, ensuring auditability and reproducibility."
+    },
+    {
+      "question": "What is DVC (Data Version Control)?",
+      "options": [
+        "An open-source version control tool that extends Git to manage and track large datasets, model checkpoints, and data pipelines via content hashes",
+        "A digital video recording codec",
+        "A database for vector search",
+        "A compression format for audio"
+      ],
+      "correct": 0,
+      "explanation": "DVC tracks large data and model files using content-based pointers committed to Git, enabling reproducible ML experiments."
+    },
+    {
+      "question": "What is Model Degradation (Model Decay)?",
+      "options": [
+        "The gradual decline in predictive performance of a production model over time due to changing real-world environments and distribution drift",
+        "Physical degradation of GPU silicon chips",
+        "Deleting weights from a model checkpoint",
+        "Code becoming unreadable"
+      ],
+      "correct": 0,
+      "explanation": "Production models naturally lose accuracy over time as external human behavior, economic conditions, and trends diverge from training data."
+    },
+    {
+      "question": "What is Automated Continuous Retraining (CT) in CI/CD/CT pipelines?",
+      "options": [
+        "An automated system that periodically or dynamically retrains, evaluates, and deploys models upon detecting drift or arrival of new labeled data",
+        "Running a model training loop 24/7 without stopping",
+        "Retraining models manually every Monday morning",
+        "Retraining users on how to use software"
+      ],
+      "correct": 0,
+      "explanation": "Continuous Training (CT) triggers end-to-end retraining pipelines autonomously when data drift exceeds thresholds or fresh data batches arrive."
+    },
+    {
+      "question": "What is an Evaluation Gate in an automated CI/CD pipeline for ML?",
+      "options": [
+        "A rigorous automated test stage where candidate models must outperform production baseline models on validation benchmarks before deployment approval",
+        "A physical gate at the entrance to a server room",
+        "A network firewall for API calls",
+        "A syntax checker for Python code"
+      ],
+      "correct": 0,
+      "explanation": "Evaluation gates prevent regressions by testing candidate models against baseline metrics, fairness criteria, and latency limits before promotion."
+    },
+    {
+      "question": "What is Data Quality Validation (e.g. Great Expectations)?",
+      "options": [
+        "Asserting and validating schema constraints, null value thresholds, and statistical properties of incoming data before feeding it to ML pipelines",
+        "Having human reviewers check every database row",
+        "A method for checking spelling in datasets",
+        "A certification for data scientists"
+      ],
+      "correct": 0,
+      "explanation": "Tools like Great Expectations enforce declarative contracts on data pipelines, preventing malformed or corrupted inputs from polluting training or serving."
+    },
+    {
+      "question": "What is Outlier / Anomaly Detection in production feature streams?",
+      "options": [
+        "Identifying anomalous input requests that deviate wildly from historical norms (e.g. negative prices, impossible ages) before inference",
+        "Deleting all data points with odd numbers",
+        "Flagging users with rare names",
+        "Detecting power surges in GPUs"
+      ],
+      "correct": 0,
+      "explanation": "Anomaly detection guards models from making erratic predictions on malformed or adversarial inputs."
+    },
+    {
+      "question": "What is Prometheus and Grafana in production ML infrastructure?",
+      "options": [
+        "Prometheus scrapes time-series metrics (latency, error rates, throughput, GPU utilization) and Grafana renders real-time visual dashboards and alerts",
+        "Two Greek philosophers who studied AI",
+        "A deep learning framework and a database",
+        "An IDE and a code editor"
+      ],
+      "correct": 0,
+      "explanation": "Prometheus collects operational and model metrics; Grafana visualizes them in live dashboards with automated alerting rules."
+    },
+    {
+      "question": "What is Distributed Tracing (e.g. OpenTelemetry, Jaeger) in ML microservices?",
+      "options": [
+        "Tracking a request's end-to-end execution path and timing across multiple microservices (API gateway, feature store, vector DB, LLM server)",
+        "Tracing computer circuits with microscopes",
+        "Logging user IP addresses",
+        "Tracing lines on a matplotlib plot"
+      ],
+      "correct": 0,
+      "explanation": "Distributed tracing visualizes call graphs and pinpoint latency bottlenecks across complex distributed systems."
+    },
+    {
+      "question": "What is Ground-Truth Delay (Label Latency) in production monitoring?",
+      "options": [
+        "The delay between when a model makes an inference prediction and when the true ground-truth outcome is finally observed and recorded",
+        "The ping latency of the internet connection",
+        "The time to train the model",
+        "The time for a label to print on a physical box"
+      ],
+      "correct": 0,
+      "explanation": "In many real-world domains (e.g. loan defaults, fraud, churn), ground-truth outcomes take weeks or months to arrive, requiring proxy drift metrics."
+    },
+    {
+      "question": "How do teams monitor production models when ground-truth labels are delayed by months?",
+      "options": [
+        "By monitoring proxy metrics: input feature drift (PSI/KS), output prediction distribution shifts, and embedding distribution changes",
+        "By waiting months before checking anything",
+        "By guessing the ground-truth randomly",
+        "By turning off model monitoring"
+      ],
+      "correct": 0,
+      "explanation": "When ground truth is delayed, tracking input covariate drift and output score distributions serves as early warning for performance degradation."
+    },
+    {
+      "question": "What is Explainable AI (XAI) monitoring in production?",
+      "options": [
+        "Tracking feature attribution values (e.g. average SHAP values) over time to ensure the model relies on stable, expected reasoning factors",
+        "Explaining code with inline docstrings",
+        "Sending explanation emails to users",
+        "Translating code into English"
+      ],
+      "correct": 0,
+      "explanation": "Monitoring feature attributions reveals whether the model's underlying decision drivers are shifting or relying on spurious correlations."
+    },
+    {
+      "question": "What is Rollback Strategy in MLOps?",
+      "options": [
+        "The automated ability to instantly revert traffic back to the previous stable model checkpoint if the new deployment exhibits unexpected errors or spikes in latency",
+        "Rolling back physical server racks",
+        "Undoing Git commits in documentation",
+        "Reverting database migrations"
+      ],
+      "correct": 0,
+      "explanation": "Robust MLOps pipelines include automated triggers that restore the prior known-good model version when anomalies occur."
+    },
+    {
+      "question": "What is Containerization (Docker) in ML reproducibility?",
+      "options": [
+        "Packaging code, system libraries, Python packages, and runtime dependencies into an immutable image that runs identically on any infrastructure",
+        "Shipping physical servers in shipping containers",
+        "Storing datasets in zip files",
+        "Running models in virtual browser tabs"
+      ],
+      "correct": 0,
+      "explanation": "Containers ensure consistent runtime environments, eliminating 'works on my machine' dependency conflicts between local and production clusters."
+    },
+    {
+      "question": "What is Kubernetes (K8s) in ML operations?",
+      "options": [
+        "An open-source container orchestration platform that manages autoscaling, load balancing, self-healing, and rollout of model serving containers",
+        "A specialized programming language for AI",
+        "A GPU architecture from NVIDIA",
+        "A cloud storage service"
+      ],
+      "correct": 0,
+      "explanation": "Kubernetes automates deployment, scaling, and operational management of containerized inference microservices."
+    },
+    {
+      "question": "What is KServe (formerly KFServing)?",
+      "options": [
+        "A cloud-native model serving framework on top of Kubernetes that provides serverless autoscaling (including scale-to-zero) for PyTorch, Triton, and ONNX",
+        "A web server written in PHP",
+        "A tool for serving coffee in datacenters",
+        "A database client for SQL"
+      ],
+      "correct": 0,
+      "explanation": "KServe provides serverless model serving on Kubernetes with dynamic autoscaling, canary rollouts, and explainability endpoints."
+    },
+    {
+      "question": "What is Model Poisoning in adversarial ML?",
+      "options": [
+        "Injecting malicious corrupted samples into the training dataset to cause the trained model to behave erratically or create backdoors",
+        "Spilling liquids on physical GPUs",
+        "Deleting model weights from disk",
+        "Corrupting Python installation files"
+      ],
+      "correct": 0,
+      "explanation": "Poisoning attacks tamper with training data so the model learns a secret backdoor trigger or suffers broad performance degradation."
+    },
+    {
+      "question": "What is Concept Drift Adaptation via Sliding Windows?",
+      "options": [
+        "Training models strictly on the most recent window of data (e.g. past 30 days) while discarding stale historical records",
+        "Opening 30 windows on a computer screen",
+        "A sliding window convolution",
+        "A method for video processing"
+      ],
+      "correct": 0,
+      "explanation": "Sliding window retraining discards outdated historical patterns, prioritizing recent behavior in fast-changing dynamic markets."
+    },
+    {
+      "question": "What is an ML Metadata Store (MLMD)?",
+      "options": [
+        "A database that records all artifacts (datasets, models, metrics) and execution runs generated by pipeline stages, enabling complete auditability",
+        "A store that sells machine learning books",
+        "A dictionary of metadata in Python",
+        "A text file on the desktop"
+      ],
+      "correct": 0,
+      "explanation": "MLMD captures the provenance graph of pipeline executions, tracking which exact dataset and code version produced each model artifact."
+    }
+  ],
+  "level": "professional"
+}

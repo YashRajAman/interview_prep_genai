@@ -1,0 +1,471 @@
+{
+  "id": "boosting",
+  "title": "Boosting: AdaBoost, Gradient Boosting & XGBoost",
+  "description": "Sequential ensemble learning, AdaBoost sample reweighting, Gradient Boosting with pseudo-residuals, XGBoost regularized objective, LightGBM, and CatBoost.",
+  "duration": "35 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Gradient Boosting & Modern Tree Boosters",
+        "subtitle": "Sequential Residual Optimization: The Gold Standard for Tabular Machine Learning"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Boosting Paradigm: Sequential Learning",
+        "content": "Unlike Bagging where models train independently in parallel, **Boosting builds an additive ensemble sequentially**:\n\n$$F_m(\\mathbf{x}) = F_{m-1}(\\mathbf{x}) + \\eta h_m(\\mathbf{x})$$\n\nEach new base estimator $h_m(\\mathbf{x})$ is trained specifically to **correct the errors and residuals made by the previous ensemble $F_{m-1}(\\mathbf{x})$**!"
+      },
+      {
+        "type": "text",
+        "title": "AdaBoost vs. Gradient Boosting",
+        "content": "1. **AdaBoost (Freund & Schapire, 1996):** Adjusts **sample weights**. Misclassified samples receive higher sample weights, forcing the next weak learner (typically a decision stump) to focus on difficult instances.\n\n2. **Gradient Boosting (Friedman, 2001):** Formulates boosting as **gradient descent in function space**. Instead of reweighting samples, each new tree is fitted directly to the **negative gradient (pseudo-residuals)** of the loss function with respect to current predictions:\n$$r_{im} = -\\left[ \\frac{\\partial L(y_i, F(\\mathbf{x}_i))}{\\partial F(\\mathbf{x}_i)} \\right]_{F(\\mathbf{x}) = F_{m-1}(\\mathbf{x})}$$\nFor Mean Squared Error $L = \\frac{1}{2}(y - F)^2$, the pseudo-residual is simply the residual error: $r_{im} = y_i - F_{m-1}(\\mathbf{x}_i)$!"
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "The Modern Tree Boosting Pantheon",
+        "content": "| Algorithm | Core Innovation | Splitting Strategy | Key Advantage |\n|---|---|---|---|\n| **Standard GBM** | Fits trees to first-order residuals | Depth-wise (level-wise) | Classical baseline; slow on large datasets |\n| **XGBoost (2014)** | Second-order Taylor expansion (Hessians) + Tree pruning + L1/L2 penalties | Depth-wise with exact or histogram greedy search | Battle-tested Kaggle winner; exceptional regularization |\n| **LightGBM (2016)** | Histogram-based binning + GOSS (Gradient-based One-Side Sampling) + EFB | Leaf-wise (best-first) | 10x faster training, lower memory, scales to millions of rows |\n| **CatBoost (2017)** | Target statistics encoding on the fly + Symmetric (oblivious) trees | Oblivious trees (same split across full level) | Industry-leading handling of categorical features; zero leakage |"
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The Cardinal Hyperparameter Trade-off",
+        "content": "Boosting **can easily overfit** if the number of estimators is too high and learning rate is too large! **Golden Rule:** Set a small learning rate ($\\eta = 0.01 - 0.05$), increase `n_estimators`, and use **Early Stopping** on a validation set."
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Production Dominance",
+        "content": "Gradient Boosted Decision Trees (XGBoost, LightGBM, CatBoost) dominate real-world tabular data competitions and production systems, consistently outperforming deep neural networks on structured tabular datasets."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Boosting Family Matcher",
+    "description": "Match the modern boosting framework to its unique architectural breakthrough.",
+    "items": [
+      {
+        "text": "Uses second-order Taylor expansion (gradients + Hessians) and tree regularization",
+        "category": "XGBoost"
+      },
+      {
+        "text": "Uses histogram binning, GOSS sampling, and leaf-wise tree growth",
+        "category": "LightGBM"
+      },
+      {
+        "text": "Uses ordered target statistics and symmetric oblivious trees",
+        "category": "CatBoost"
+      },
+      {
+        "text": "Reweights misclassified samples sequentially with decision stumps",
+        "category": "AdaBoost"
+      }
+    ],
+    "categories": [
+      "XGBoost",
+      "LightGBM",
+      "CatBoost",
+      "AdaBoost"
+    ]
+  },
+  "code": {
+    "description": "Train GradientBoostingClassifier with early stopping, evaluate shrinkage (learning rate), and inspect residual convergence with Scikit-learn.",
+    "starter": "from sklearn.datasets import load_breast_cancer\nfrom sklearn.ensemble import GradientBoostingClassifier\nfrom sklearn.model_selection import train_test_split\nimport numpy as np\n\n# Load dataset\ndata = load_breast_cancer()\nX, y = data.data, data.target\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)\n\n# Train Gradient Boosting with shrinkage and early stopping\ngbm = GradientBoostingClassifier(\n    n_estimators=150,\n    learning_rate=0.05,\n    max_depth=3,\n    subsample=0.8,\n    validation_fraction=0.15,\n    n_iter_no_change=10,\n    random_state=42\n)\ngbm.fit(X_train, y_train)\n\nprint(f'Optimal Number of Trees: {gbm.n_estimators_} (Early stopped from 150)')\nprint(f'Train Accuracy: {gbm.score(X_train, y_train)*100:.2f}%')\nprint(f'Test Accuracy:  {gbm.score(X_test, y_test)*100:.2f}%')\n\n# Inspect top 3 features\nidx = np.argsort(gbm.feature_importances_)[::-1][:3]\nprint('\\nTop 3 Predictive Features:')\nfor i in idx:\n    print(f'- {data.feature_names[i]}: {gbm.feature_importances_[i]:.4f}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What is the fundamental difference between Bagging (Random Forest) and Boosting (Gradient Boosting)?",
+      "options": [
+        "Bagging uses GPUs; Boosting uses CPUs",
+        "Bagging trains independent models in parallel to reduce variance; Boosting trains models sequentially where each model corrects the errors of preceding models to reduce bias",
+        "Bagging is for classification; Boosting is for regression",
+        "Bagging cannot handle tabular data"
+      ],
+      "correct": 1,
+      "explanation": "Bagging averages independent models in parallel; Boosting sequentially fits new learners to residual errors to reduce bias."
+    },
+    {
+      "question": "How does AdaBoost adapt its training process at each sequential iteration?",
+      "options": [
+        "By deleting 10% of samples",
+        "By increasing the sample weights of instances misclassified by the previous weak learner, forcing the next learner to focus on hard cases",
+        "By increasing the learning rate",
+        "By adding new features"
+      ],
+      "correct": 1,
+      "explanation": "AdaBoost increases the weights of misclassified instances, making them more influential in the next learner's loss calculation."
+    },
+    {
+      "question": "In Gradient Boosting, what target do sequential decision trees fit against?",
+      "options": [
+        "The original ground-truth label $y$",
+        "The negative gradient (pseudo-residuals) of the loss function with respect to current ensemble predictions",
+        "A random sample of features",
+        "The predictions of a Random Forest"
+      ],
+      "correct": 1,
+      "explanation": "Gradient boosting fits trees to the negative gradient (pseudo-residuals) of the loss function, performing gradient descent in function space."
+    },
+    {
+      "question": "For Mean Squared Error (MSE) loss, what does the negative gradient (pseudo-residual) simplify to?",
+      "options": [
+        "$y_i + \\hat{y}_i$",
+        "The residual error: $y_i - F_{m-1}(\\mathbf{x}_i)$",
+        "The variance of $y$",
+        "Zero"
+      ],
+      "correct": 1,
+      "explanation": "For quadratic loss $\\frac{1}{2}(y - F)^2$, $-\\frac{\\partial L}{\\partial F} = y - F$, which is exactly the residual error!"
+    },
+    {
+      "question": "What is the role of the learning rate (shrinkage) $\\eta$ in Gradient Boosting?",
+      "options": [
+        "It scales the number of features",
+        "It scales the contribution of each newly added tree: $F_m(\\mathbf{x}) = F_{m-1}(\\mathbf{x}) + \\eta h_m(\\mathbf{x})$, preventing rapid overfitting",
+        "It multiplies the dataset size",
+        "It controls the random seed"
+      ],
+      "correct": 1,
+      "explanation": "Shrinkage scales each tree's step, requiring more trees but achieving far superior generalization."
+    },
+    {
+      "question": "What is the standard recommended practice regarding learning rate and tree count in Gradient Boosting?",
+      "options": [
+        "Large learning rate (0.9) with few trees",
+        "Small learning rate (0.01 - 0.05) with a high number of trees, controlled by early stopping on validation loss",
+        "Learning rate equal to zero",
+        "Infinite learning rate"
+      ],
+      "correct": 1,
+      "explanation": "Small learning rates combined with early stopping produce optimal generalization, preventing overshooting."
+    },
+    {
+      "question": "Can Gradient Boosting overfit if `n_estimators` is set excessively high without early stopping?",
+      "options": [
+        "No, boosting never overfits",
+        "Yes; unlike Random Forests, adding too many sequential trees in boosting will eventually fit residual noise and overfit",
+        "Only if the learning rate is 0",
+        "Only on small datasets"
+      ],
+      "correct": 1,
+      "explanation": "Because boosting relentlessly minimizes training error, excessive iterations will eventually memorize training noise."
+    },
+    {
+      "question": "What mathematical advancement does XGBoost use over standard Gradient Boosting?",
+      "options": [
+        "It uses neural networks",
+        "It utilizes a second-order Taylor expansion of the loss function (using both first-order gradients and second-order Hessians) and explicit tree complexity regularization ($L_1, L_2$)",
+        "It removes the need for trees",
+        "It uses exact matrix inversion"
+      ],
+      "correct": 1,
+      "explanation": "XGBoost incorporates second-order Hessians $h_i = \\frac{\\partial^2 L}{\\partial \\hat{y}^2}$ and regularizes tree leaf counts and weights ($\\gamma T + \\frac{1}{2}\\lambda \\|w\\|^2$)."
+    },
+    {
+      "question": "What are the 'gradients' ($g_i$) and 'Hessians' ($h_i$) in XGBoost?",
+      "options": [
+        "Hardware drivers",
+        "First-order partial derivatives and second-order partial derivatives of the loss function with respect to the prediction",
+        "Hyperparameters set by the user",
+        "Column indices in the dataset"
+      ],
+      "correct": 1,
+      "explanation": "$g_i$ is the first derivative (slope) and $h_i$ is the second derivative (curvature) of the loss function at sample $i$."
+    },
+    {
+      "question": "What is the leaf-wise (best-first) tree growth strategy used by LightGBM compared to depth-wise (level-wise)?",
+      "options": [
+        "Leaf-wise splits the leaf with the maximum loss reduction globally, creating deep asymmetric trees faster",
+        "Leaf-wise splits every node at the same level simultaneously",
+        "Leaf-wise builds trees horizontally",
+        "Leaf-wise restricts depth to 2"
+      ],
+      "correct": 0,
+      "explanation": "LightGBM splits the single leaf that achieves the greatest loss reduction globally, achieving lower loss with fewer splits than symmetric level-wise growth."
+    },
+    {
+      "question": "Why does LightGBM train up to 10x faster than traditional Gradient Boosting on large datasets?",
+      "options": [
+        "It deletes 90% of samples",
+        "It uses histogram-based feature binning (e.g. 256 discrete bins) and GOSS (Gradient-based One-Side Sampling) to evaluate splits in $O(\\text{bins})$ instead of $O(N)$",
+        "It runs on quantum hardware",
+        "It ignores loss calculations"
+      ],
+      "correct": 1,
+      "explanation": "Histogram binning reduces continuous splits to discrete bins; GOSS retains high-gradient samples while downsampling small-gradient samples."
+    },
+    {
+      "question": "What is Gradient-based One-Side Sampling (GOSS) in LightGBM?",
+      "options": [
+        "Sampling data from one side of the server",
+        "Retaining all instances with large gradients (under-trained samples) and taking a random sample of instances with small gradients, with weight compensation",
+        "Training only on positive classes",
+        "Dropping odd rows"
+      ],
+      "correct": 1,
+      "explanation": "GOSS focuses compute on samples with large gradients (highest error) while preserving distribution balance via sample reweighting."
+    },
+    {
+      "question": "What is Exclusive Feature Bundling (EFB) in LightGBM?",
+      "options": [
+        "Selling features to third parties",
+        "Bundling mutually exclusive sparse features (features that rarely take non-zero values simultaneously, e.g. one-hot columns) into single dense features",
+        "A method for encrypting columns",
+        "A technique to sort trees"
+      ],
+      "correct": 1,
+      "explanation": "EFB merges sparse, mutually exclusive feature sets to reduce the total number of features evaluated without loss of accuracy."
+    },
+    {
+      "question": "What is CatBoost's standout architectural strength in tabular machine learning?",
+      "options": [
+        "It was named after domestic cats",
+        "Proprietary online target statistics encoding that converts categorical features into numeric signals without target leakage, paired with oblivious trees",
+        "It cannot overfit",
+        "It only works on images"
+      ],
+      "correct": 1,
+      "explanation": "CatBoost dynamically calculates target statistics over randomized permutations, eliminating target leakage in categorical data."
+    },
+    {
+      "question": "What is an 'oblivious decision tree' (symmetric tree) as used by CatBoost?",
+      "options": [
+        "A tree that forgets its weights",
+        "A tree where the exact same splitting criterion is applied across all nodes at the same depth level, creating balanced, highly cache-efficient trees",
+        "A tree with no root",
+        "A tree that ignores the target variable"
+      ],
+      "correct": 1,
+      "explanation": "Oblivious trees use identical split rules across each depth level, allowing vector-level CPU SIMD evaluation and preventing overfitting."
+    },
+    {
+      "question": "What does the `subsample` (stochastic gradient boosting) parameter control in GBMs?",
+      "options": [
+        "The fraction of features dropped",
+        "The fraction of training samples randomly drawn without replacement to train each individual sequential tree (typically 0.7 - 0.8)",
+        "The batch size in epochs",
+        "The number of output classes"
+      ],
+      "correct": 1,
+      "explanation": "Subsampling rows (e.g. `subsample=0.8`) introduces stochastic regularization and speeds up training iterations."
+    },
+    {
+      "question": "What does `colsample_bytree` control in XGBoost / LightGBM?",
+      "options": [
+        "The number of trees in the forest",
+        "The fraction of features randomly subsampled when constructing each individual tree",
+        "The number of rows in the CSV",
+        "The column names"
+      ],
+      "correct": 1,
+      "explanation": "Feature subsampling (`colsample_bytree`) prevents trees from over-relying on a few dominant predictors."
+    },
+    {
+      "question": "What is Early Stopping in Gradient Boosting?",
+      "options": [
+        "Halting training when validation loss fails to improve for a specified number of consecutive iterations (`n_iter_no_change` / `early_stopping_rounds`)",
+        "Stopping the server manually",
+        "A Python exception",
+        "A hardware watchdog timer"
+      ],
+      "correct": 0,
+      "explanation": "Early stopping monitors held-out validation loss, automatically freezing the model at its peak generalization iteration."
+    },
+    {
+      "question": "What is the typical depth of base decision trees used in Gradient Boosting compared to Random Forests?",
+      "options": [
+        "GBM uses deep trees (depth 20); Random Forest uses stumps (depth 1)",
+        "GBM uses shallow trees (depth 3 to 6, weak learners); Random Forest typically uses deep, unconstrained trees (depth 15+)",
+        "Both use identical depth 50",
+        "GBM does not use trees"
+      ],
+      "correct": 1,
+      "explanation": "Boosting requires weak learners with high bias (shallow trees, depth 3-6); Bagging requires low-bias, high-variance learners (deep trees)."
+    },
+    {
+      "question": "Why is a base learner in Gradient Boosting called a 'weak learner'?",
+      "options": [
+        "Because it has code bugs",
+        "It is an estimator that performs only slightly better than random guessing (e.g. shallow decision tree with restricted depth)",
+        "It runs very slowly",
+        "It has negative accuracy"
+      ],
+      "correct": 1,
+      "explanation": "Weak learners have restricted capacity (high bias, low variance); boosting iteratively combines them to build a strong learner."
+    },
+    {
+      "question": "What is the `scale_pos_weight` parameter in XGBoost / LightGBM used for?",
+      "options": [
+        "Scaling image pixel values",
+        "Balancing positive and negative class penalties in imbalanced classification (typically set to $\\frac{\\text{negative count}}{\\text{positive count}}$)",
+        "Multiplying predictions by 10",
+        "A hyperparameter for regression only"
+      ],
+      "correct": 1,
+      "explanation": "`scale_pos_weight` scales the gradient of the positive class, compensating for severe class imbalance without resampling."
+    },
+    {
+      "question": "How does XGBoost handle missing values in features during training and inference?",
+      "options": [
+        "It crashes with a NaN error",
+        "It automatically learns an optimal default split direction for missing values at each node based on whichever direction minimizes loss",
+        "It imputes zero for all NaNs",
+        "It deletes all rows containing NaNs"
+      ],
+      "correct": 1,
+      "explanation": "XGBoost treats missing values as a distinct category, automatically allocating NaNs to the branch that minimizes objective loss."
+    },
+    {
+      "question": "What is the effect of the `gamma` (min_split_loss) hyperparameter in XGBoost?",
+      "options": [
+        "Controls the learning rate",
+        "The minimum loss reduction required to make a further split on a leaf node; acts as a direct regularization against complex trees",
+        "Controls the number of CPU threads",
+        "Sets the random seed"
+      ],
+      "correct": 1,
+      "explanation": "`gamma` specifies the minimum gain needed to justify splitting; higher values enforce conservative, well-pruned trees."
+    },
+    {
+      "question": "What are the `reg_alpha` and `reg_lambda` hyperparameters in XGBoost and LightGBM?",
+      "options": [
+        "Alpha is $L_1$ regularization (Lasso); Lambda is $L_2$ regularization (Ridge) applied to leaf weights",
+        "Alpha is learning rate; Lambda is tree depth",
+        "They are random noise seeds",
+        "They control thread counts"
+      ],
+      "correct": 0,
+      "explanation": "`reg_alpha` enforces $L_1$ sparsity on leaf weights; `reg_lambda` enforces $L_2$ weight shrinkage to prevent extreme predictions."
+    },
+    {
+      "question": "In binary classification, what loss function does XGBoost minimize by default?",
+      "options": [
+        "`reg:squarederror`",
+        "`binary:logistic` (Binary Cross-Entropy / Log Loss)",
+        "`multi:softmax`",
+        "`rank:pairwise`"
+      ],
+      "correct": 1,
+      "explanation": "`binary:logistic` minimizes negative log-likelihood (binary cross-entropy), outputting calibrated probabilities."
+    },
+    {
+      "question": "In multiclass classification with 5 classes, what objective does XGBoost use?",
+      "options": [
+        "`binary:logistic`",
+        "`multi:softprob` or `multi:softmax`",
+        "`reg:logistic`",
+        "`survival:cox`"
+      ],
+      "correct": 1,
+      "explanation": "`multi:softprob` outputs a 5-element probability vector per sample using multiclass cross-entropy."
+    },
+    {
+      "question": "What is the 'learning rate vs number of trees' tradeoff in Gradient Boosting?",
+      "options": [
+        "Lowering learning rate requires fewer trees",
+        "Lowering learning rate requires proportionally more trees to reach convergence, but achieves superior test set generalization",
+        "They are completely independent",
+        "Learning rate has no effect on tree count"
+      ],
+      "correct": 1,
+      "explanation": "Shrinkage slows convergence: halving $\\eta$ roughly doubles the required trees, but consistently improves generalization."
+    },
+    {
+      "question": "Why is Gradient Boosting sensitive to high learning rates compared to Random Forests?",
+      "options": [
+        "Because boosting runs in C++",
+        "Because boosting adds updates greedily; an overshooting gradient step permanently corrupts the baseline for all subsequent trees in the sequence",
+        "Because Random Forest has no learning rate",
+        "Because boosting has zero variance"
+      ],
+      "correct": 1,
+      "explanation": "Boosting is sequential; an overconfident, erroneous step destabilizes the ensemble trajectory for all future iterations."
+    },
+    {
+      "question": "What is DART (Dropouts meet Multiple Additive Regression Trees) in XGBoost and LightGBM?",
+      "options": [
+        "A dartboard game for engineers",
+        "A boosting variant that randomly drops a fraction of existing trees during each iteration, preventing early trees from dominating the ensemble (borrowing from deep learning Dropout)",
+        "A method for deleting data",
+        "A tool for visualizing trees"
+      ],
+      "correct": 1,
+      "explanation": "DART applies dropout to tree ensembles, mitigating the 'over-specialization' of early trees and boosting ensemble diversity."
+    },
+    {
+      "question": "What is feature importance via 'Gain' in XGBoost / LightGBM?",
+      "options": [
+        "The financial gain generated by the model",
+        "The total improvement in accuracy/objective loss brought by a feature to the branches it is on",
+        "The number of times a feature splits",
+        "The correlation of the feature"
+      ],
+      "correct": 1,
+      "explanation": "Gain measures the actual relative contribution of each feature to minimizing the objective function across all trees."
+    },
+    {
+      "question": "What is feature importance via 'Weight' (or Frequency / Split count) in XGBoost?",
+      "options": [
+        "The physical weight of the server",
+        "The number of times a feature appears in splits across all trees in the ensemble",
+        "The loss reduction per split",
+        "The depth of the feature"
+      ],
+      "correct": 1,
+      "explanation": "Weight (Frequency) simply counts how many times a feature was selected to split a node, regardless of purity improvement."
+    },
+    {
+      "question": "Why is 'Gain' generally considered a more reliable feature importance metric than 'Weight' (Split count) in XGBoost?",
+      "options": [
+        "Because Gain is always positive",
+        "A feature might split many times with negligible impurity reduction, artificially inflating its split count, whereas Gain reflects true loss improvement",
+        "Because Weight is an integer",
+        "Because Gain requires GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Split count can be misleading for high-cardinality continuous features; Gain measures actual impact on minimizing error."
+    },
+    {
+      "question": "What is the SHAP (SHapley Additive exPlanations) framework commonly used with XGBoost / LightGBM?",
+      "options": [
+        "An algorithm that trains models faster",
+        "A game-theoretic approach that accurately calculates the marginal contribution of each feature to individual predictions (local explainability)",
+        "A loss function for boosting",
+        "A hyperparameter tuner"
+      ],
+      "correct": 1,
+      "explanation": "SHAP computes Shapley values from cooperative game theory, providing mathematically consistent feature attribution for tree models."
+    },
+    {
+      "question": "What is TreeSHAP?",
+      "options": [
+        "An algorithm that prunes trees",
+        "An optimized algorithm that computes exact SHAP values for tree ensembles in polynomial time $O(T L D^2)$ instead of exponential time",
+        "A visualization tool for leaves",
+        "A decision tree written in Python"
+      ],
+      "correct": 1,
+      "explanation": "TreeSHAP exploits tree structure to compute exact Shapley feature attributions in seconds rather than exponential time."
+    },
+    {
+      "question": "Can Gradient Boosted Trees handle non-linear interactions between features?",
+      "options": [
+        "No, boosting is strictly linear",
+        "Yes, deep decision trees naturally capture high-order non-linear feature interactions without explicit manual interaction terms",
+        "Only if features are multiplied in pandas first",
+        "Only with RBF kernels"
+      ],
+      "correct": 1,
+      "explanation": "Every split nested beneath another split models a non-linear interaction ($x_1 > t_1 \\text{ AND } x_2 \\le t_2$)."
+    }
+  ],
+  "level": "intermediate"
+}

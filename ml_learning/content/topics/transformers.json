@@ -1,0 +1,470 @@
+{
+  "id": "transformers",
+  "title": "The Transformer Architecture & Attention",
+  "description": "Scaled Dot-Product Attention, Multi-Head Attention, RoPE, ALiBi, FlashAttention, and Encoder/Decoder architectures.",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "The Transformer Architecture & Self-Attention",
+        "subtitle": "The Foundational Engine Powering Modern Generative AI and Foundation Models"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Attention Breakthrough (Vaswani et al., 2017)",
+        "text": "Introduced in the landmark paper *Attention Is All You Need*, the **Transformer** abandoned recurrent and convolutional connections entirely, relying solely on **Self-Attention** mechanisms. In self-attention, each token in a sequence directly computes pairwise interactions with every other token, capturing long-range contextual relationships with an $O(1)$ sequential path length and enabling massive parallel training on modern GPU clusters."
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Scaled Dot-Product Attention Formula",
+        "text": "Given packed matrices for Queries ($Q$), Keys ($K$), and Values ($V$), where $Q, K \\in \\mathbb{R}^{T \\times d_k}$ and $V \\in \\mathbb{R}^{T \\times d_v}$:\n\n$$\\text{Attention}(Q, K, V) = \\text{softmax}\\left( \\frac{Q K^T}{\\sqrt{d_k}} + M \\right) V$$\n\n- **Scaling Factor $\\sqrt{d_k}$:** Prevents dot products from growing excessively large in high dimensions, which would push softmax into flat regions with vanishing gradients.\n- **Mask Matrix $M$:** In autoregressive decoder models (e.g. GPT), an upper-triangular causal mask of $-\\infty$ prevents positions from attending to future tokens."
+      },
+      {
+        "type": "table",
+        "title": "Transformer Architecture Paradigms",
+        "headers": [
+          "Paradigm",
+          "Attention Mechanism",
+          "Pioneering Models",
+          "Primary Strengths",
+          "Typical Applications"
+        ],
+        "rows": [
+          [
+            "Encoder-Only",
+            "Bidirectional Attention (all tokens attend to all tokens).",
+            "BERT, RoBERTa, DeBERTa",
+            "Deep bidirectional contextual representations.",
+            "Classification, Named Entity Recognition, Extractive QA, Embeddings."
+          ],
+          [
+            "Decoder-Only",
+            "Causal / Autoregressive Attention (tokens only attend to past tokens).",
+            "GPT-4, Llama 3, Mistral, Claude",
+            "Unbounded generative continuation, seamless zero-shot prompting.",
+            "Conversational agents, code generation, creative writing, reasoning."
+          ],
+          [
+            "Encoder-Decoder",
+            "Bidirectional Encoder + Causal Cross-Attention Decoder.",
+            "T5, BART, Original 2017 Transformer",
+            "Maps source sequence to arbitrary target sequence.",
+            "Machine translation, document summarization, question answering."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "Modern Positional Embeddings: RoPE & ALiBi",
+        "text": "1. **Rotary Position Embedding (RoPE, Su et al., 2021):** Encodes absolute positions with a rotation matrix that naturally preserves relative positional distances in inner products: $q_m^T k_n = g(x_m, x_n, m - n)$. Standard in Llama, Mistral, and Gemma.\n2. **ALiBi (Attention with Linear Biases, Press et al., 2022):** Injects a static linear bias penalty proportional to token distance $|i - j|$ directly into attention logits, enabling zero-shot context length extrapolation."
+      },
+      {
+        "type": "text",
+        "title": "FlashAttention (Dao et al., 2022-2024)",
+        "body": "Standard attention materializes an $O(N^2)$ attention matrix in high-bandwidth memory (HBM), creating a major memory bandwidth bottleneck. **FlashAttention** reorganizes the computation using tiling to compute softmax incrementally (online softmax) entirely within fast GPU SRAM without ever writing the full $N \\times N$ intermediate attention matrix to HBM, achieving a **2x-4x speedup** and reducing memory from $O(N^2)$ to $O(N)$."
+      }
+    ],
+    "code_example": {
+      "title": "Vectorized Multi-Head Self-Attention in NumPy",
+      "code": "import numpy as np\n\ndef softmax(x, axis=-1):\n    e_x = np.exp(x - np.max(x, axis=axis, keepdims=True))\n    return e_x / np.sum(e_x, axis=axis, keepdims=True)\n\ndef multi_head_attention(X, W_q, W_k, W_v, W_o, num_heads=2, causal_mask=True):\n    # X: (T, d_model)\n    T, d_model = X.shape\n    d_k = d_model // num_heads\n    \n    # 1. Project into Q, K, V\n    Q = np.dot(X, W_q).reshape(T, num_heads, d_k).transpose(1, 0, 2) # (H, T, d_k)\n    K = np.dot(X, W_k).reshape(T, num_heads, d_k).transpose(1, 0, 2)\n    V = np.dot(X, W_v).reshape(T, num_heads, d_k).transpose(1, 0, 2)\n    \n    # 2. Scaled Dot-Product Attention: (H, T, T)\n    scores = np.matmul(Q, K.transpose(0, 2, 1)) / np.sqrt(d_k)\n    \n    if causal_mask:\n        mask = np.triu(np.ones((T, T)), k=1)\n        scores = np.where(mask == 1, -1e9, scores)\n        \n    attn_weights = softmax(scores, axis=-1)\n    context = np.matmul(attn_weights, V) # (H, T, d_k)\n    \n    # 3. Concatenate heads and project\n    context = context.transpose(1, 0, 2).reshape(T, d_model)\n    output = np.dot(context, W_o)\n    return output, attn_weights\n\n# Test forward pass with T=4 tokens, d_model=8, 2 heads\nnp.random.seed(42)\nT, d_model = 4, 8\nX = np.random.randn(T, d_model)\nW_q = np.random.randn(d_model, d_model) * 0.2\nW_k = np.random.randn(d_model, d_model) * 0.2\nW_v = np.random.randn(d_model, d_model) * 0.2\nW_o = np.random.randn(d_model, d_model) * 0.2\n\nout, weights = multi_head_attention(X, W_q, W_k, W_v, W_o, num_heads=2, causal_mask=True)\nprint(f'Multi-Head Output Shape: {out.shape}')\nprint('Head 0 Attention Weights (Causal Lower Triangular):')\nprint(np.round(weights[0], 3))"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Who authored the foundational paper 'Attention Is All You Need' in 2017?",
+      "options": [
+        "Vaswani et al. (Google Brain / Google Research)",
+        "LeCun, Bengio, and Hinton",
+        "Radford et al. (OpenAI)",
+        "Devlin et al."
+      ],
+      "correct": 0,
+      "explanation": "Ashish Vaswani and seven Google colleagues published 'Attention Is All You Need' at NeurIPS 2017."
+    },
+    {
+      "question": "What is the computational complexity of standard self-attention with respect to sequence length N?",
+      "options": [
+        "O(N^2)",
+        "O(N)",
+        "O(N log N)",
+        "O(1)"
+      ],
+      "correct": 0,
+      "explanation": "Computing pairwise dot products between all N queries and N keys forms an N x N matrix, scaling quadratically O(N^2)."
+    },
+    {
+      "question": "Why is the dot product Q * K^T scaled by 1 / sqrt(d_k) in Scaled Dot-Product Attention?",
+      "options": [
+        "To prevent the magnitude of dot products from growing large for large d_k, which pushes softmax into saturated regions with near-zero gradients",
+        "To ensure positive eigenvalues",
+        "To eliminate the need for bias terms",
+        "To make attention symmetric"
+      ],
+      "correct": 0,
+      "explanation": "For independent zero-mean unit-variance variables, the dot product has variance d_k; dividing by sqrt(d_k) restores variance to 1, preventing softmax saturation."
+    },
+    {
+      "question": "What is the purpose of the causal mask (upper triangular -inf mask) in autoregressive decoders like GPT?",
+      "options": [
+        "To prevent token t from attending to future tokens t+1, t+2... during training, enforcing strict left-to-right autoregressive causality",
+        "To mask out profanity",
+        "To remove stop words",
+        "To compress model weights"
+      ],
+      "correct": 0,
+      "explanation": "Setting upper-triangular logits to -inf forces their softmax weights to exactly zero, guaranteeing tokens can only attend to past and present positions."
+    },
+    {
+      "question": "How does Multi-Head Attention benefit the model compared to a single attention head of the same total dimension?",
+      "options": [
+        "It allows the model to jointly attend to information from different representation subspaces at different positions simultaneously",
+        "It multiplies the number of parameters by the number of heads",
+        "It eliminates the need for feedforward layers",
+        "It guarantees zero training error"
+      ],
+      "correct": 0,
+      "explanation": "Multiple heads project representations into distinct subspaces, allowing head 1 to track syntactic agreement while head 2 tracks semantic coreference."
+    },
+    {
+      "question": "Why do Transformers require Positional Encodings / Embeddings?",
+      "options": [
+        "Because self-attention is strictly permutation-equivariant; without positional information, the model treats a sequence as an unordered bag of tokens",
+        "To compress long sentences into one vector",
+        "To calculate cross-entropy loss",
+        "To initialize weights"
+      ],
+      "correct": 0,
+      "explanation": "Attention computes set-level dot products without inherent order; positional embeddings inject spatial sequence information."
+    },
+    {
+      "question": "What is Rotary Position Embedding (RoPE, Su et al., 2021)?",
+      "options": [
+        "A relative positional encoding method that applies a 2D rotation matrix to query and key vectors in the complex plane, decaying dot product with relative distance",
+        "A method that rotates weights by 90 degrees",
+        "A positional encoding for robotic arms",
+        "A random shuffle of token positions"
+      ],
+      "correct": 0,
+      "explanation": "RoPE encodes relative position directly into Q and K via complex rotation, allowing seamless relative distance decay across long sequences."
+    },
+    {
+      "question": "What is ALiBi (Attention with Linear Biases, Press et al., 2022)?",
+      "options": [
+        "Subtracting a static linear penalty m * |i - j| from attention logits before softmax, enabling zero-shot context extrapolation beyond training length",
+        "A deep linear neural network",
+        "A loss function for adversarial attacks",
+        "A method for pruning linear layers"
+      ],
+      "correct": 0,
+      "explanation": "ALiBi adds a non-learned linear penalty proportional to token distance directly to attention logits, achieving remarkable length extrapolation."
+    },
+    {
+      "question": "What is FlashAttention (Dao et al., 2022)?",
+      "options": [
+        "An IO-aware exact attention algorithm that tiles computation to operate within fast GPU SRAM using online softmax, avoiding writing the N x N attention matrix to HBM",
+        "An approximate linear attention method",
+        "A 4-bit quantization library",
+        "A tool for flash memory storage"
+      ],
+      "correct": 0,
+      "explanation": "FlashAttention avoids GPU High-Bandwidth Memory (HBM) memory bottlenecks by fusing attention into SRAM tiles, yielding 2-4x wall-clock speedups with exact math."
+    },
+    {
+      "question": "What is FlashAttention-2 (Dao, 2023)?",
+      "options": [
+        "An optimized version that reduces non-matmul FLOPs, optimizes work partitioning across thread blocks, and achieves up to 73% theoretical GPU FLOP utilization",
+        "A model with half the parameters",
+        "A pruned attention module",
+        "A tool for mobile devices"
+      ],
+      "correct": 0,
+      "explanation": "FlashAttention-2 refines thread block scheduling and online softmax scaling, running significantly closer to the theoretical maximum TFLOPs of A100/H100 GPUs."
+    },
+    {
+      "question": "What is Multi-Query Attention (MQA, Shazeer, 2019)?",
+      "options": [
+        "An attention variant where all attention heads share a single common Key and Value head while retaining separate Query heads, reducing KV cache memory during inference",
+        "Using multiple search queries simultaneously",
+        "An attention head with multiple outputs",
+        "A query optimization for SQL databases"
+      ],
+      "correct": 0,
+      "explanation": "MQA shares one K and one V projection across all H query heads, drastically reducing KV cache size and memory bandwidth pressure during autoregressive generation."
+    },
+    {
+      "question": "What is Grouped-Query Attention (GQA, Ainslie et al., 2023)?",
+      "options": [
+        "An attention mechanism that groups query heads (e.g. 8 groups) and assigns one K and V head per group, interpolating between standard MHA and MQA",
+        "Grouping queries by topic",
+        "A cluster of GPUs running attention",
+        "A batching algorithm for text"
+      ],
+      "correct": 0,
+      "explanation": "GQA (used in Llama 2/3 and Mistral) strikes an optimal trade-off between full MHA quality and MQA speed/memory efficiency."
+    },
+    {
+      "question": "What is the Key-Value (KV) Cache in autoregressive Transformer generation?",
+      "options": [
+        "Storing past keys and values in GPU memory so each new generated token only needs to compute queries for itself rather than recomputing all past tokens",
+        "A caching server using Redis",
+        "A cache for tokenizer lookups",
+        "A method to store model checkpoints"
+      ],
+      "correct": 0,
+      "explanation": "During autoregressive inference, past tokens do not change; caching their K and V representations avoids O(T^2) redundant computation per token."
+    },
+    {
+      "question": "What is PagedAttention (Kwon et al., vLLM 2023)?",
+      "options": [
+        "Managing the KV cache like virtual memory with non-contiguous memory pages, eliminating memory fragmentation and boosting serving throughput by 2x-4x",
+        "Splitting text into book pages",
+        "Paging memory to hard disk",
+        "A paper reading algorithm"
+      ],
+      "correct": 0,
+      "explanation": "Inspired by OS virtual memory paging, PagedAttention stores KV cache in allocated non-contiguous memory blocks, eliminating internal fragmentation and enabling efficient memory sharing."
+    },
+    {
+      "question": "What is the Feed-Forward Network (FFN) layer inside a Transformer block typically composed of?",
+      "options": [
+        "Two linear projections with an intermediate non-linear expansion (typically 4x hidden dimension), e.g., W_2 * GELU(W_1 * x + b_1) + b_2",
+        "A single convolutional layer",
+        "An LSTM cell",
+        "A softmax layer"
+      ],
+      "correct": 0,
+      "explanation": "The standard Transformer MLP expands representations to 4 * d_model (or 8/3 with SwiGLU) with non-linear activation before projecting back to d_model."
+    },
+    {
+      "question": "What is the SwiGLU activation function (Shazeer, 2020), widely adopted in modern LLMs?",
+      "options": [
+        "A gated linear unit variant: SwiGLU(x) = (x W_1 * Swish(x W_gate)) W_2",
+        "A mix of Sigmoid and ReLU",
+        "A sinusoidal activation",
+        "A step function with glue"
+      ],
+      "correct": 0,
+      "explanation": "SwiGLU combines Swish (SiLU) with a multiplicative gating branch, empirically outperforming standard ReLU and GELU across modern architectures (Llama, PaLM)."
+    },
+    {
+      "question": "What is the role of the Residual Stream in a Transformer?",
+      "options": [
+        "The central communication backbone where each attention and MLP layer reads from and writes updates to via additive skip connections",
+        "A stream of input tokens from disk",
+        "A backup system for crashed runs",
+        "A buffer for discarded gradients"
+      ],
+      "correct": 0,
+      "explanation": "The residual stream carries representations throughout the model; layers act as read-write heads that add deltas to this shared representation highway."
+    },
+    {
+      "question": "What is the difference between Pre-LayerNorm (Pre-LN) and Post-LayerNorm (Post-LN)?",
+      "options": [
+        "Pre-LN applies normalization to layer inputs before attention/FFN; Post-LN normalizes after the residual addition",
+        "Pre-LN normalizes the dataset before training",
+        "Post-LN is only used in vision",
+        "Pre-LN requires no parameters"
+      ],
+      "correct": 0,
+      "explanation": "Pre-LN (used in GPT-2, Llama) ensures an unhindered identity residual stream, eliminating the training instability of the original Vaswani Post-LN."
+    },
+    {
+      "question": "What is Cross-Attention in an Encoder-Decoder Transformer?",
+      "options": [
+        "Queries come from the decoder's previous layer, while Keys and Values come from the encoder's final output representations",
+        "Attention calculated between two different models",
+        "Queries and keys are crossed randomly",
+        "Attention across multiple GPUs"
+      ],
+      "correct": 0,
+      "explanation": "Cross-attention enables the decoder to condition on the encoded source sequence by matching decoder queries against encoder keys and values."
+    },
+    {
+      "question": "What type of Transformer architecture is BERT (Devlin et al., 2018)?",
+      "options": [
+        "Encoder-only architecture with bidirectional attention",
+        "Decoder-only autoregressive architecture",
+        "Encoder-decoder Seq2Seq model",
+        "Recurrent neural network"
+      ],
+      "correct": 0,
+      "explanation": "BERT consists strictly of Transformer encoder blocks, utilizing unmasked bidirectional attention across all positions."
+    },
+    {
+      "question": "What type of Transformer architecture is the GPT series (Radford et al., OpenAI)?",
+      "options": [
+        "Decoder-only autoregressive architecture with causal masking",
+        "Encoder-only bidirectional model",
+        "Encoder-decoder model",
+        "Graph neural network"
+      ],
+      "correct": 0,
+      "explanation": "GPT models use Transformer decoder blocks without cross-attention, using causal self-attention to generate tokens autoregressively."
+    },
+    {
+      "question": "What type of Transformer architecture is T5 (Raffel et al., Google 2020)?",
+      "options": [
+        "Full Encoder-Decoder architecture formulating every NLP problem as a text-to-text task",
+        "Decoder-only",
+        "Encoder-only",
+        "Convolutional backbone"
+      ],
+      "correct": 0,
+      "explanation": "T5 employs an encoder-decoder architecture where both input and output are treated as text sequences."
+    },
+    {
+      "question": "What is a Mixture-of-Experts (MoE) Transformer (e.g. Mixtral 8x7B, Switch Transformer)?",
+      "options": [
+        "Replacing dense FFN layers with multiple expert FFN sub-networks and using a learned router to direct each token to top-K experts per layer",
+        "Using an ensemble of 8 completely separate models",
+        "Consulting human experts during inference",
+        "A model trained on 8 languages"
+      ],
+      "correct": 0,
+      "explanation": "MoE scales parameter capacity to tens or hundreds of billions while keeping inference compute (FLOPs per token) fixed by selectively routing tokens to a subset of experts."
+    },
+    {
+      "question": "What is the router (gating network) in a Mixture-of-Experts layer?",
+      "options": [
+        "A parameterized linear softmax classifier that computes routing probability scores over experts for each token",
+        "A physical internet network router",
+        "A hash function that distributes tokens randomly",
+        "A script that loads weights from disk"
+      ],
+      "correct": 0,
+      "explanation": "The gating network computes G(x) = Softmax(TopK(x * W_g)), routing each token vector dynamically to the K highest scoring expert networks."
+    },
+    {
+      "question": "What is 'Expert Collapse' in Mixture-of-Experts training, and how is it prevented?",
+      "options": [
+        "When the router routes all tokens to the same 1 or 2 experts while leaving others untrained; prevented using an auxiliary load-balancing loss",
+        "When the model crashes due to lack of RAM",
+        "When weights decay to zero",
+        "When experts disagree on predictions"
+      ],
+      "correct": 0,
+      "explanation": "Auxiliary load-balancing losses penalize uneven expert assignment, ensuring all expert networks receive a balanced distribution of training tokens."
+    },
+    {
+      "question": "What is Context Length Extrapolation in LLMs?",
+      "options": [
+        "The ability of a model trained on context length L (e.g. 4k tokens) to evaluate and generate coherently on longer sequences (e.g. 32k tokens)",
+        "Writing longer prompts",
+        "Increasing model size by 8x",
+        "Translating into longer languages"
+      ],
+      "correct": 0,
+      "explanation": "Extrapolation refers to evaluating sequences longer than the maximum position indices encountered during training without performance collapse."
+    },
+    {
+      "question": "What is Linear RoPE Scaling / YaRN for context length extension?",
+      "options": [
+        "Scaling down positional frequencies in RoPE to compress longer sequence positions into the frequency range observed during pretraining",
+        "Doubling the learning rate",
+        "Padding the context with spaces",
+        "Removing 50% of the attention heads"
+      ],
+      "correct": 0,
+      "explanation": "Interpolating positional frequencies allows pretrained models to extend their context window from 4k to 32k or 128k with minimal fine-tuning."
+    },
+    {
+      "question": "What is Sliding Window Attention (used in Mistral 7B)?",
+      "options": [
+        "Each token attends only to the W previous tokens (e.g. W=4096) at each layer, reducing attention cost from O(N^2) to O(N * W)",
+        "Opening multiple browser windows",
+        "Sliding the entire dataset across GPUs",
+        "Moving average of weights"
+      ],
+      "correct": 0,
+      "explanation": "Sliding window attention restricts the receptive field per layer to W tokens, while multi-layer stacking still achieves a receptive field of L * W."
+    },
+    {
+      "question": "What is the theoretical maximum receptive field of a stacked L-layer Transformer using Sliding Window Attention with window size W?",
+      "options": [
+        "L * W",
+        "W",
+        "L + W",
+        "W^L"
+      ],
+      "correct": 0,
+      "explanation": "Information propagates by W tokens at each layer, so L stacked layers achieve an effective context receptive field of L * W."
+    },
+    {
+      "question": "What is Speculative Decoding (Leviathan et al., 2023 / Chen et al., 2023)?",
+      "options": [
+        "Using a small, fast draft model to generate K candidate tokens, then verifying all K tokens in a single parallel forward pass of the large target model",
+        "Guessing future stock market prices with an LLM",
+        "Generating text with random temperature",
+        "Training without a loss function"
+      ],
+      "correct": 0,
+      "explanation": "Speculative decoding accelerates inference latency by 2x-3x without altering the target model's output probability distribution."
+    },
+    {
+      "question": "What is KV Cache Compression (e.g., StreamingLLM, H2O)?",
+      "options": [
+        "Retaining only critical attention sinks (initial tokens) and recent sliding window tokens in the KV cache, enabling infinite-length generation without running out of VRAM",
+        "Compressing KV cache with zip",
+        "Quantizing embeddings to 1 bit",
+        "Discarding all keys"
+      ],
+      "correct": 0,
+      "explanation": "Xiao et al. showed that keeping the first 4 'attention sink' tokens plus the recent window allows stable autoregressive streaming without memory explosion."
+    },
+    {
+      "question": "Why do Transformer models exhibit 'Attention Sinks' at the very first tokens?",
+      "options": [
+        "Because softmax must sum to 1, early tokens act as a dumping ground for unnecessary attention score mass even if they have no semantic relevance",
+        "Because the first token is always the title",
+        "Because of GPU memory alignment",
+        "Because of zero padding"
+      ],
+      "correct": 0,
+      "explanation": "Softmax requires attention weights to sum to 1 across all positions; tokens with nothing useful to attend to dump their attention mass into initial tokens."
+    },
+    {
+      "question": "What is Bidirectional Encoder Representations from Transformers (BERT) Masked LM objective?",
+      "options": [
+        "Masking 15% of input tokens with a [MASK] token and training the model to predict the original tokens using bidirectional context",
+        "Hiding the entire input sequence",
+        "Masking out attention matrices",
+        "Predicting the next word in a sentence"
+      ],
+      "correct": 0,
+      "explanation": "MLM masks random tokens and optimizes cross-entropy on predicting the masked vocabulary IDs given bidirectional surrounding context."
+    },
+    {
+      "question": "What is the difference between extractive QA and abstractive QA in language modeling?",
+      "options": [
+        "Extractive QA extracts the exact answer span directly from the provided passage; abstractive QA synthesizes a fluent original answer in natural language",
+        "Extractive QA uses regex only",
+        "Abstractive QA is only for math problems",
+        "They are identical"
+      ],
+      "correct": 0,
+      "explanation": "Extractive models (like BERT for SQuAD) output start and end token indices; abstractive models (like GPT) generate free-form text."
+    },
+    {
+      "question": "How does Vision Transformer (ViT, Dosovitskiy et al., 2020) process an image as a sequence of tokens?",
+      "options": [
+        "By splitting the image into non-overlapping patches (e.g. 16x16 pixels), linearly projecting each patch into an embedding vector, and treating them as sequence tokens",
+        "By feeding one pixel at a time into an RNN",
+        "By running a CNN first to find edges",
+        "By converting the image to audio"
+      ],
+      "correct": 0,
+      "explanation": "ViT breaks an image into a grid of 16x16 patches, flattens them, applies a linear projection, adds positional embeddings, and feeds them into a standard Transformer encoder."
+    }
+  ],
+  "level": "professional"
+}

@@ -1,0 +1,460 @@
+{
+  "id": "ethics-bias-fairness",
+  "title": "AI Ethics, Fairness & Explainability (XAI)",
+  "description": "Algorithmic bias, Demographic Parity, Equal Opportunity, Disparate Impact, SHAP (Shapley values), LIME, and Model Cards.",
+  "duration": "40 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "AI Ethics, Algorithmic Fairness & Explainability",
+        "subtitle": "Ensuring Equitable, Accountable, and Interpretable Machine Learning Systems"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Imperative of Algorithmic Fairness",
+        "text": "Machine learning models trained on historical data inevitably encode, amplify, and perpetuate historical societal biases. When deployed in high-stakes domains (credit lending, criminal justice recidivism, hiring, medical diagnosis), unfair algorithms inflict real-world harm on protected demographic groups (defined by race, gender, age, disability)."
+      },
+      {
+        "type": "table",
+        "title": "Core Mathematical Definitions of Fairness",
+        "headers": [
+          "Fairness Criterion",
+          "Mathematical Formulation",
+          "Core Philosophy",
+          "Impossibility Trade-Off"
+        ],
+        "rows": [
+          [
+            "Demographic Parity (Statistical Parity)",
+            "$P(\\hat{Y}=1 \\mid A=0) = P(\\hat{Y}=1 \\mid A=1)$",
+            "Acceptance rates must be equal across protected groups, regardless of base rate differences.",
+            "Violates Individual Fairness if base qualification rates differ naturally."
+          ],
+          [
+            "Equal Opportunity (Hardt et al., 2016)",
+            "$P(\\hat{Y}=1 \\mid A=0, Y=1) = P(\\hat{Y}=1 \\mid A=1, Y=1)$",
+            "True Positive Rates (TPR) must be equal across protected groups; qualified candidates have equal chances.",
+            "Requires knowing true labels $Y$; allows differing false positive rates."
+          ],
+          [
+            "Predictive Parity (Equal PPV)",
+            "$P(Y=1 \\mid A=0, \\hat{Y}=1) = P(Y=1 \\mid A=1, \\hat{Y}=1)$",
+            "Precision (Positive Predictive Value) must be equal across protected groups.",
+            "**Chouldechova / Kleinberg Impossibility Theorem:** DP, Equal Opportunity, and Predictive Parity cannot all be satisfied simultaneously unless base rates are identical!"
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "SHAP: Shapley Additive Explanations (Lundberg & Lee, 2017)",
+        "text": "Rooted in cooperative game theory (Lloyd Shapley, Nobel Memorial Prize 1953), **SHAP** calculates the marginal contribution $\\phi_i$ of each feature $i$ across all possible feature subsets $S \\subseteq F \\setminus \\{i\\}$:\n\n$$\\phi_i(x) = \\sum_{S \\subseteq F \\setminus \\{i\\}} \\frac{|S|!(|F| - |S| - 1)!}{|F|!} \\left[ f_x(S \\cup \\{i\\}) - f_x(S) \\right]$$\n\n- **Efficiency:** The sum of Shapley values equals the difference between model prediction and base value: $f(x) - \\mathbb{E}[f(x)] = \\sum_i \\phi_i$.\n- **Fairness:** It is the *unique* attribution method satisfying Local Accuracy, Missingness, and Consistency."
+      },
+      {
+        "type": "text",
+        "title": "LIME: Local Interpretable Model-agnostic Explanations (Ribeiro et al., 2016)",
+        "body": "While complex models (deep nets, gradient boosted trees) are globally non-linear and uninterpretable, their decision boundary is locally smooth around any specific instance $x$. **LIME** fits an interpretable, sparse linear surrogate model $g \\in G$ weighted by proximity $\\pi_x(z)$:\n\n$$\\arg\\min_{g \\in G} \\mathcal{L}(f, g, \\pi_x) + \\Omega(g)$$\n\nExplains *why* the black-box model made that specific prediction for that individual sample."
+      }
+    ],
+    "code_example": {
+      "title": "Simulating Shapley Feature Attribution in Python",
+      "code": "import numpy as np\nimport itertools\n\n# Simulated black-box model predicting loan score based on [Income, CreditScore, Age]\ndef black_box_model(features):\n    # features: boolean presence of features [inc, cred, age]\n    val = 500 # base value\n    if features[0]: val += 120 # Income\n    if features[1]: val += 200 # CreditScore\n    if features[2]: val += 40  # Age\n    if features[0] and features[1]: val += 50 # Non-linear synergy between Income & Credit\n    return val\n\n# Calculate exact Shapley values for 3 features\nfeature_names = ['Income', 'CreditScore', 'Age']\nn = len(feature_names)\nshap_values = np.zeros(n)\n\nfor i in range(n):\n    marginal_contributions = []\n    weights = []\n    other_indices = [idx for idx in range(n) if idx != i]\n    \n    for subset_len in range(n):\n        for subset in itertools.combinations(other_indices, subset_len):\n            # Weight for this coalition size\n            weight = (np.math.factorial(len(subset)) * np.math.factorial(n - len(subset) - 1)) / np.math.factorial(n)\n            \n            # Evaluate with and without feature i\n            mask_without = [False] * n\n            for idx in subset: mask_without[idx] = True\n            \n            mask_with = list(mask_without)\n            mask_with[i] = True\n            \n            contribution = black_box_model(mask_with) - black_box_model(mask_without)\n            shap_values[i] += weight * contribution\n\nbase_val = black_box_model([False, False, False])\ntotal_val = black_box_model([True, True, True])\n\nprint(f'Base Value (E[f(x)]): {base_val}')\nprint(f'Total Prediction f(x): {total_val}')\nprint(f'Total Difference: {total_val - base_val}\\n')\nfor name, sv in zip(feature_names, shap_values):\n    print(f'Feature: {name:<12} -> SHAP Value: {sv:+.1f}')\nprint(f'Sum of SHAP Values: {np.sum(shap_values):.1f} (Efficiency axiom satisfied!)')"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What is Algorithmic Bias in machine learning systems?",
+      "options": [
+        "Systematic and repeatable errors in a computer system that create unfair outcomes, privileging one arbitrary group of users over others",
+        "A mathematical bias term added to a linear layer",
+        "A bug in the C++ compiler",
+        "A hardware fault in GPU arithmetic"
+      ],
+      "correct": 0,
+      "explanation": "Algorithmic bias reflects systemic inequalities embedded in training data, flawed feature representations, or objective design that disadvantages protected classes."
+    },
+    {
+      "question": "What is Demographic Parity (Statistical Parity) mathematically?",
+      "options": [
+        "P(Y_hat = 1 | A = 0) = P(Y_hat = 1 | A = 1), where A is a protected attribute",
+        "P(Y_hat = 1 | Y = 1) = 1.0",
+        "Accuracy(Group A) = Accuracy(Group B)",
+        "Loss(Group A) = 0"
+      ],
+      "correct": 0,
+      "explanation": "Demographic Parity requires that the likelihood of receiving a positive prediction (e.g. loan approval) is identical across all demographic groups regardless of base rates."
+    },
+    {
+      "question": "What is the Disparate Impact 80% Rule (Four-Fifths Rule) used by the US EEOC?",
+      "options": [
+        "A selection rate for any protected group which is less than 4/5ths (80%) of the rate for the group with the highest selection rate is considered evidence of adverse impact",
+        "A model that achieves 80% accuracy",
+        "Training on 80% of data and testing on 20%",
+        "A model with 80 parameters"
+      ],
+      "correct": 0,
+      "explanation": "Under US employment law, if Group A has an acceptance rate below 80% of Group B's rate, it constitutes prima facie evidence of illegal disparate impact."
+    },
+    {
+      "question": "What is Equal Opportunity in algorithmic fairness (Hardt et al., 2016)?",
+      "options": [
+        "Requiring that the True Positive Rates (TPR) are equal across protected groups: P(Y_hat = 1 | A = 0, Y = 1) = P(Y_hat = 1 | A = 1, Y = 1)",
+        "Giving everyone equal access to computers",
+        "Equal accuracy across all groups",
+        "Setting all thresholds to zero"
+      ],
+      "correct": 0,
+      "explanation": "Equal Opportunity states that qualified individuals (where true label Y=1) should have an equal chance of receiving a positive prediction regardless of demographic group."
+    },
+    {
+      "question": "What is the Kleinberg / Chouldechova Impossibility Theorem of Machine Learning Fairness?",
+      "options": [
+        "Unless the base rates of positive outcomes are identical across groups, it is mathematically impossible to satisfy Demographic Parity, Equalized Odds, and Predictive Parity simultaneously",
+        "It is impossible to train neural networks on GPUs",
+        "It is impossible to achieve zero training loss",
+        "Fairness cannot be defined in code"
+      ],
+      "correct": 0,
+      "explanation": "Kleinberg (2016) and Chouldechova (2017) proved that competing mathematical definitions of fairness are inherently mutually exclusive when base rates differ."
+    },
+    {
+      "question": "What is Proxy Discrimination (Redlining via Proxies)?",
+      "options": [
+        "When an algorithm uses non-protected features (such as ZIP code, browser type, or purchase history) that correlate strongly with a protected attribute to inadvertently discriminate",
+        "Using an HTTP proxy server to hide IP addresses",
+        "A network firewall rule",
+        "Using proxy variables in regression"
+      ],
+      "correct": 0,
+      "explanation": "Even if protected attributes (e.g. race) are excluded from the dataset, correlated proxy variables allow models to reconstruct and discriminate on that attribute."
+    },
+    {
+      "question": "What are the three stages where fairness interventions can be implemented in the ML pipeline?",
+      "options": [
+        "Pre-processing (data debiasing), In-processing (fairness-constrained loss), and Post-processing (threshold adjustment)",
+        "Before, during, and after compiling code",
+        "Input, Hidden, and Output layers",
+        "On CPU, GPU, and RAM"
+      ],
+      "correct": 0,
+      "explanation": "Fairness mitigations can alter training data distributions (pre-processing), add regularization penalties during training (in-processing), or calibrate group decision thresholds (post-processing)."
+    },
+    {
+      "question": "What is Re-weighing (Kamiran & Calders, 2012) in fair pre-processing?",
+      "options": [
+        "Assigning weights to training instances based on their protected group and label combination to equalize statistical representation without altering labels",
+        "Weighing the physical servers",
+        "Multiplying model weights by 0.5",
+        "Sorting the dataset by weight"
+      ],
+      "correct": 0,
+      "explanation": "Re-weighing upweights historically underrepresented favorable outcomes in protected groups to eliminate historical statistical imbalances."
+    },
+    {
+      "question": "What is Adversarial Debiasing (Zhang et al., 2018)?",
+      "options": [
+        "Training a predictor to predict the target Y while simultaneously training an adversary to predict protected attribute A from the predictor's representations, penalizing the predictor if the adversary succeeds",
+        "Attacking the model with malicious prompts",
+        "A method for jailbreaking models",
+        "A GAN for generating biased images"
+      ],
+      "correct": 0,
+      "explanation": "Adversarial debiasing strips protected demographic signals from latent representations by playing a minimax game against an attribute adversary."
+    },
+    {
+      "question": "What is Post-Processing Threshold Optimization (Hardt et al., 2016)?",
+      "options": [
+        "Choosing different classification decision thresholds for different demographic groups to satisfy Equal Opportunity or Equalized Odds",
+        "Changing the learning rate threshold after training",
+        "Filtering out low-confidence predictions",
+        "Setting negative thresholds to zero"
+      ],
+      "correct": 0,
+      "explanation": "Post-processing adjusts class cutoff thresholds per demographic group on a trained model's output probabilities to satisfy fairness criteria directly."
+    },
+    {
+      "question": "What is Explainable AI (XAI)?",
+      "options": [
+        "Methods and techniques in the application of artificial intelligence technologies such that the results of the solution can be understood by human experts",
+        "An AI company founded by Elon Musk",
+        "Writing Python docstrings for every function",
+        "A compiler that translates C to English"
+      ],
+      "correct": 0,
+      "explanation": "XAI produces transparent, auditable explanations of model predictions to ensure trust, compliance, and debugging capability."
+    },
+    {
+      "question": "What is the difference between Global and Local Interpretability?",
+      "options": [
+        "Global interpretability explains the entire model's overall decision logic; local interpretability explains why a specific individual prediction was made",
+        "Global is for international models; local is for single cities",
+        "Global is for GPUs; local is for CPUs",
+        "They are identical"
+      ],
+      "correct": 0,
+      "explanation": "Global explanations describe overall feature dynamics across the dataset; local explanations decompose the exact forces driving one sample's outcome."
+    },
+    {
+      "question": "What mathematical framework forms the foundation of SHAP (Lundberg & Lee, 2017)?",
+      "options": [
+        "Shapley values from cooperative game theory (Lloyd Shapley, 1953)",
+        "Quantum mechanics",
+        "Fourier analysis",
+        "Euclidean geometry"
+      ],
+      "correct": 0,
+      "explanation": "SHAP computes feature attributions by treating features as players in a cooperative game and calculating their average marginal contributions across all coalitions."
+    },
+    {
+      "question": "What does the Efficiency Axiom of Shapley values guarantee?",
+      "options": [
+        "The sum of the Shapley values of all features equals the difference between the model's prediction f(x) and the expected baseline prediction E[f(x)]",
+        "The algorithm executes in O(1) time",
+        "The model achieves maximum GPU efficiency",
+        "The loss is zero"
+      ],
+      "correct": 0,
+      "explanation": "Efficiency ensures complete attribution: the sum of feature effects perfectly accounts for the deviation of the prediction from the global average."
+    },
+    {
+      "question": "What does the Symmetry Axiom of Shapley values state?",
+      "options": [
+        "If two features contribute identically to all possible subsets of other features, their Shapley values must be identical",
+        "The model weights must be symmetric",
+        "The confusion matrix must be symmetric",
+        "Predictions must be mirror images"
+      ],
+      "correct": 0,
+      "explanation": "Symmetry guarantees equal attribution for features that have identical marginal impacts across all combinations."
+    },
+    {
+      "question": "What does the Dummy (Null Player) Axiom of Shapley values state?",
+      "options": [
+        "If a feature has zero marginal impact on all subsets of other features, its Shapley value is strictly zero",
+        "A feature that contains dummy variables",
+        "A model without parameters",
+        "A player that does not participate in games"
+      ],
+      "correct": 0,
+      "explanation": "Features that do not affect the outcome across any combination receive a Shapley attribution of exactly zero."
+    },
+    {
+      "question": "What does the Additivity (Linearity) Axiom of Shapley values state?",
+      "options": [
+        "If a model is the sum of two models (f = g + h), each feature's Shapley value for f is the sum of its values for g and h",
+        "The model must be a linear regression",
+        "Features must be added together",
+        "Gradients are linear"
+      ],
+      "correct": 0,
+      "explanation": "Additivity ensures consistent attribution when combining independent model components or ensemble predictions."
+    },
+    {
+      "question": "Why is computing exact Shapley values computationally intractable for large numbers of features N?",
+      "options": [
+        "It requires evaluating 2^N possible feature subsets, scaling exponentially with feature count",
+        "Because floating point numbers overflow",
+        "Because GPUs cannot compute factorials",
+        "Because Shapley values are non-differentiable"
+      ],
+      "correct": 0,
+      "explanation": "Computing exact Shapley values requires iterating over all 2^N power-set coalitions, becoming intractable beyond 15-20 features without approximations (KernelSHAP, TreeSHAP)."
+    },
+    {
+      "question": "What is TreeSHAP (Lundberg et al., 2020)?",
+      "options": [
+        "An algorithm that computes exact Shapley values for tree-based ensemble models (XGBoost, LightGBM, Random Forest) in polynomial time O(TLD^2) rather than exponential O(2^N)",
+        "A decision tree that predicts Shapley values",
+        "A phylogenetic tree of AI models",
+        "A method for pruning trees"
+      ],
+      "correct": 0,
+      "explanation": "TreeSHAP exploits tree graph structures to compute exact Shapley values in polynomial time, enabling instant interpretation of boosted tree models."
+    },
+    {
+      "question": "How does LIME (Local Interpretable Model-agnostic Explanations, Ribeiro et al., 2016) work?",
+      "options": [
+        "It perturbs the input around a specific instance, evaluates the black-box model on these samples, and fits an interpretable linear model weighted by distance",
+        "It trains a decision tree on all data",
+        "It computes the second derivative of the loss",
+        "It translates text into French"
+      ],
+      "correct": 0,
+      "explanation": "LIME samples local perturbations around the target point, queries the black-box model, and fits a simple weighted linear surrogate to explain the local neighborhood."
+    },
+    {
+      "question": "What is a Counterfactual Explanation in Explainable AI?",
+      "options": [
+        "An explanation stating what minimal change in the input features would have flipped the model's prediction (e.g. 'If your income were $5,000 higher, your loan would be approved')",
+        "An explanation that is factually false",
+        "An explanation generated by an adversary",
+        "A method for checking grammar"
+      ],
+      "correct": 0,
+      "explanation": "Counterfactuals provide actionable guidance by identifying the smallest modification to input features that alters the decision outcome."
+    },
+    {
+      "question": "What is Integrated Gradients (Sundararajan et al., Google 2017)?",
+      "options": [
+        "An axiomatic attribution method for neural networks that integrates gradients along a straight line path from a neutral baseline to the input: (x - x') * int_0^1 grad_f(x' + alpha*(x - x')) d_alpha",
+        "An optimizer combining SGD and Adam",
+        "A calculus technique for integration by parts",
+        "A tool for image contrast adjustment"
+      ],
+      "correct": 0,
+      "explanation": "Integrated Gradients satisfies Completeness and Implementation Invariance by accumulating gradients along the path from a baseline to the input instance."
+    },
+    {
+      "question": "What is a Model Card (Mitchell et al., Google 2019)?",
+      "options": [
+        "A standardized short documentation document disclosing a model's intended use, performance benchmarks across demographic groups, limitations, and ethical considerations",
+        "A physical trading card featuring AI researchers",
+        "A GPU identification card",
+        "A credit card for purchasing API credits"
+      ],
+      "correct": 0,
+      "explanation": "Model cards promote transparency and accountability by standardizing documentation of model scope, biases, performance across subgroups, and ethical boundaries."
+    },
+    {
+      "question": "What is Data Card (Pushkarna et al., 2022)?",
+      "options": [
+        "A structured documentation format detailing a dataset's collection methodology, provenance, representation distributions, annotation processes, and known limitations",
+        "A memory card for storing datasets",
+        "A credit card for dataset access",
+        "A spreadsheet of database schema"
+      ],
+      "correct": 0,
+      "explanation": "Data cards document dataset origins, demographic representations, and collection conditions to prevent misuse and foster accountability."
+    },
+    {
+      "question": "What is Differential Privacy (Dwork et al., 2006) in machine learning?",
+      "options": [
+        "A mathematical guarantee that the output of an algorithm is virtually identical whether or not any single individual's data was included in the training dataset",
+        "Encrypting model weights with AES-256",
+        "Using different private keys for each user",
+        "Hiding the model code behind a paywall"
+      ],
+      "correct": 0,
+      "explanation": "Differential privacy bounds the privacy budget epsilon: observing model outputs cannot reliably reveal whether any specific individual participated in the training corpus."
+    },
+    {
+      "question": "What is DP-SGD (Differentially Private Stochastic Gradient Descent)?",
+      "options": [
+        "Clipping per-sample gradients and adding calibrated Gaussian noise during optimization to ensure differential privacy of training data",
+        "An optimizer that keeps gradients secret",
+        "Running SGD on private cloud instances",
+        "A method for training without gradients"
+      ],
+      "correct": 0,
+      "explanation": "DP-SGD bounds per-sample influence via norm clipping and injects calibrated noise, mathematically protecting individual sample privacy."
+    },
+    {
+      "question": "What is Membership Inference Attack in ML security?",
+      "options": [
+        "An adversarial technique that determines whether a specific individual's record was part of the model's private training dataset by querying the model's output confidence scores",
+        "Hacking into a membership database",
+        "Guessing a user's password",
+        "Stealing credit card numbers"
+      ],
+      "correct": 0,
+      "explanation": "Overfitted models output disproportionately high confidence on training data, allowing attackers to infer membership with statistical significance."
+    },
+    {
+      "question": "What is Model Inversion Attack?",
+      "options": [
+        "Reconstructing representative input features or private training images (e.g. identifiable human faces) by querying a trained model's output probabilities",
+        "Inverting model weights mathematically",
+        "Running backpropagation backwards",
+        "Translating code into assembly"
+      ],
+      "correct": 0,
+      "explanation": "Model inversion exploits confidence gradients to iteratively reconstruct recognizable features of training subjects from model outputs."
+    },
+    {
+      "question": "What is Watermarking in Generative AI (e.g. Kirchenbauer et al., 2023 for LLMs)?",
+      "options": [
+        "Subtly biasing token selection during generation using a pseudo-random green-list rule so that generated text can be statistically detected by authorized detectors without human perception",
+        "Adding a visible logo to an image",
+        "Printing text in blue font",
+        "Adding copyright text at the end of output"
+      ],
+      "correct": 0,
+      "explanation": "LLM watermarking partitions the vocabulary into green/red lists at each step, making machine-generated text verifiable through statistical hypothesis testing."
+    },
+    {
+      "question": "What is Safety Guardrails / Guardrail Architecture (e.g. NeMo Guardrails, Llama Guard)?",
+      "options": [
+        "An independent verification layer that screens inputs and generated outputs in real-time for safety policy violations, toxicity, PII leaks, and malicious intent",
+        "A physical barrier around computer clusters",
+        "A firewall that blocks port 80",
+        "A software license agreement"
+      ],
+      "correct": 0,
+      "explanation": "Guardrail systems intercept queries and outputs to enforce safety policies, content filters, and compliance checks before responses reach users."
+    },
+    {
+      "question": "What is Prompt Injection Attack?",
+      "options": [
+        "Crafting user inputs that hijack the model's operational instructions, overriding developer system prompts and safety constraints to execute unauthorized actions",
+        "Injecting SQL queries into a database",
+        "Injecting malicious Python code into libraries",
+        "Overclocking GPU processors"
+      ],
+      "correct": 0,
+      "explanation": "Prompt injection manipulates the model into ignoring its intended system guidelines, treating attacker instructions as authoritative commands."
+    },
+    {
+      "question": "What is Indirect Prompt Injection?",
+      "options": [
+        "An attack where malicious instructions are embedded within external untrusted data (like a webpage, email, or PDF) that the model retrieves and executes during processing",
+        "Injecting prompts through an HTTP proxy",
+        "A prompt translated into another language",
+        "An attack performed by two people"
+      ],
+      "correct": 0,
+      "explanation": "When an agent or RAG system reads external documents, embedded adversarial instructions can hijack control flow without direct user malicious prompts."
+    },
+    {
+      "question": "What is Data Poisoning with Backdoors (Trojan Attack)?",
+      "options": [
+        "Embedding a specific trigger pattern (e.g. a rare symbol) in training samples so the model behaves normally on clean data but executes a malicious target output when the trigger is present",
+        "Poisoning the cooling water of servers",
+        "Deleting data from hard drives",
+        "Sending spam emails to annotators"
+      ],
+      "correct": 0,
+      "explanation": "Backdoors remain dormant during standard benchmark evaluation, activating only when the specific trigger pattern appears in an input."
+    },
+    {
+      "question": "What is Algorithmic Recourse in fair machine learning?",
+      "options": [
+        "Providing actionable recommendations to an individual that explain how they can realistically alter their features to change an adverse model decision",
+        "Suing an AI company in court",
+        "Appealing to a human supervisor",
+        "Deleting one's account from the service"
+      ],
+      "correct": 0,
+      "explanation": "Recourse focuses on agency: identifying viable, feasible steps an applicant can take (e.g. 'Pay down $2,000 of debt') to achieve approval."
+    },
+    {
+      "question": "What is Saliency Mapping in computer vision interpretability?",
+      "options": [
+        "Computing the gradient of the winning class score with respect to the input image pixels to create a heatmap of influential visual features",
+        "Mapping the topography of land",
+        "Measuring the brightness of pixels",
+        "A tool for rendering 3D textures"
+      ],
+      "correct": 0,
+      "explanation": "Saliency maps highlight the specific pixels whose perturbation produces the largest change in the classification score."
+    }
+  ],
+  "level": "professional"
+}

@@ -1,0 +1,466 @@
+{
+  "id": "svm",
+  "title": "Support Vector Machines (SVM)",
+  "description": "Max-margin hyperplanes, hard vs soft margin, slack variables ($C$), support vectors, the dual formulation, and the kernel trick (Linear, Polynomial, RBF).",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Support Vector Machines (SVM)",
+        "subtitle": "Maximum Margin Hyperplanes, Duality Theory, and the Kernel Trick"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Maximum Margin Classifier",
+        "content": "For linearly separable binary classification with labels $y \\in \\{-1, +1\\}$, infinite separating hyperplanes exist. SVM finds the unique hyperplane that maximizes the **geometric margin** (distance to the closest training points on either side):\n\n$$\\mathbf{w}^T \\mathbf{x} + b = 0$$\n$$\\text{Margin} = \\frac{2}{\\|\\mathbf{w}\\|}$$\n\nMaximizing margin $\\frac{2}{\\|\\mathbf{w}\\|}$ is mathematically equivalent to minimizing $\\frac{1}{2} \\|\\mathbf{w}\\|^2$ subject to the separation constraint:\n$$y^{(i)} (\\mathbf{w}^T \\mathbf{x}^{(i)} + b) \\ge 1, \\quad \\forall i$$"
+      },
+      {
+        "type": "text",
+        "title": "Soft Margin SVM & Slack Variables (C)",
+        "content": "Real-world data is rarely linearly separable. **Soft Margin SVM** introduces non-negative slack variables $\\xi_i \\ge 0$ allowing samples to violate the margin:\n\n$$\\min_{\\mathbf{w}, b, \\xi} \\frac{1}{2} \\|\\mathbf{w}\\|^2 + C \\sum_{i=1}^n \\xi_i \\quad \\text{subject to} \\quad y^{(i)}(\\mathbf{w}^T \\mathbf{x}^{(i)} + b) \\ge 1 - \\xi_i$$\n\n- **Large $C$ (Hard Margin tendency):** Heavy penalty for margin violations. Narrow margin, low bias, **high variance (risk of overfitting)**.\n- **Small $C$ (Soft Margin):** Tolerates more violations. Wide margin, higher bias, **low variance (more robust to noise)**."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "The Kernel Trick: Non-Linear Mapping",
+        "content": "When data is non-separable in original space $\\mathbb{R}^d$, we map it into a higher-dimensional feature space $\\Phi(\\mathbf{x}) \\in \\mathbb{R}^D$ where it becomes linearly separable.\n\nThe **Kernel Trick** computes dot products in the high-dimensional space without ever explicitly calculating coordinates $\\Phi(\\mathbf{x})$: $K(\\mathbf{x}, \\mathbf{z}) = \\langle \\Phi(\\mathbf{x}), \\Phi(\\mathbf{z}) \\rangle$!\n\n| Kernel Name | Formula | Hyperparameters | Behavior |\n|---|---|---|---|\n| **Linear** | $K(\\mathbf{x}, \\mathbf{z}) = \\mathbf{x}^T \\mathbf{z}$ | None | Fast; ideal for high-dimensional text ($D > 10,000$) |\n| **Polynomial** | $K(\\mathbf{x}, \\mathbf{z}) = (\\gamma \\mathbf{x}^T \\mathbf{z} + r)^d$ | Degree $d$, coef0 $r$, scale $\\gamma$ | Models feature interactions up to degree $d$ |\n| **RBF (Gaussian)** | $K(\\mathbf{x}, \\mathbf{z}) = \\exp(-\\gamma \\|\\mathbf{x} - \\mathbf{z}\\|^2)$ | $\\gamma$ (bandwidth) | Infinite-dimensional Hilbert space; powerful non-linear boundary |"
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The Role of Support Vectors",
+        "content": "The final decision boundary depends **exclusively on the Support Vectors** (the training points lying directly on or inside the margin). Deleting all other training points has **zero effect** on the optimal hyperplane!"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "SVM Computational Profile",
+        "content": "SVM is memory-efficient because only support vectors are retained for prediction. However, training complexity scales between $O(N^2)$ and $O(N^3)$, making standard SVMs impractical for datasets with $N > 100,000$ samples."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "SVM Margin & C Penalty Explorer",
+    "description": "Explore how the hyperparameter C and RBF gamma alter boundary flexibility and support vector count.",
+    "items": [
+      {
+        "text": "Large C = 1000 creates tight narrow margin with minimal tolerance",
+        "category": "High C (Hard Margin)"
+      },
+      {
+        "text": "Small C = 0.01 creates wide margin tolerating many violations",
+        "category": "Low C (Soft Margin)"
+      },
+      {
+        "text": "Large gamma creates isolated island decision boundaries",
+        "category": "High Gamma (Complex)"
+      }
+    ],
+    "categories": [
+      "High C (Hard Margin)",
+      "Low C (Soft Margin)",
+      "High Gamma (Complex)"
+    ]
+  },
+  "code": {
+    "description": "Fit a Support Vector Classifier with Linear and RBF kernels, inspect support vectors, and visualize decision boundaries in 2D.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import make_moons\nfrom sklearn.svm import SVC\nfrom sklearn.preprocessing import StandardScaler\n\n# Generate non-linear moon dataset\nX, y = make_moons(n_samples=100, noise=0.15, random_state=42)\nX_scaled = StandardScaler().fit_transform(X)\n\n# 1. Fit Non-Linear RBF Kernel SVM\nclf_rbf = SVC(kernel='rbf', C=1.0, gamma='scale', random_state=42)\nclf_rbf.fit(X_scaled, y)\n\n# 2. Fit Linear Kernel SVM\nclf_lin = SVC(kernel='linear', C=1.0, random_state=42)\nclf_lin.fit(X_scaled, y)\n\nprint(f'RBF SVM Accuracy:    {clf_rbf.score(X_scaled, y)*100:.1f}%')\nprint(f'Linear SVM Accuracy: {clf_lin.score(X_scaled, y)*100:.1f}%')\nprint(f'Number of Support Vectors (RBF): {len(clf_rbf.support_)} out of 100 samples')\nprint(f'Support Vector indices (first 5): {clf_rbf.support_[:5]}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What does a Support Vector Machine (SVM) maximize when searching for the optimal separating hyperplane?",
+      "options": [
+        "The number of features",
+        "The geometric margin (the distance between the hyperplane and the closest training points)",
+        "The number of training iterations",
+        "The variance of the data"
+      ],
+      "correct": 1,
+      "explanation": "SVM is a maximum-margin classifier, seeking the hyperplane with the largest minimum distance to any training point."
+    },
+    {
+      "question": "What are 'Support Vectors' in an SVM model?",
+      "options": [
+        "Vectors of cloud server IP addresses",
+        "The subset of training data points that lie directly on or inside the margin boundaries, uniquely determining the optimal hyperplane",
+        "The weights of the neural network",
+        "Points that have zero residual error"
+      ],
+      "correct": 1,
+      "explanation": "Support vectors are the critical anchor points lying on the margin boundaries; the hyperplane is completely defined by them."
+    },
+    {
+      "question": "If you delete all training data points that are NOT support vectors and retrain the SVM, what happens to the resulting hyperplane?",
+      "options": [
+        "The hyperplane moves drastically",
+        "The resulting hyperplane remains completely identical with zero change",
+        "The model accuracy drops to 0%",
+        "The model throws a singular matrix error"
+      ],
+      "correct": 1,
+      "explanation": "Only support vectors influence the optimization objective; non-support vector points exert zero Lagrange multiplier force."
+    },
+    {
+      "question": "In Soft Margin SVM, what does the regularization hyperparameter $C$ control?",
+      "options": [
+        "The number of CPU cores",
+        "The trade-off between maximizing margin width and minimizing training classification violations (slack)",
+        "The learning rate of gradient descent",
+        "The polynomial degree of the kernel"
+      ],
+      "correct": 1,
+      "explanation": "Hyperparameter $C$ balances margin width against misclassification penalties: $\\min \\frac{1}{2}\\|w\\|^2 + C \\sum \\xi_i$."
+    },
+    {
+      "question": "What happens when hyperparameter $C$ in an SVM is set extremely large ($C \\rightarrow \\infty$)?",
+      "options": [
+        "The model underfits with a very wide margin",
+        "The model enforces a hard margin, heavily penalizing any violation and risking severe overfitting (high variance)",
+        "The model ignores all support vectors",
+        "The weights collapse to zero"
+      ],
+      "correct": 1,
+      "explanation": "A massive $C$ forces the optimizer to minimize violations at all costs, narrowing the margin and overfitting to training noise."
+    },
+    {
+      "question": "What happens when hyperparameter $C$ in an SVM is set very small (e.g. $C = 0.001$)?",
+      "options": [
+        "The model overfits",
+        "The model tolerates many margin violations, yielding a wide margin and higher bias (lower variance / more robust)",
+        "Training time increases by 100x",
+        "The model becomes non-linear"
+      ],
+      "correct": 1,
+      "explanation": "Small $C$ places little weight on violations, prioritizing a wide, generalized margin that tolerates noisy points."
+    },
+    {
+      "question": "What is the Kernel Trick in Support Vector Machines?",
+      "options": [
+        "A secret password to decrypt models",
+        "A mathematical technique computing dot products in a high-dimensional feature space without ever explicitly mapping or calculating coordinates in that space",
+        "A method for converting SVMs into decision trees",
+        "An algorithm that compresses CSV files"
+      ],
+      "correct": 1,
+      "explanation": "The kernel trick evaluates $K(\\mathbf{x}, \\mathbf{z}) = \\langle \\Phi(\\mathbf{x}), \\Phi(\\mathbf{z}) \\rangle$ directly, bypassing expensive high-dimensional coordinate transformations."
+    },
+    {
+      "question": "What is the Radial Basis Function (RBF) Kernel formula?",
+      "options": [
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\mathbf{x}^T \\mathbf{z}$",
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\exp(-\\gamma \\|\\mathbf{x} - \\mathbf{z}\\|^2)$",
+        "$K(\\mathbf{x}, \\mathbf{z}) = (\\mathbf{x}^T \\mathbf{z} + 1)^d$",
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\tanh(\\gamma \\mathbf{x}^T \\mathbf{z})$"
+      ],
+      "correct": 1,
+      "explanation": "The RBF (Gaussian) kernel measures spatial similarity based on squared Euclidean distance: $\\exp(-\\gamma \\|\\mathbf{x} - \\mathbf{z}\\|^2)$."
+    },
+    {
+      "question": "What infinite-dimensional space does the RBF (Gaussian) Kernel mathematically project data into?",
+      "options": [
+        "A 2D plane",
+        "An infinite-dimensional Hilbert space (via the Taylor series expansion of the exponential function)",
+        "A discrete integer space",
+        "A finite 100-dimensional matrix"
+      ],
+      "correct": 1,
+      "explanation": "Expanding $e^{-\\gamma \\|x-z\\|^2}$ via Taylor series yields an infinite sum of polynomial features in infinite-dimensional Hilbert space."
+    },
+    {
+      "question": "In the RBF kernel, what does the hyperparameter $\\gamma$ (gamma) control?",
+      "options": [
+        "The cost of cloud servers",
+        "The inverse radius of influence of individual support vectors (bandwidth); large $\\gamma$ creates tight localized islands around points",
+        "The number of trees in the ensemble",
+        "The learning rate multiplier"
+      ],
+      "correct": 1,
+      "explanation": "Gamma defines how far the influence of a single training example reaches: high gamma creates complex, tight decision boundaries around points."
+    },
+    {
+      "question": "What happens when $\\gamma$ is set excessively large in an RBF SVM?",
+      "options": [
+        "The decision boundary becomes a flat straight line",
+        "The model severely overfits: every support vector forms a tiny isolated circular decision island around itself",
+        "The model underfits completely",
+        "The training error becomes 100%"
+      ],
+      "correct": 1,
+      "explanation": "A massive gamma means each point has a tiny radius of influence, creating high-variance overfitting with isolated decision bubbles."
+    },
+    {
+      "question": "What happens when $\\gamma$ is set excessively small in an RBF SVM?",
+      "options": [
+        "The model overfits severely",
+        "The radius of influence is so broad that the model behaves like a linear classifier, failing to capture complex non-linear patterns (high bias)",
+        "The kernel becomes non-invertible",
+        "The weights explode to infinity"
+      ],
+      "correct": 1,
+      "explanation": "A tiny gamma means every point influences points far away, over-smoothing the decision surface into near-linear flatness."
+    },
+    {
+      "question": "Why is feature scaling (e.g. StandardScaler) strictly required before training an SVM?",
+      "options": [
+        "Because SVM code has bugs without scaling",
+        "SVM hyperplanes and RBF kernels depend directly on Euclidean distances; unscaled features with large ranges dominate distance and margin calculations",
+        "Because SVMs only accept numbers between -1 and +1",
+        "Because scaling reduces the number of classes"
+      ],
+      "correct": 1,
+      "explanation": "SVM margins are geometric distances in feature space; unscaled features warp the space, causing the margin to depend entirely on the largest-scaled feature."
+    },
+    {
+      "question": "What is the primal formulation of the Linear SVM optimization problem?",
+      "options": [
+        "$\\max \\ln P(y|x)$",
+        "$\\min_{\\mathbf{w}, b} \\frac{1}{2} \\|\\mathbf{w}\\|^2 \\quad \\text{subject to } y_i(\\mathbf{w}^T \\mathbf{x}_i + b) \\ge 1$",
+        "$\\min \\sum |y_i - \\hat{y}_i|$",
+        "$\\max \\text{Entropy}(D)$"
+      ],
+      "correct": 1,
+      "explanation": "The primal problem minimizes $\\frac{1}{2}\\|w\\|^2$ (maximizing margin $\\frac{2}{\\|w\\|}$) subject to separation constraints."
+    },
+    {
+      "question": "What are the Karush-Kuhn-Tucker (KKT) conditions in SVM optimization?",
+      "options": [
+        "Conditions required to install scikit-learn",
+        "First-order necessary conditions for mathematical optimization with inequality constraints, ensuring duality and identifying support vectors ($\\alpha_i > 0$)",
+        "A test for missing values",
+        "A benchmark for training speed"
+      ],
+      "correct": 1,
+      "explanation": "KKT conditions govern constrained convex optimization; complementary slackness identifies support vectors as points where $\\alpha_i > 0$."
+    },
+    {
+      "question": "In the dual formulation of SVM, what are the variables being optimized?",
+      "options": [
+        "The weight vector $\\mathbf{w}$ directly",
+        "Lagrange multipliers $\\alpha_i$ (one for each training sample)",
+        "The learning rate schedule",
+        "The number of support vectors"
+      ],
+      "correct": 1,
+      "explanation": "The dual formulation optimizes Lagrange multipliers $\\alpha_i$ associated with each training sample constraint."
+    },
+    {
+      "question": "In an SVM dual solution, which training points have Lagrange multipliers $\\alpha_i > 0$?",
+      "options": [
+        "All points in the training set",
+        "Exclusively the Support Vectors (points lying on or violating the margin)",
+        "Only points that were classified incorrectly",
+        "Points with zero feature values"
+      ],
+      "correct": 1,
+      "explanation": "By KKT complementary slackness, points outside the margin have $\\alpha_i = 0$; only support vectors have non-zero multipliers $\\alpha_i > 0$."
+    },
+    {
+      "question": "What is the loss function used by Linear SVM called?",
+      "options": [
+        "Binary Cross-Entropy Loss",
+        "Hinge Loss: $\\max(0, 1 - y \\cdot f(x))$",
+        "Mean Squared Error",
+        "Kullback-Leibler Loss"
+      ],
+      "correct": 1,
+      "explanation": "SVM minimizes Hinge Loss $\\max(0, 1 - y \\cdot f(x))$: zero penalty if correctly classified with margin $\\ge 1$, linear penalty otherwise."
+    },
+    {
+      "question": "What is the computational training complexity of standard SVM algorithms (like SMO / libsvm)?",
+      "options": [
+        "$O(N)$ linear time",
+        "Between $O(N^2)$ and $O(N^3)$, making it computationally prohibitive for datasets with more than 100,000 samples",
+        "$O(\\log N)$ logarithmic time",
+        "$O(1)$ constant time"
+      ],
+      "correct": 1,
+      "explanation": "Solving the quadratic programming problem scales quadratically to cubically with sample count $N$, limiting kernel SVMs on massive datasets."
+    },
+    {
+      "question": "When is a Linear Kernel SVM preferred over an RBF Kernel SVM?",
+      "options": [
+        "When sample size is tiny ($N < 50$)",
+        "When the number of features $D$ is very large relative to sample size $N$ (e.g. text classification with 50,000 TF-IDF features)",
+        "When data is non-linear",
+        "When $C = 0$"
+      ],
+      "correct": 1,
+      "explanation": "When dimensionality is high ($D \\gg N$, like text/genomics), data is almost always linearly separable, making fast Linear SVM optimal."
+    },
+    {
+      "question": "What is Support Vector Regression (SVR)?",
+      "options": [
+        "An algorithm that trains decision trees for regression",
+        "An adaptation of SVM that fits a tube of width $\\epsilon$ around continuous data, penalizing errors only if they fall outside the $\\epsilon$-tube ($\\epsilon$-insensitive loss)",
+        "A model that predicts categorical labels",
+        "A linear regression model with zero error"
+      ],
+      "correct": 1,
+      "explanation": "SVR finds a function with at most $\\epsilon$ deviation from actual targets, ignoring errors smaller than $\\epsilon$."
+    },
+    {
+      "question": "What does the hyperparameter $\\epsilon$ (epsilon) control in Support Vector Regression (SVR)?",
+      "options": [
+        "The learning rate",
+        "The width of the margin of tolerance around the prediction line within which no penalty is incurred for errors",
+        "The maximum number of iterations",
+        "The regularizer weight"
+      ],
+      "correct": 1,
+      "explanation": "In SVR, errors within the $\\epsilon$-insensitive zone are penalized as zero, determining the sparsity of support vectors."
+    },
+    {
+      "question": "What is Mercer's Theorem in kernel methods?",
+      "options": [
+        "A theorem proving that neural networks are universal approximators",
+        "A mathematical theorem stating that any symmetric, positive semi-definite kernel function $K(\\mathbf{x}, \\mathbf{z})$ corresponds to an inner product in some feature space",
+        "A rule for setting learning rates",
+        "A theorem about decision tree pruning"
+      ],
+      "correct": 1,
+      "explanation": "Mercer's condition guarantees that a kernel $K(x, z)$ represents a valid inner product in a Hilbert space without explicit coordinate construction."
+    },
+    {
+      "question": "What is the LinearSVC class in Scikit-learn, and how does it differ from `SVC(kernel='linear')`?",
+      "options": [
+        "LinearSVC uses GPUs; SVC uses CPUs",
+        "`LinearSVC` is implemented via `liblinear`, scaling linearly $O(N)$ with large datasets, whereas `SVC` is based on `libsvm` scaling $O(N^2)$",
+        "LinearSVC is a regression model",
+        "They are identical implementations"
+      ],
+      "correct": 1,
+      "explanation": "`LinearSVC` uses LIBLINEAR, optimized specifically for linear classification on massive datasets, scaling much faster than `SVC(kernel='linear')`."
+    },
+    {
+      "question": "How does SVM handle multiclass classification in Scikit-learn's `SVC`?",
+      "options": [
+        "Using the Softmax function directly in 1 model",
+        "Using One-vs-One (OvO) by default, training $\\frac{K(K-1)}{2}$ binary SVM classifiers and taking majority votes",
+        "Using K-Means clustering",
+        "Using Decision Trees"
+      ],
+      "correct": 1,
+      "explanation": "Scikit-learn's `SVC` implements One-vs-One (OvO) multiclass strategy, training a binary classifier for every pair of classes."
+    },
+    {
+      "question": "Can standard SVM naturally output well-calibrated class probabilities?",
+      "options": [
+        "Yes, SVM naturally outputs probabilities between 0 and 1",
+        "No, SVM is a maximum-margin classifier outputting uncalibrated geometric distances; Platt Scaling must be fitted post-hoc (`probability=True`) to estimate probabilities",
+        "Only when using the linear kernel",
+        "Only if $C=1.0$"
+      ],
+      "correct": 1,
+      "explanation": "SVM outputs signed geometric distances, not probabilities; setting `probability=True` fits a logistic sigmoid over distances via 5-fold CV (Platt scaling)."
+    },
+    {
+      "question": "Why does setting `probability=True` in Scikit-learn's `SVC` slow down training significantly?",
+      "options": [
+        "Because probabilities take up more memory",
+        "It requires running an internal 5-fold cross-validation loop to fit Platt scaling parameters after fitting the main SVM",
+        "Because Python cannot calculate probabilities quickly",
+        "Because it switches the solver to gradient descent"
+      ],
+      "correct": 1,
+      "explanation": "Platt scaling fits an internal cross-validated logistic regression over decision values, roughly multiplying training time by 5x."
+    },
+    {
+      "question": "What is the Sigmoid (Hyperbolic Tangent) Kernel in SVM?",
+      "options": [
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\tanh(\\gamma \\mathbf{x}^T \\mathbf{z} + r)$",
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\frac{1}{1 + e^{-z}}$",
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\mathbf{x} + \\mathbf{z}$",
+        "$K(\\mathbf{x}, \\mathbf{z}) = \\ln(\\mathbf{x}^T \\mathbf{z})$"
+      ],
+      "correct": 0,
+      "explanation": "The sigmoid kernel $K(x, z) = \\tanh(\\gamma x^T z + r)$ mimics a 2-layer perceptron neural network."
+    },
+    {
+      "question": "What is an outlier's impact on a Hard Margin SVM compared to a Soft Margin SVM?",
+      "options": [
+        "No impact on either",
+        "In a Hard Margin SVM, a single outlier can render the optimization problem completely infeasible (impossible to solve) or drastically skew the boundary",
+        "Hard Margin SVM ignores outliers automatically",
+        "Soft Margin SVM cannot handle outliers"
+      ],
+      "correct": 1,
+      "explanation": "Hard Margin strictly forbids violations; a single non-separable outlier makes the feasibility constraint $y_i(w^T x_i + b) \\ge 1$ impossible."
+    },
+    {
+      "question": "In SVM classification, what is the decision rule for predicting a new sample $\\mathbf{x}_q$?",
+      "options": [
+        "$\\hat{y} = \\text{sign}\\left( \\sum_{i \\in \\text{SV}} \\alpha_i y_i K(\\mathbf{x}_i, \\mathbf{x}_q) + b \\right)$",
+        "$\\hat{y} = \\text{mean}(\\mathbf{x}_q)$",
+        "$\\hat{y} = \\text{argmax}(\\mathbf{x}_q)$",
+        "$\\hat{y} = \\mathbf{w} \\cdot \\mathbf{x}_q^2$"
+      ],
+      "correct": 0,
+      "explanation": "Prediction computes the sign of the weighted sum of kernel similarities between the query point and each support vector."
+    },
+    {
+      "question": "What does `coef0` represent in Polynomial and Sigmoid SVM kernels?",
+      "options": [
+        "The learning rate",
+        "The independent additive constant parameter $r$ in $(\\gamma \\mathbf{x}^T \\mathbf{z} + r)^d$ that controls how much higher-order terms are favored over lower-order terms",
+        "The number of support vectors",
+        "The regularizer weight"
+      ],
+      "correct": 1,
+      "explanation": "`coef0` shifts the dot product before exponentiation, balancing low-order and high-order interaction influences."
+    },
+    {
+      "question": "What happens when hyperparameter `degree=1` in a Polynomial Kernel SVM?",
+      "options": [
+        "The kernel becomes identical to a Linear Kernel",
+        "The model fits parabolas",
+        "The kernel becomes non-linear",
+        "The model crashes"
+      ],
+      "correct": 0,
+      "explanation": "When degree is 1, $(\\gamma \\mathbf{x}^T \\mathbf{z} + r)^1$ is a linear inner product plus a constant, functionally equivalent to a linear kernel."
+    },
+    {
+      "question": "Why is SVM memory-efficient during inference compared to KNN?",
+      "options": [
+        "SVM uses no memory",
+        "SVM stores only the sparse subset of Support Vectors, whereas KNN stores the entire training dataset",
+        "SVM only works on integers",
+        "SVM deletes all weights"
+      ],
+      "correct": 1,
+      "explanation": "KNN requires querying all $N$ training samples; SVM inference queries only the fraction of samples designated as support vectors."
+    },
+    {
+      "question": "What algorithm is widely used to solve the quadratic programming problem in SVM without inverting large matrices?",
+      "options": [
+        "Sequential Minimal Optimization (SMO)",
+        "K-Means",
+        "Breadth-First Search",
+        "Apriori"
+      ],
+      "correct": 0,
+      "explanation": "John Platt's SMO algorithm decomposes the massive QP problem into 2-variable analytical sub-problems, avoiding matrix operations."
+    },
+    {
+      "question": "What is the geometric distance from the origin to the separating hyperplane $\\mathbf{w}^T \\mathbf{x} + b = 0$?",
+      "options": [
+        "$\\frac{|b|}{\\|\\mathbf{w}\\|}$",
+        "$\\|\\mathbf{w}\\| \\cdot b$",
+        "$\\frac{1}{b}$",
+        "$\\mathbf{w}^T \\mathbf{w}$"
+      ],
+      "correct": 0,
+      "explanation": "The perpendicular geometric distance from origin to the affine hyperplane is given by $\\frac{|b|}{\\|\\mathbf{w}\\|}$."
+    }
+  ],
+  "level": "intermediate"
+}

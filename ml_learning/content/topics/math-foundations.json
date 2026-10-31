@@ -1,0 +1,471 @@
+{
+  "id": "math-foundations",
+  "title": "Math Intuition for ML (No Fear!)",
+  "description": "Understand the simple mathematical building blocks of machine learning: lines, slopes, averages, vectors, and measuring error.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Math Intuition for Machine Learning",
+        "subtitle": "No Complex Equations Required: Understanding Slopes, Lines, and Error"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Don't Be Intimidated by the Math!",
+        "content": "You do NOT need a PhD in advanced mathematics to understand how machine learning works. Under the hood, most machine learning algorithms rely on **three simple everyday ideas**:\n\n1. **Finding a Trend (Drawing a Line):** As houses get bigger, their prices go up. Finding that trend line is what models do!\n2. **Measuring the Error (How Far Off Were We?):** If a house sold for $300k and the model predicted $280k, the error is $20k. The goal of learning is to make that error as small as possible.\n3. **Vectors & Matrices (Lists and Tables):** A 'vector' is just a shopping list of numbers (like `[3 bedrooms, 1500 sq ft, 2 bathrooms]`), and a 'matrix' is simply a table of those lists!"
+      },
+      {
+        "type": "text",
+        "title": "The Famous Line Equation: y = mx + b",
+        "content": "Remember the equation of a line from school?\n\n$$\\text{Prediction} (y) = \\text{Slope} (m) \\times \\text{Input} (x) + \\text{Starting Point} (b)$$\n\n- **x:** The input feature (e.g. Square footage of a house).\n- **m (Slope / Weight):** How much the price increases for every extra square foot (e.g. +$150 per sq ft).\n- **b (Intercept / Bias):** The baseline price even before counting square feet (e.g. the value of the empty land).\n- **y:** The predicted final price!\n\nWhen a model 'learns', it is simply adjusting the slope (m) and starting point (b) until its line passes as closely through all the data points as possible!"
+      },
+      {
+        "type": "table",
+        "title": "Mathematical Terms Translated into Plain English",
+        "headers": [
+          "Math Term",
+          "Fancy Sounding Name",
+          "What It Actually Means in Plain English"
+        ],
+        "rows": [
+          [
+            "Scalar",
+            "A 0D Tensor",
+            "Just a single regular number (e.g. 42)."
+          ],
+          [
+            "Vector",
+            "A 1D Tensor",
+            "A list of numbers describing one item (e.g. [3, 1500, 2])."
+          ],
+          [
+            "Matrix",
+            "A 2D Tensor",
+            "A spreadsheet grid of rows and columns."
+          ],
+          [
+            "Error (Residual)",
+            "Loss / Cost",
+            "The difference between what the model guessed and what actually happened (|Actual - Predicted|)."
+          ],
+          [
+            "Optimization",
+            "Gradient Descent",
+            "The process of slowly nudging the model's settings to make prediction errors smaller."
+          ]
+        ]
+      }
+    ]
+  },
+  "interactive": {
+    "type": "statistics-calculator",
+    "title": "Line & Error Visualizer",
+    "description": "Adjust slope and intercept to see how prediction errors shrink as the line fits the points.",
+    "metrics": [
+      "dot_product",
+      "l2_norm",
+      "l1_norm",
+      "cosine_similarity"
+    ]
+  },
+  "code": {
+    "description": "Calculate predictions and measurement errors for house prices in Python.",
+    "starter": "import numpy as np\nimport matplotlib.pyplot as plt\n\n# Square footage (x) and actual sale prices in thousands (y)\nsq_ft = np.array([1000, 1400, 1800, 2200, 2600])\nactual_prices = np.array([210, 290, 370, 440, 530])\n\n# Simple line model: Price = 0.20 * sq_ft + 10\npredicted_prices = 0.20 * sq_ft + 10\n\n# Calculate errors (how far off each guess was)\nerrors = actual_prices - predicted_prices\nprint('Actual Prices ($k):   ', actual_prices)\nprint('Predicted Prices ($k):', predicted_prices)\nprint('Mistake / Errors ($k):', errors)\n\nplt.figure(figsize=(6, 4))\nplt.scatter(sq_ft, actual_prices, color='blue', s=80, label='Actual Houses')\nplt.plot(sq_ft, predicted_prices, color='red', linewidth=2, label='Model Trend Line')\nplt.title('Fitting a Line to House Prices')\nplt.xlabel('Square Feet'); plt.ylabel('Price ($k)'); plt.legend(); plt.grid(True)\nplt.show()"
+  },
+  "quiz": [
+    {
+      "question": "What is a 'Scalar' in mathematics and machine learning?",
+      "options": [
+        "A list of numbers",
+        "A single plain number, such as 5 or 42.5",
+        "A grid with rows and columns",
+        "A 3D cube of images"
+      ],
+      "correct": 1,
+      "explanation": "A scalar is simply a single individual number with no direction."
+    },
+    {
+      "question": "In machine learning, what is a 'Vector' in simple terms?",
+      "options": [
+        "A list of numbers representing an item (such as [3 bedrooms, 1500 sq ft, 2 bathrooms])",
+        "A disease carried by mosquitoes",
+        "A line of Python code",
+        "A computer processor"
+      ],
+      "correct": 0,
+      "explanation": "A vector is a one-dimensional ordered list of numbers."
+    },
+    {
+      "question": "What is a 'Matrix' in machine learning?",
+      "options": [
+        "A movie starring Keanu Reeves",
+        "A 2D table or grid of numbers arranged in rows and columns (like a spreadsheet)",
+        "A computer cable",
+        "A single fraction"
+      ],
+      "correct": 1,
+      "explanation": "A matrix is a two-dimensional grid of numbers with rows and columns."
+    },
+    {
+      "question": "In the simple line equation y = mx + b, what does 'x' represent?",
+      "options": [
+        "The input feature (such as house square footage)",
+        "The color of the house",
+        "The model's error",
+        "The date of the sale"
+      ],
+      "correct": 0,
+      "explanation": "x is the independent input variable (the feature we feed into the formula)."
+    },
+    {
+      "question": "In the equation y = mx + b, what does 'm' (the slope or weight) represent?",
+      "options": [
+        "The brand of computer used",
+        "How much the prediction changes for every 1-unit increase in x (e.g. extra dollars per square foot)",
+        "The number of mistakes the model made",
+        "The total count of rows in the table"
+      ],
+      "correct": 1,
+      "explanation": "The slope m indicates the steepness of the line—how strongly the output responds to changes in the input."
+    },
+    {
+      "question": "In the equation y = mx + b, what does 'b' (the intercept or bias) represent?",
+      "options": [
+        "The baseline starting value of y when x is equal to zero",
+        "The number of bedrooms in a house",
+        "The time it takes to train the model",
+        "The percentage of correct predictions"
+      ],
+      "correct": 0,
+      "explanation": "The intercept b is where the line crosses the vertical axis when input x is 0."
+    },
+    {
+      "question": "What is an 'Error' (or residual) in machine learning?",
+      "options": [
+        "A bug that crashes the operating system",
+        "The numerical difference between what the model predicted and what actually happened (Actual - Predicted)",
+        "A typo in a variable name",
+        "A missing file on disk"
+      ],
+      "correct": 1,
+      "explanation": "Error is the gap between the model's guess and the ground-truth reality."
+    },
+    {
+      "question": "If a house actually sold for $300,000, and your model predicted $280,000, what is the prediction error?",
+      "options": [
+        "$0",
+        "$20,000",
+        "$580,000",
+        "$280,000"
+      ],
+      "correct": 1,
+      "explanation": "The error is Actual - Predicted = $300,000 - $280,000 = $20,000."
+    },
+    {
+      "question": "What is the ultimate goal of training a machine learning model?",
+      "options": [
+        "To make the prediction errors as small as possible across all training examples",
+        "To make the computer use 100% of its memory",
+        "To print 1,000 pages of text",
+        "To make the line as steep as possible"
+      ],
+      "correct": 0,
+      "explanation": "Training aims to minimize the overall error so the model's guesses match reality as closely as possible."
+    },
+    {
+      "question": "What does a 'positive slope' mean when plotting two variables on a graph?",
+      "options": [
+        "As one variable increases, the other variable also tends to increase (like height and shoe size)",
+        "As one variable increases, the other decreases",
+        "The line is completely flat and horizontal",
+        "The line is impossible to calculate"
+      ],
+      "correct": 0,
+      "explanation": "A positive slope means the two variables rise together (an upward trend)."
+    },
+    {
+      "question": "What does a 'negative slope' mean when plotting two variables on a graph?",
+      "options": [
+        "Both variables are positive",
+        "As one variable increases, the other variable tends to decrease (like car mileage and car resale value)",
+        "The numbers are invalid",
+        "The line goes straight up vertically"
+      ],
+      "correct": 1,
+      "explanation": "A negative slope means an inverse relationship: as x rises, y drops (a downward trend)."
+    },
+    {
+      "question": "If a trend line is completely flat and horizontal (slope m = 0), what does that tell you about the relationship between x and y?",
+      "options": [
+        "Changing x has zero effect on y (there is no relationship)",
+        "x and y are perfectly identical",
+        "The model achieves 100% accuracy",
+        "y increases infinitely fast"
+      ],
+      "correct": 0,
+      "explanation": "A zero slope means changes in input x do not change the predicted output y at all."
+    },
+    {
+      "question": "What is an 'Average' (or Mean) in plain words?",
+      "options": [
+        "The highest value in a group",
+        "The sum of all numbers divided by how many numbers there are",
+        "The middle number in a sorted list",
+        "The smallest number in a list"
+      ],
+      "correct": 1,
+      "explanation": "The average gives a central representative summary number for a set of values."
+    },
+    {
+      "question": "What is the average of the numbers [10, 20, 30]?",
+      "options": [
+        "10",
+        "20",
+        "30",
+        "60"
+      ],
+      "correct": 1,
+      "explanation": "(10 + 20 + 30) / 3 = 60 / 3 = 20."
+    },
+    {
+      "question": "What does the word 'Optimization' mean in machine learning?",
+      "options": [
+        "Buying a faster internet connection",
+        "The process of systematically adjusting the model's numbers (weights and slopes) to minimize mistakes",
+        "Compressing files into a zip archive",
+        "Restarting your computer after updates"
+      ],
+      "correct": 1,
+      "explanation": "Optimization is how algorithms search for the best settings to achieve the smallest possible error."
+    },
+    {
+      "question": "What is 'Euclidean Distance' in everyday terms?",
+      "options": [
+        "The distance you drive on winding roads",
+        "The straight-line ruler distance between two points on a map or graph",
+        "The time it takes an airplane to fly between cities",
+        "The length of an email"
+      ],
+      "correct": 1,
+      "explanation": "Euclidean distance is the familiar straight-line 'as the crow flies' distance calculated by Pythagoras' theorem."
+    },
+    {
+      "question": "What does a 'Loss Function' (or Cost Function) calculate?",
+      "options": [
+        "How much money the company lost this year",
+        "A single total score measuring how bad the model's mistakes are across the entire dataset",
+        "The battery percentage of a laptop",
+        "The speed of the computer processor"
+      ],
+      "correct": 1,
+      "explanation": "The loss function combines all individual prediction errors into a single score; lower loss means better predictions!"
+    },
+    {
+      "question": "If your model's Loss is decreasing after each training step, what does that mean?",
+      "options": [
+        "The model is getting worse",
+        "The model is learning and making more accurate predictions!",
+        "The computer is running out of space",
+        "The training has crashed"
+      ],
+      "correct": 1,
+      "explanation": "A decreasing loss is great news: it means the model is getting closer to the real answers."
+    },
+    {
+      "question": "What is a 'scatter plot'?",
+      "options": [
+        "A chart that throws random paint on a canvas",
+        "A graph where data points are shown as individual dots plotted on horizontal and vertical axes",
+        "A pie chart showing percentages",
+        "A text document with bullet points"
+      ],
+      "correct": 1,
+      "explanation": "A scatter plot visualizes pairs of numbers as dots, making trends and relationships easy to see."
+    },
+    {
+      "question": "Why do we square the errors in Mean Squared Error (MSE)?",
+      "options": [
+        "To turn negative errors into positive numbers and penalize large mistakes much more heavily than small ones",
+        "Because computers cannot subtract numbers",
+        "To make the numbers look smaller",
+        "Because squared numbers load faster in memory"
+      ],
+      "correct": 0,
+      "explanation": "Squaring ensures that positive and negative errors don't cancel each other out, and heavily penalizes big blunders."
+    },
+    {
+      "question": "What is a 'Dimension' in machine learning data?",
+      "options": [
+        "A portal to another universe",
+        "A single feature, column, or measurement (e.g. a 3D dataset has 3 features like Height, Weight, and Age)",
+        "The physical thickness of a laptop screen",
+        "A computer font size"
+      ],
+      "correct": 1,
+      "explanation": "In data science, each feature or column represents one dimension in the data space."
+    },
+    {
+      "question": "If you have data about houses with only 1 feature (Square Feet), how many dimensions does your input feature space have?",
+      "options": [
+        "1 Dimension (a simple line)",
+        "2 Dimensions",
+        "10 Dimensions",
+        "0 Dimensions"
+      ],
+      "correct": 0,
+      "explanation": "A single feature corresponds to 1 dimension (points along a number line)."
+    },
+    {
+      "question": "If you have 2 features (Square Feet and Number of Bedrooms), how many dimensions does your feature space have?",
+      "options": [
+        "1 Dimension",
+        "2 Dimensions (a flat 2D plane with an X and Y axis)",
+        "3 Dimensions",
+        "100 Dimensions"
+      ],
+      "correct": 1,
+      "explanation": "Two features create a 2D coordinate system where each house is a point (x, y)."
+    },
+    {
+      "question": "Can computers work with 50 or 100 dimensions (features) at the same time?",
+      "options": [
+        "No, computers can only understand 3D like humans",
+        "Yes, mathematical formulas work just as easily with 100 features as they do with 2 features!",
+        "Only if you use 50 monitors",
+        "No, software crashes above 4 dimensions"
+      ],
+      "correct": 1,
+      "explanation": "While humans cannot visualize 100 dimensions, linear algebra handles 100 dimensions with the exact same formulas."
+    },
+    {
+      "question": "What is a 'Curve' compared to a 'Straight Line' in modeling?",
+      "options": [
+        "A curve is always an error",
+        "A non-linear relationship where the rate of change is not constant (such as children growing rapidly then leveling off as adults)",
+        "A straight line that has been rotated 90 degrees",
+        "A mathematical equation with no variables"
+      ],
+      "correct": 1,
+      "explanation": "Curves represent non-linear patterns where the trend changes direction or speed rather than staying strictly straight."
+    },
+    {
+      "question": "What is an 'Iteration' (or Step) during model training?",
+      "options": [
+        "One single pass or cycle where the model looks at examples, checks its errors, and updates its settings slightly",
+        "Turning the computer off and on",
+        "Deleting one row from a database",
+        "A software license renewal"
+      ],
+      "correct": 0,
+      "explanation": "An iteration is one step in the learning process where the model adjusts itself to get slightly better."
+    },
+    {
+      "question": "What is the 'Learning Rate' in simple terms?",
+      "options": [
+        "The speed at which a human student reads a textbook",
+        "The size of the adjustment step the algorithm takes when nudging its settings to reduce errors",
+        "The price of an online machine learning course",
+        "The clock speed of the computer processor"
+      ],
+      "correct": 1,
+      "explanation": "The learning rate controls how big of a step the model takes when updating its numbers; too big and it overshoots, too small and it takes forever."
+    },
+    {
+      "question": "What happens if the Learning Rate is set way too high?",
+      "options": [
+        "The model learns in 1 second perfectly",
+        "The model takes massive wildly erratic leaps, overshooting the best answer and potentially blowing up",
+        "The computer screen turns off",
+        "The data is deleted from memory"
+      ],
+      "correct": 1,
+      "explanation": "A learning rate that is too aggressive jumps past the optimal trend line, causing errors to swing out of control."
+    },
+    {
+      "question": "What happens if the Learning Rate is set way too low?",
+      "options": [
+        "The model learns immediately",
+        "The model makes tiny baby steps, taking a painfully long time to improve and possibly getting stuck",
+        "The model becomes 100% accurate instantly",
+        "The code throws a syntax error"
+      ],
+      "correct": 1,
+      "explanation": "An excessively tiny learning rate means the model barely updates, requiring thousands of unnecessary steps."
+    },
+    {
+      "question": "What is a 'Global Minimum' on an error curve?",
+      "options": [
+        "The coldest temperature recorded on Earth",
+        "The lowest possible point where the model's error is at its absolute minimum (the best possible fit!)",
+        "The smallest number in a spreadsheet",
+        "A model that runs on zero electricity"
+      ],
+      "correct": 1,
+      "explanation": "The global minimum is the bottom of the valley where the prediction error is as small as possible."
+    },
+    {
+      "question": "What does it mean when we say a model has 'Converged'?",
+      "options": [
+        "The model has crashed with an error",
+        "The model has reached a point where its error is no longer improving noticeably and training is practically complete",
+        "The computer has connected to the Wi-Fi network",
+        "All features have been converted to text"
+      ],
+      "correct": 1,
+      "explanation": "Convergence means learning has stabilized at the best settings it can find."
+    },
+    {
+      "question": "What is the dot product of two identical numbers [3] and [4]?",
+      "options": [
+        "7",
+        "12",
+        "1",
+        "0.75"
+      ],
+      "correct": 1,
+      "explanation": "Multiplication: 3 * 4 = 12."
+    },
+    {
+      "question": "Why do data scientists use graphs and plots when working with math in ML?",
+      "options": [
+        "To make the report look pretty for managers",
+        "Because visual charts make trends, clusters, and unusual outliers immediately obvious to human eyes",
+        "Because Python cannot do math without drawing pictures",
+        "Because graphs save battery power"
+      ],
+      "correct": 1,
+      "explanation": "Visualizing data allows humans to spot patterns, clusters, and errors that are hidden inside tables of numbers."
+    },
+    {
+      "question": "What is a 'Weight' in a machine learning model?",
+      "options": [
+        "The physical heaviness of the computer laptop in kilograms",
+        "A learned number that multiplies a feature, reflecting how important that feature is in making the prediction",
+        "The number of gigabytes of RAM used",
+        "The total count of rows in the dataset"
+      ],
+      "correct": 1,
+      "explanation": "Weights are the numbers the model learns: higher weights mean that feature has a stronger influence on the prediction."
+    },
+    {
+      "question": "If the weight for 'Square Footage' is +150, and the weight for 'House Paint Color' is 0, what does that mean?",
+      "options": [
+        "Square footage matters heavily ($150 per sq ft), while paint color has zero influence on the price prediction",
+        "Paint color is the most important feature",
+        "The house is painted white",
+        "The model has crashed"
+      ],
+      "correct": 0,
+      "explanation": "A weight of 0 means the feature is completely ignored by the model, while +150 means square footage strongly drives the price."
+    }
+  ],
+  "level": "novice"
+}

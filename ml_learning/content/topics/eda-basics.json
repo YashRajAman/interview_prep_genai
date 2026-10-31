@@ -1,0 +1,498 @@
+{
+  "id": "eda-basics",
+  "title": "Exploratory Data Analysis (EDA) Basics",
+  "description": "Learn how to explore data visually: using bar charts, scatter plots, and histograms to spot patterns and find errors.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Exploratory Data Analysis (EDA)",
+        "subtitle": "Looking at Data with Your Own Eyes Before Training Any Model"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is EDA in Simple Terms?",
+        "content": "Imagine buying a used car. You wouldn't just wire money without looking under the hood, checking the odometer, and inspecting the tires!\n\n**Exploratory Data Analysis (EDA)** is doing the exact same vehicle inspection on your dataset. Before feeding data into an algorithm, data scientists create simple visual charts and summary numbers to **spot patterns, discover mistakes, and see what the data looks like**."
+      },
+      {
+        "type": "table",
+        "title": "The 4 Essential Charts for Beginners",
+        "headers": [
+          "Chart Type",
+          "What It Looks Like",
+          "Best Used For",
+          "Everyday Example"
+        ],
+        "rows": [
+          [
+            "Bar Chart",
+            "Vertical or horizontal bars of different lengths.",
+            "Comparing counts or totals across categories.",
+            "Comparing total phone sales by Brand (Apple vs Samsung vs Google)."
+          ],
+          [
+            "Histogram",
+            "Bars touching each other showing how numbers cluster.",
+            "Seeing how a single numeric measurement is spread out.",
+            "Looking at the age distribution of website visitors (Are they teens or seniors?)."
+          ],
+          [
+            "Scatter Plot",
+            "A cloud of individual dots on an X and Y grid.",
+            "Showing the relationship between TWO numbers.",
+            "Plotting House Size (X) vs House Price (Y) to see if bigger houses cost more."
+          ],
+          [
+            "Line Chart",
+            "A continuous line moving from left to right.",
+            "Tracking how a number changes over time.",
+            "Showing daily stock prices or temperature over 12 months."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "What You Are Hunting For During EDA",
+        "content": "1. **Obvious Typos:** Someone entered an age of `-5` or `999`.\n2. **Missing Blanks:** Whole columns where half the rows are empty.\n3. **Surprising Patterns:** Do sales always spike on Friday evenings?\n4. **Unbalanced Groups:** 99% of customers are from California and only 1% from other states."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "sorting-exercise",
+    "title": "Chart Chooser Challenge",
+    "description": "Choose the best chart type for each real-world data visualization goal.",
+    "items": [
+      {
+        "text": "Comparing the number of smartphones sold across 5 brands",
+        "category": "Bar Chart"
+      },
+      {
+        "text": "Seeing if study hours correlate with exam scores",
+        "category": "Scatter Plot"
+      },
+      {
+        "text": "Tracking daily Bitcoin price changes over 365 days",
+        "category": "Line Chart"
+      },
+      {
+        "text": "Checking how customer ages are distributed across age brackets",
+        "category": "Histogram"
+      },
+      {
+        "text": "Comparing total website visitors on Monday vs Tuesday vs Wednesday",
+        "category": "Bar Chart"
+      },
+      {
+        "text": "Plotting house square footage vs selling price",
+        "category": "Scatter Plot"
+      }
+    ],
+    "categories": [
+      "Bar Chart",
+      "Histogram",
+      "Scatter Plot",
+      "Line Chart"
+    ]
+  },
+  "code": {
+    "description": "Create basic bar charts and scatter plots using Matplotlib in Python.",
+    "starter": "import matplotlib.pyplot as plt\n\n# 1. Bar Chart: Comparing counts across categories\ncities = ['New York', 'London', 'Tokyo', 'Paris']\nvisitors = [450, 380, 520, 310]\n\nplt.figure(figsize=(7, 3))\nplt.subplot(1, 2, 1)\nplt.bar(cities, visitors, color=['orange', 'teal', 'coral', 'skyblue'])\nplt.title('Visitors by City')\nplt.ylabel('Count')\n\n# 2. Scatter Plot: Showing relationship between two numbers\nhours = [1, 2, 3, 4, 5, 6, 7, 8]\nscores = [52, 58, 65, 68, 76, 83, 89, 95]\n\nplt.subplot(1, 2, 2)\nplt.scatter(hours, scores, color='purple', s=60)\nplt.title('Study Hours vs Exam Score')\nplt.xlabel('Hours'); plt.ylabel('Score')\n\nplt.tight_layout()\nplt.show()"
+  },
+  "quiz": [
+    {
+      "question": "What does 'EDA' stand for in machine learning?",
+      "options": [
+        "Electronic Data Archive",
+        "Exploratory Data Analysis",
+        "Everyday Data Algorithm",
+        "Estimated Diagnostic Accuracy"
+      ],
+      "correct": 1,
+      "explanation": "EDA stands for Exploratory Data Analysis: the practice of visually and statistically inspecting data before modeling."
+    },
+    {
+      "question": "What is the main goal of Exploratory Data Analysis?",
+      "options": [
+        "To write 10,000 lines of code immediately",
+        "To look at and understand the data, spot patterns, and find mistakes before training a model",
+        "To delete the dataset",
+        "To sell customer data to advertisers"
+      ],
+      "correct": 1,
+      "explanation": "EDA helps practitioners understand data structure, detect anomalies, and uncover initial relationships."
+    },
+    {
+      "question": "Why is a 'Bar Chart' useful in data exploration?",
+      "options": [
+        "It tracks changes over 100 years",
+        "It is great for comparing numbers or counts across different categories (like sales by country)",
+        "It only displays circles",
+        "It calculates complex algebra"
+      ],
+      "correct": 1,
+      "explanation": "Bar charts clearly compare discrete groups or categories (e.g. products, cities, or colors)."
+    },
+    {
+      "question": "Which chart is best for showing how a single continuous measurement is distributed (such as customer ages)?",
+      "options": [
+        "A Histogram",
+        "A Pie Chart with 500 slices",
+        "A line drawn randomly on screen",
+        "A screenshot of code"
+      ],
+      "correct": 0,
+      "explanation": "Histograms group continuous numbers into binned ranges, showing where values cluster and how spread out they are."
+    },
+    {
+      "question": "Which chart is best for visualizing the relationship between TWO numerical measurements (like house size vs price)?",
+      "options": [
+        "A Scatter Plot",
+        "A Bar Chart",
+        "A Calendar",
+        "A single bullet point"
+      ],
+      "correct": 0,
+      "explanation": "Scatter plots show pairs of numbers as dots on an (X, Y) grid, making correlations instantly visible."
+    },
+    {
+      "question": "Which chart is ideal for showing how a value changes continuously over time (like daily stock prices)?",
+      "options": [
+        "A Line Chart",
+        "A Pie Chart",
+        "A Bar Chart",
+        "A Venn diagram"
+      ],
+      "correct": 0,
+      "explanation": "Line charts connect points sequentially over time, making trends and temporal shifts easy to track."
+    },
+    {
+      "question": "Suppose a scatter plot between 'Years of Experience' and 'Salary' shows dots rising from bottom-left to top-right. What does this tell you?",
+      "options": [
+        "Experience has no effect on salary",
+        "People with more experience tend to earn higher salaries (a positive relationship)",
+        "More experience leads to lower salaries",
+        "The data is completely corrupted"
+      ],
+      "correct": 1,
+      "explanation": "A trend rising from bottom-left to top-right indicates that as experience increases, salary tends to increase."
+    },
+    {
+      "question": "Suppose a scatter plot between 'Car Mileage' and 'Car Price' shows dots sloping downward from top-left to bottom-right. What does this mean?",
+      "options": [
+        "Higher mileage cars tend to cost less money",
+        "Cars with zero miles are free",
+        "Higher mileage cars are more expensive",
+        "There is no relationship at all"
+      ],
+      "correct": 0,
+      "explanation": "A downward slope indicates an inverse (negative) relationship: higher mileage correlates with lower price."
+    },
+    {
+      "question": "If you inspect a dataset and see someone's age listed as '-10', what should you suspect?",
+      "options": [
+        "They will be born in 10 years",
+        "It is a data entry error or typo that needs to be fixed or removed",
+        "The computer has a negative screen",
+        "The person is a ghost"
+      ],
+      "correct": 1,
+      "explanation": "Negative ages are physically impossible; they indicate corrupted or mistyped data that must be cleaned during EDA."
+    },
+    {
+      "question": "What is a 'Bin' in a histogram?",
+      "options": [
+        "A trash can on your computer desktop",
+        "A range or bucket of numbers (such as ages 20 to 29) that counts how many data points fall inside it",
+        "A type of programming language",
+        "A column of text"
+      ],
+      "correct": 1,
+      "explanation": "Histograms divide continuous values into bins (intervals) and count the frequency of occurrences in each bin."
+    },
+    {
+      "question": "If a histogram shows two distinct tall peaks separated by a dip, what does that usually suggest?",
+      "options": [
+        "The histogram was drawn incorrectly",
+        "The dataset likely contains two distinct groups of people or items mixed together (like adults and children)",
+        "The computer ran out of memory",
+        "The numbers are all zero"
+      ],
+      "correct": 1,
+      "explanation": "Two peaks (bimodal distribution) usually indicates that two different sub-populations exist within the same dataset."
+    },
+    {
+      "question": "What is a 'Box Plot' (Box-and-Whisker plot) useful for?",
+      "options": [
+        "Watching boxing videos",
+        "Quickly seeing the median, spread, and extreme outliers of a numerical feature in a single diagram",
+        "Drawing 3D cubes",
+        "Writing text reports"
+      ],
+      "correct": 1,
+      "explanation": "Box plots summarize the median, middle 50% spread, and flag extreme outlier dots beyond the whiskers."
+    },
+    {
+      "question": "On a box plot, what do isolated dots floating far beyond the whiskers usually represent?",
+      "options": [
+        "Missing values",
+        "Potential extreme outliers",
+        "The average value",
+        "The title of the chart"
+      ],
+      "correct": 1,
+      "explanation": "Points plotted individually beyond the whiskers are flagged as potential outliers."
+    },
+    {
+      "question": "Why is a Pie Chart with 40 thin slices generally considered a poor data visualization?",
+      "options": [
+        "Because pies are delicious",
+        "Because it is very difficult for human eyes to compare angles and slice sizes when there are too many categories",
+        "Because computers cannot draw circles",
+        "Because pie charts use too much ink"
+      ],
+      "correct": 1,
+      "explanation": "Human vision is poor at comparing dozens of tiny angled slices; a sorted bar chart is far clearer."
+    },
+    {
+      "question": "What is a 'Correlation Heatmap'?",
+      "options": [
+        "A thermal camera picture of a computer processor",
+        "A color-coded grid that shows how strongly every feature in a dataset correlates with every other feature",
+        "A map showing desert temperatures",
+        "A heatmap of website clicks"
+      ],
+      "correct": 1,
+      "explanation": "A correlation heatmap displays pairwise correlation scores as colors, highlighting which features move together."
+    },
+    {
+      "question": "If two features on a heatmap have a correlation score of +0.98 (like 'House Square Feet' and 'House Square Meters'), what does this tell an engineer?",
+      "options": [
+        "The two features are almost identical duplicates that provide redundant information",
+        "The features are completely unrelated",
+        "One of the features must be deleted immediately by law",
+        "The model will crash if trained"
+      ],
+      "correct": 0,
+      "explanation": "A correlation near 1.0 means the two columns say the exact same thing; one can often be removed to simplify the model."
+    },
+    {
+      "question": "What is the danger of jumping straight into training an ML model without doing EDA first?",
+      "options": [
+        "Your computer will physically overheat",
+        "You may train a broken model on bad data, miss obvious typos, overlook severe class imbalances, and fail completely",
+        "The code will refuse to compile",
+        "You will be fined by the cloud provider"
+      ],
+      "correct": 1,
+      "explanation": "Skipping EDA is like driving blindfolded: you won't know if the data is filled with duplicates, errors, or leakage."
+    },
+    {
+      "question": "What does it mean if 95% of the data points on a scatter plot are clustered in a tight ball and 1 single point sits miles away in the corner?",
+      "options": [
+        "The plot is drawn incorrectly",
+        "That single point is an extreme outlier that warrants investigation",
+        "The model has achieved 100% accuracy",
+        "All other points are invalid"
+      ],
+      "correct": 1,
+      "explanation": "An isolated point far from the cluster is an outlier that could be an error or a rare event."
+    },
+    {
+      "question": "What is a 'Summary Statistics' table in pandas (like df.describe())?",
+      "options": [
+        "A summary of the news of the day",
+        "A table showing key numbers like count, mean, min, max, and percentiles for every numerical column",
+        "A list of software developers on the team",
+        "A billing receipt for cloud storage"
+      ],
+      "correct": 1,
+      "explanation": "df.describe() instantly outputs counts, averages, standard deviations, and percentiles for all numeric columns."
+    },
+    {
+      "question": "If df.describe() shows that the 'Minimum' value of 'Income' is -$50,000, what should you do?",
+      "options": [
+        "Nothing, negative income is completely normal for everyone",
+        "Investigate why income is negative: is it debt, a coding bug, or a data error?",
+        "Delete all positive numbers instead",
+        "Multiply all incomes by 2"
+      ],
+      "correct": 1,
+      "explanation": "Unusual negative values should trigger an investigation into whether they represent debt, losses, or data corruption."
+    },
+    {
+      "question": "If a dataset of 1,000 customers shows that 998 of them live in 'California' and only 2 live elsewhere, what did EDA reveal?",
+      "options": [
+        "The dataset is perfectly balanced across the nation",
+        "The data is heavily geographically skewed toward California, so the model may not generalize to other states",
+        "The company should move to New York",
+        "The other 49 states do not exist"
+      ],
+      "correct": 1,
+      "explanation": "EDA reveals geographical skew, alerting engineers that the model might only be reliable for California residents."
+    },
+    {
+      "question": "What does a 'Count Plot' show for a categorical feature like 'Pet Type'?",
+      "options": [
+        "How many dogs, cats, birds, and fish exist in the dataset as simple bars",
+        "The average weight of all pets",
+        "The speed of the fastest animal",
+        "The price of pet food"
+      ],
+      "correct": 0,
+      "explanation": "A count plot is a bar chart showing the frequency of each category level."
+    },
+    {
+      "question": "Why should you check for missing values during EDA?",
+      "options": [
+        "Because missing values cause many machine learning algorithms to crash or fail",
+        "Because blank cells make the spreadsheet file too small",
+        "Because missing values turn into viruses",
+        "Because computers dislike blank spaces"
+      ],
+      "correct": 0,
+      "explanation": "Most standard ML algorithms cannot process null or NaN values without explicit handling."
+    },
+    {
+      "question": "What is a 'Trend' in data visualization?",
+      "options": [
+        "A fashionable haircut",
+        "The general direction in which data points tend to move (such as rising, falling, or staying flat)",
+        "A computer font choice",
+        "A temporary file stored in cache"
+      ],
+      "correct": 1,
+      "explanation": "A trend describes the general trajectory or pattern observed across the data."
+    },
+    {
+      "question": "What does a 'flat line' with zero slope on a scatter plot indicate?",
+      "options": [
+        "A very strong relationship",
+        "No relationship: changing the horizontal variable has no noticeable effect on the vertical variable",
+        "A perfect machine learning model",
+        "A software crash"
+      ],
+      "correct": 1,
+      "explanation": "A flat horizontal line indicates that knowing X gives no clue about Y."
+    },
+    {
+      "question": "Why are visual axes labels (like 'Age in Years' and 'Price in Dollars') important in EDA charts?",
+      "options": [
+        "They are required by the operating system",
+        "Without clear labels and units, numbers on a chart are meaningless to human interpreters",
+        "Labels make charts load 10x faster",
+        "Labels prevent computers from turning off"
+      ],
+      "correct": 1,
+      "explanation": "Clear axis titles and units are essential for humans to correctly understand what the numbers represent."
+    },
+    {
+      "question": "What is an 'Anomaly' in exploratory data analysis?",
+      "options": [
+        "A common everyday occurrence",
+        "An unusual, unexpected, or strange data point that does not fit the normal pattern",
+        "A line of code that runs normally",
+        "A computer monitor setting"
+      ],
+      "correct": 1,
+      "explanation": "Anomalies are oddities or surprises in the data that demand human attention."
+    },
+    {
+      "question": "If you plot a histogram of house prices and see a long tail stretching far to the right, what is this called?",
+      "options": [
+        "A left-skewed distribution",
+        "A right-skewed distribution (most houses are modest, with a few ultra-luxury mansions stretching the tail)",
+        "A perfectly symmetric distribution",
+        "A broken plot"
+      ],
+      "correct": 1,
+      "explanation": "When extreme high values pull the tail out to the right, it is a right-skewed (positively skewed) distribution."
+    },
+    {
+      "question": "Why do we look at correlations between input features and the target variable during EDA?",
+      "options": [
+        "To find out which features have the strongest relationships with what we want to predict",
+        "To delete the target variable",
+        "To make the file smaller",
+        "Because correlations are required by law"
+      ],
+      "correct": 0,
+      "explanation": "Features that correlate strongly with the target are often the most valuable clues for your model."
+    },
+    {
+      "question": "If an input feature has a correlation of 0.00 with the target, what might an engineer consider doing?",
+      "options": [
+        "Making it the primary feature in the model",
+        "Considering whether this feature provides any real value, or if it can be safely dropped to simplify the model",
+        "Multiplying it by 1,000",
+        "Restarting the computer"
+      ],
+      "correct": 1,
+      "explanation": "Features with zero relationship to the target can often be removed without hurting accuracy."
+    },
+    {
+      "question": "What is the benefit of plotting data before running machine learning models?",
+      "options": [
+        "It turns complex tables of numbers into intuitive visual shapes that the human brain can instantly understand",
+        "It makes the computer run 50% cooler",
+        "It eliminates the need for testing sets",
+        "It creates synthetic data automatically"
+      ],
+      "correct": 0,
+      "explanation": "Human visual processing is exceptionally good at spotting clusters, gaps, and trends that are invisible in raw tables."
+    },
+    {
+      "question": "What should you do if EDA reveals that 80% of rows in a column are blank missing values?",
+      "options": [
+        "Invent numbers to fill in all 80% of the blanks",
+        "Consider whether the column is too incomplete to be useful, or investigate why so much data was missing",
+        "Delete the entire company database",
+        "Ignore it and hope the computer fixes it"
+      ],
+      "correct": 1,
+      "explanation": "Heavily missing features often provide too little signal to be worth keeping, or indicate a broken upstream data collection process."
+    },
+    {
+      "question": "What is a 'pair plot' (or scatter plot matrix)?",
+      "options": [
+        "A chart that only shows two data points",
+        "A grid of scatter plots comparing every feature against every other feature in a single visual overview",
+        "A chart of pairs of shoes",
+        "A chart showing model weights"
+      ],
+      "correct": 1,
+      "explanation": "A pair plot creates a grid of small scatter plots for all numerical variables, offering a bird's-eye view of relationships."
+    },
+    {
+      "question": "Why is Exploratory Data Analysis considered an iterative, detective-like process?",
+      "options": [
+        "Because you wear a detective hat while coding",
+        "Because every chart you make can raise new questions, uncover new quirks, and guide how you prepare data for modeling",
+        "Because it is required by criminal law",
+        "Because data scientists only work at night"
+      ],
+      "correct": 1,
+      "explanation": "EDA is investigative: you explore clues, test hunches, clean anomalies, and refine your understanding step-by-step."
+    },
+    {
+      "question": "What is the most rewarding part of completing a thorough EDA?",
+      "options": [
+        "Closing your computer and going to sleep",
+        "Having deep confidence that your data is clean, understandable, and ready to train a reliable machine learning model!",
+        "Deleting all your plots",
+        "Paying your cloud computing bill"
+      ],
+      "correct": 1,
+      "explanation": "Great EDA gives you clarity and confidence, ensuring your models are built on solid, trustworthy foundations."
+    }
+  ],
+  "level": "novice"
+}

@@ -1,0 +1,470 @@
+{
+  "id": "reinforcement-learning",
+  "title": "Reinforcement Learning: MDPs to Policy Gradients",
+  "description": "Markov Decision Processes, Bellman Equations, Q-Learning, Deep Q-Networks (DQN), REINFORCE, and Proximal Policy Optimization (PPO).",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Reinforcement Learning Foundations",
+        "subtitle": "Learning Optimal Sequential Decision-Making Through Environmental Interaction and Reward Signals"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Reinforcement Learning Problem",
+        "text": "Unlike Supervised Learning (which learns from explicit target labels) and Unsupervised Learning (which discovers hidden patterns in unlabeled data), **Reinforcement Learning (RL)** is an agent-centric paradigm. An **Agent** interacts with an external **Environment** through trial and error over discrete time steps $t$, taking **Actions** ($a_t \\in \\mathcal{A}$), observing new **States** ($s_{t+1} \\in \\mathcal{S}$), and receiving scalar **Rewards** ($r_t \\in \\mathbb{R}$) with the goal of maximizing expected cumulative discounted return $G_t = \\sum_{k=0}^\\infty \\gamma^k r_{t+k}$."
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Markov Decision Process (MDP) & Bellman Optimality Equations",
+        "text": "An MDP is a 5-tuple $(\\mathcal{S}, \\mathcal{A}, \\mathcal{P}, \\mathcal{R}, \\gamma)$ where the **Markov Property** holds: $P(s_{t+1} \\mid s_t, a_t, \\dots, s_0, a_0) = P(s_{t+1} \\mid s_t, a_t)$.\n\n1. **Bellman Optimality Equation for State-Value $V^*(s)$:**\n$$V^*(s) = \\max_{a \\in \\mathcal{A}} \\left[ \\mathcal{R}(s, a) + \\gamma \\sum_{s' \\in \\mathcal{S}} \\mathcal{P}(s' \\mid s, a) V^*(s') \\right]$$\n\n2. **Bellman Optimality Equation for Action-Value $Q^*(s, a)$:**\n$$Q^*(s, a) = \\mathcal{R}(s, a) + \\gamma \\sum_{s' \\in \\mathcal{S}} \\mathcal{P}(s' \\mid s, a) \\max_{a' \\in \\mathcal{A}} Q^*(s', a')$$"
+      },
+      {
+        "type": "table",
+        "title": "Reinforcement Learning Taxonomy",
+        "headers": [
+          "Algorithm Family",
+          "Core Mechanism",
+          "Policy Type",
+          "Strengths",
+          "Weaknesses"
+        ],
+        "rows": [
+          [
+            "Value-Based (Q-Learning / DQN)",
+            "Approximates action-value function $Q(s, a)$; selects greedy action $\\arg\\max_a Q(s, a)$.",
+            "Off-Policy (learns target policy from exploratory behavior).",
+            "Sample efficient; handles discrete action spaces well.",
+            "Cannot natively handle continuous action spaces; prone to value overestimation."
+          ],
+          [
+            "Policy-Based (REINFORCE)",
+            "Directly parameterizes policy $\\pi_\\theta(a \\mid s)$ and updates weights via gradient ascent on expected return.",
+            "On-Policy.",
+            "Naturally handles continuous actions; can learn stochastic policies.",
+            "High variance in gradient estimates; slow sample efficiency."
+          ],
+          [
+            "Actor-Critic (A2C / PPO)",
+            "Actor parameterizes policy $\\pi_\\theta(a \\mid s)$; Critic parameterizes value function $V_\\phi(s)$ to compute advantage $A(s, a)$.",
+            "PPO is On-Policy (with importance sampling surrogate).",
+            "State-of-the-art stability; industry standard for robotics and LLM alignment (RLHF).",
+            "Requires tuning multiple loss components and value networks."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "The Deep Q-Network (DQN) Breakthrough (Mnih et al., DeepMind 2015)",
+        "text": "Directly combining Q-learning with non-linear neural networks is notoriously unstable ('The Deadly Triad'). DQN solved this with two innovations:\n1. **Experience Replay Buffer:** Stores transitions $(s, a, r, s', d)$ and samples random uncorrelated mini-batches, breaking temporal correlations.\n2. **Target Network ($\\hat{Q}$):** Uses a separate, slowly updated set of weights $\\theta^-$ to compute target values $r + \\gamma \\max_{a'} Q(s', a'; \\theta^-)$, preventing feedback loop instability."
+      },
+      {
+        "type": "text",
+        "title": "Proximal Policy Optimization (PPO, Schulman et al., 2017)",
+        "body": "Standard policy gradient steps can cause catastrophic policy collapses if step sizes are too large. **PPO** enforces stability by clipping the probability ratio $r_t(\\theta) = \\frac{\\pi_\\theta(a_t \\mid s_t)}{\\pi_{\\theta_{old}}(a_t \\mid s_t)}$ within $[1 - \\epsilon, 1 + \\epsilon]$ (typically $\\epsilon = 0.2$):\n\n$$L^{\\text{CLIP}}(\\theta) = \\hat{\\mathbb{E}}_t \\left[ \\min\\left( r_t(\\theta) \\hat{A}_t, \\; \\text{clip}(r_t(\\theta), 1-\\epsilon, 1+\\epsilon) \\hat{A}_t \\right) \\right]$$\n\nThis prevents the new policy from deviating excessively from the old policy, providing smooth, monotonic improvements."
+      }
+    ],
+    "code_example": {
+      "title": "Tabular Q-Learning Implementation on GridWorld in NumPy",
+      "code": "import numpy as np\n\n# Simple 4-state 1D Line World: [State 0, State 1, State 2, Goal (State 3)]\n# Actions: 0 = Left, 1 = Right\nnum_states = 4\nnum_actions = 2\nQ = np.zeros((num_states, num_actions))\n\nlr = 0.1\ngamma = 0.95\nepsilon = 0.2\n\ndef step(state, action):\n    if action == 0: # Left\n        next_state = max(0, state - 1)\n    else: # Right\n        next_state = min(num_states - 1, state + 1)\n    reward = 10.0 if next_state == 3 else -0.1\n    done = (next_state == 3)\n    return next_state, reward, done\n\n# Train 200 episodes\nnp.random.seed(42)\nfor ep in range(200):\n    s = 0\n    done = False\n    while not done:\n        # Epsilon-greedy action selection\n        if np.random.rand() < epsilon:\n            a = np.random.randint(num_actions)\n        else:\n            a = np.argmax(Q[s, :])\n            \n        s_next, r, done = step(s, a)\n        \n        # Bellman update equation: Q(s, a) <- Q(s, a) + lr * (r + gamma * max_a' Q(s', a') - Q(s, a))\n        td_target = r + (0 if done else gamma * np.max(Q[s_next, :]))\n        td_error = td_target - Q[s, a]\n        Q[s, a] += lr * td_error\n        s = s_next\n\nprint('Learned Optimal Q-Table [Rows = States 0..3, Cols = [Left, Right]]:')\nprint(np.round(Q, 2))\naction_names = ['Left', 'Right']\nfor s in range(3):\n    best_a = action_names[np.argmax(Q[s, :])]\n    print(f'State {s}: Best Action -> {best_a} (Q={np.max(Q[s, :]):.2f})')"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What characterizes Reinforcement Learning compared to Supervised and Unsupervised Learning?",
+      "options": [
+        "An agent learns through sequential trial-and-error interactions with an environment, guided by scalar reward signals to maximize cumulative return",
+        "An agent learns strictly from static labeled pairs",
+        "An agent groups unlabeled data with k-means",
+        "An agent memorizes training rules"
+      ],
+      "correct": 0,
+      "explanation": "RL is distinguished by active environmental interaction, delayed consequences, and optimization of cumulative reward signals."
+    },
+    {
+      "question": "What is the Markov Property in Reinforcement Learning?",
+      "options": [
+        "The future state depends only upon the current state and action, independent of all past history: P(s_{t+1} | s_t, a_t, ..., s_0, a_0) = P(s_{t+1} | s_t, a_t)",
+        "States must follow a normal distribution",
+        "The agent cannot visit the same state twice",
+        "The reward is always zero"
+      ],
+      "correct": 0,
+      "explanation": "The Markov property asserts that the current state encapsulates all relevant past history necessary for future transitions."
+    },
+    {
+      "question": "What are the five components of a Markov Decision Process (MDP)?",
+      "options": [
+        "States (S), Actions (A), Transition Probabilities (P), Reward Function (R), and Discount Factor (gamma)",
+        "Sensors, Actuators, Controllers, CPUs, and Batteries",
+        "Inputs, Hidden Layers, Outputs, Activations, and Losses",
+        "Queries, Keys, Values, Masks, and Softmax"
+      ],
+      "correct": 0,
+      "explanation": "An MDP is formally defined by the tuple (S, A, P, R, gamma)."
+    },
+    {
+      "question": "What is the role of the Discount Factor (gamma, where 0 <= gamma < 1)?",
+      "options": [
+        "Determining the present value of future rewards, ensuring mathematical convergence in infinite horizons and modeling preference for immediate reward",
+        "Discounting the price of GPU hours",
+        "A percentage discount for dataset licensing",
+        "Scaling the learning rate down"
+      ],
+      "correct": 0,
+      "explanation": "The discount factor gamma bounds the infinite sum of rewards and mathematically balances immediate vs long-term gratification."
+    },
+    {
+      "question": "What does a State-Value Function V^pi(s) represent?",
+      "options": [
+        "The expected cumulative discounted return starting from state s and following policy pi thereafter",
+        "The current speed of the agent in state s",
+        "The physical coordinates of state s",
+        "The probability of being in state s"
+      ],
+      "correct": 0,
+      "explanation": "V^pi(s) = E_pi [ sum_{k=0}^infty gamma^k r_{t+k} | s_t = s ], measuring the long-term desirability of state s."
+    },
+    {
+      "question": "What does an Action-Value Function Q^pi(s, a) represent?",
+      "options": [
+        "The expected cumulative discounted return starting from state s, executing action a, and following policy pi thereafter",
+        "The quality of the neural network weights",
+        "The probability of taking action a",
+        "The immediate reward r(s, a)"
+      ],
+      "correct": 0,
+      "explanation": "Q^pi(s, a) measures the expected return of choosing action a in state s and adhering to policy pi for all subsequent steps."
+    },
+    {
+      "question": "What is the Bellman Optimality Equation for Q*(s, a)?",
+      "options": [
+        "Q*(s, a) = R(s, a) + gamma * sum_{s'} P(s' | s, a) * max_{a'} Q*(s', a')",
+        "Q*(s, a) = R(s, a) * gamma",
+        "Q*(s, a) = max_a R(s, a)",
+        "Q*(s, a) = V(s) + A(s, a)"
+      ],
+      "correct": 0,
+      "explanation": "The Bellman optimality equation states that the optimal Q-value decomposes into the immediate reward plus the discounted optimal return of the best next action."
+    },
+    {
+      "question": "What is the difference between On-Policy and Off-Policy learning?",
+      "options": [
+        "On-policy evaluates and improves the same policy used to select actions; off-policy evaluates a target policy while behaving according to a different exploratory policy",
+        "On-policy runs on GPUs; off-policy runs on CPUs",
+        "On-policy requires internet access; off-policy runs offline",
+        "They are identical"
+      ],
+      "correct": 0,
+      "explanation": "On-policy (SARSA, PPO) learns from trajectories generated by its active policy; off-policy (Q-learning, DQN) learns optimal values from arbitrary exploratory data."
+    },
+    {
+      "question": "What is the core update rule of Tabular Q-Learning (Watkins, 1989)?",
+      "options": [
+        "Q(s, a) <- Q(s, a) + alpha * [ r + gamma * max_{a'} Q(s', a') - Q(s, a) ]",
+        "Q(s, a) <- r + gamma * Q(s, a)",
+        "Q(s, a) <- max_a Q(s, a)",
+        "Q(s, a) <- Q(s, a) + alpha * r"
+      ],
+      "correct": 0,
+      "explanation": "Q-learning updates estimates toward the TD target r + gamma * max_{a'} Q(s', a') using the TD error."
+    },
+    {
+      "question": "What is the Temporal Difference (TD) Error in TD learning?",
+      "options": [
+        "delta_t = r_{t+1} + gamma * V(s_{t+1}) - V(s_t)",
+        "delta_t = Target - Actual loss",
+        "delta_t = y - y_hat",
+        "delta_t = Epoch_time - Training_time"
+      ],
+      "correct": 0,
+      "explanation": "The TD error measures the discrepancy between the estimated value of the current state and the better estimate formed by observing immediate reward plus discounted next state value."
+    },
+    {
+      "question": "What is the Exploration vs Exploitation dilemma in RL?",
+      "options": [
+        "Balancing exploring unfamiliar actions to discover higher rewards against exploiting known high-reward actions",
+        "Balancing CPU vs GPU usage",
+        "Balancing training time vs validation time",
+        "Balancing batch size vs learning rate"
+      ],
+      "correct": 0,
+      "explanation": "Agents must explore to gather information about uncertain actions while exploiting known high-yielding choices to maximize score."
+    },
+    {
+      "question": "What is Epsilon-Greedy action selection?",
+      "options": [
+        "Selecting a completely random action with probability epsilon, and selecting the highest Q-value action with probability 1 - epsilon",
+        "Selecting only positive actions",
+        "Taking actions with epsilon learning rate",
+        "Greedily picking actions that increase epsilon"
+      ],
+      "correct": 0,
+      "explanation": "Epsilon-greedy guarantees continuous exploration by taking random exploratory steps a fraction epsilon of the time."
+    },
+    {
+      "question": "What is the 'Deadly Triad' in Reinforcement Learning (Sutton & Barto)?",
+      "options": [
+        "The dangerous combination of Function Approximation (neural networks), Bootstrapping (TD learning), and Off-Policy learning that causes training instability and divergence",
+        "Reward, Action, and State",
+        "Actor, Critic, and Environment",
+        "Overfitting, Underfitting, and Bias"
+      ],
+      "correct": 0,
+      "explanation": "Combining function approximation, bootstrapping, and off-policy data frequently destabilizes learning, causing Q-values to diverge."
+    },
+    {
+      "question": "What is the Experience Replay Buffer in Deep Q-Networks (DQN, Mnih et al., 2015)?",
+      "options": [
+        "A FIFO memory buffer storing past transitions (s, a, r, s', done) from which random mini-batches are sampled, breaking temporal autocorrelation between successive steps",
+        "A buffer for replaying video recordings of games",
+        "A cache for storing model checkpoints",
+        "A RAM disk for storing log files"
+      ],
+      "correct": 0,
+      "explanation": "Replay buffers eliminate sequential temporal dependencies and allow transitions to be reused multiple times across training passes."
+    },
+    {
+      "question": "Why does DQN use a separate Target Network with frozen weights theta^-?",
+      "options": [
+        "To break the moving-target feedback loop where updating Q(s, a) also shifts the target r + gamma * max Q(s', a'), stabilizing gradient updates",
+        "To save GPU memory",
+        "To train a second agent to play against",
+        "Because PyTorch requires two networks"
+      ],
+      "correct": 0,
+      "explanation": "Without a frozen target network, Q-value updates chase a rapidly shifting target, causing oscillations and divergence."
+    },
+    {
+      "question": "What is Double DQN (Van Hasselt et al., 2015)?",
+      "options": [
+        "Decoupling action selection from action evaluation to eliminate the positive maximization bias of standard Q-learning: Q_target = r + gamma * Q_target(s', argmax_a Q_online(s', a))",
+        "Using two GPUs to train DQN",
+        "Doubling the number of layers in DQN",
+        "Running two games simultaneously"
+      ],
+      "correct": 0,
+      "explanation": "Standard Q-learning systematically overestimates Q-values due to the max operator; Double DQN uses online weights to pick actions and target weights to evaluate them."
+    },
+    {
+      "question": "What is Prioritized Experience Replay (PER, Schaul et al., 2015)?",
+      "options": [
+        "Sampling transitions from the replay buffer with probability proportional to their absolute TD error |delta|, focusing training on transitions where the agent was most surprised",
+        "Sampling recent transitions first",
+        "Sorting transitions by reward",
+        "Replaying winning games only"
+      ],
+      "correct": 0,
+      "explanation": "PER prioritizes unexpected transitions where the model learned the least, using importance sampling weights to correct sampling bias."
+    },
+    {
+      "question": "What is Dueling DQN (Wang et al., 2016)?",
+      "options": [
+        "Splitting the neural network into two separate streams: a state-value stream V(s) and an advantage stream A(s, a), combining them via Q(s, a) = V(s) + (A(s, a) - mean(A))",
+        "A game where two agents fight each other",
+        "A network with two output layers",
+        "A network with dual GPUs"
+      ],
+      "correct": 0,
+      "explanation": "Dueling architectures learn state values independently of action choices, identifying valuable states without having to evaluate every single action in that state."
+    },
+    {
+      "question": "What is the Policy Gradient Theorem (Sutton et al., 1999)?",
+      "options": [
+        "grad_theta J(theta) = E_{pi_theta} [ grad_theta log pi_theta(a | s) * Q^pi(s, a) ]",
+        "grad J = (y - y_hat)^2",
+        "grad J = Loss / Learning_Rate",
+        "grad J = sum weights"
+      ],
+      "correct": 0,
+      "explanation": "The policy gradient theorem provides an analytical expression for the gradient of expected cumulative return with respect to policy parameters without needing environmental dynamics."
+    },
+    {
+      "question": "What is the REINFORCE algorithm (Williams, 1992)?",
+      "options": [
+        "A Monte Carlo policy gradient method that updates weights using observed episode returns: theta <- theta + alpha * sum_t grad_theta log pi(a_t | s_t) * G_t",
+        "An algorithm that reinforces concrete structures",
+        "A supervised learning algorithm for text",
+        "A method for training decision trees"
+      ],
+      "correct": 0,
+      "explanation": "REINFORCE samples complete episodes and increases the probability of actions proportional to their realized cumulative episode return G_t."
+    },
+    {
+      "question": "Why is a Baseline b(s) subtracted from the return in policy gradients: grad log pi(a | s) * (G_t - b(s))?",
+      "options": [
+        "To reduce the high variance of gradient estimates without introducing any mathematical bias",
+        "To ensure positive returns only",
+        "To speed up GPU calculations",
+        "To eliminate the need for learning rates"
+      ],
+      "correct": 0,
+      "explanation": "Subtracting a state-dependent baseline (typically estimated state value V(s)) centers advantages, dramatically reducing gradient variance while remaining strictly unbiased."
+    },
+    {
+      "question": "What is the Advantage Function A(s, a) in Actor-Critic architectures?",
+      "options": [
+        "A(s, a) = Q(s, a) - V(s), measuring how much better taking action a is compared to the default expected return of state s",
+        "The advantage of using GPUs over CPUs",
+        "The percentage of winning games",
+        "The difference between training and validation loss"
+      ],
+      "correct": 0,
+      "explanation": "The advantage function quantifies the relative merit of a specific action compared to the baseline value of the state."
+    },
+    {
+      "question": "What is the difference between the Actor and the Critic in an Actor-Critic architecture?",
+      "options": [
+        "The Actor updates the parameterized policy pi_theta(a | s); the Critic estimates the value function V_phi(s) to evaluate how good the action was",
+        "The Actor plays the game; the Critic terminates the program",
+        "The Actor runs on CPU; the Critic runs on GPU",
+        "They are identical networks with identical weights"
+      ],
+      "correct": 0,
+      "explanation": "The Actor selects actions (policy); the Critic critiques those actions by learning a value function, providing a low-variance baseline for policy updates."
+    },
+    {
+      "question": "What is Asynchronous Advantage Actor-Critic (A3C, Mnih et al., 2016)?",
+      "options": [
+        "Running multiple parallel agent workers across multiple CPU threads in asynchronous environments, accumulating gradients to update a global master model",
+        "A network with 3 convolutional layers",
+        "A 3-player game",
+        "An algorithm with 3 GPUs"
+      ],
+      "correct": 0,
+      "explanation": "A3C runs decentralized parallel workers on independent environment instances, diversifying experience without a heavy replay buffer."
+    },
+    {
+      "question": "What is Advantage Actor-Critic (A2C)?",
+      "options": [
+        "The synchronous, deterministic counterpart to A3C that batches environments together and updates synchronously, achieving equal or superior performance on modern GPUs",
+        "An architecture with 2 critics",
+        "A model with 2-bit weights",
+        "A method for audio processing"
+      ],
+      "correct": 0,
+      "explanation": "A2C synchronizes worker steps, making full use of GPU matrix parallelism and eliminating the asynchronous gradient staleness of A3C."
+    },
+    {
+      "question": "What is Trust Region Policy Optimization (TRPO, Schulman et al., 2015)?",
+      "options": [
+        "Constraining policy update step sizes using a maximum KL divergence constraint (D_KL(pi_old || pi_new) <= delta) to guarantee monotonic policy improvement",
+        "A region in memory where models run safely",
+        "A policy for secure cloud storage",
+        "A firewall for RL agents"
+      ],
+      "correct": 0,
+      "explanation": "TRPO uses natural policy gradients and second-order conjugate gradient optimization with a hard KL divergence trust region constraint to prevent destructive policy updates."
+    },
+    {
+      "question": "Why was Proximal Policy Optimization (PPO, Schulman et al., 2017) developed to replace TRPO?",
+      "options": [
+        "PPO achieves similar monotonic stability using a simple first-order clipped surrogate objective that is much easier to implement and compute than TRPO's heavy second-order Hessian constraints",
+        "PPO is smaller in parameter size",
+        "PPO works on CPUs only",
+        "PPO eliminates the reward function"
+      ],
+      "correct": 0,
+      "explanation": "PPO replaces TRPO's complex constrained optimization with a simple first-order clipped probability ratio objective, becoming the industry standard."
+    },
+    {
+      "question": "In PPO, what is the Probability Ratio r_t(theta)?",
+      "options": [
+        "r_t(theta) = pi_theta(a_t | s_t) / pi_theta_old(a_t | s_t)",
+        "r_t(theta) = Reward / Time",
+        "r_t(theta) = Action / State",
+        "r_t(theta) = Loss / Epoch"
+      ],
+      "correct": 0,
+      "explanation": "The ratio r_t measures how much more or less likely action a_t is under the newly updated policy compared to the previous rollout policy."
+    },
+    {
+      "question": "What is Generalized Advantage Estimation (GAE, Schulman et al., 2015)?",
+      "options": [
+        "An advantage estimator that exponentially blends multi-step TD residuals via parameter lambda, smoothly balancing bias (lambda=0) and variance (lambda=1)",
+        "An estimator for general relativity",
+        "A linear regression for rewards",
+        "A method for estimating GPU power"
+      ],
+      "correct": 0,
+      "explanation": "GAE computes A_t^GAE = sum_{l=0}^infty (gamma * lambda)^l delta_{t+l}, allowing fine-tuned control over the bias-variance trade-off."
+    },
+    {
+      "question": "What is Deep Deterministic Policy Gradient (DDPG, Lillicrap et al., 2015)?",
+      "options": [
+        "An off-policy actor-critic algorithm for continuous action spaces that adapts DQN principles using deterministic policy gradients and soft target updates",
+        "A discrete action space algorithm",
+        "A deterministic version of decision trees",
+        "A method for training without exploration"
+      ],
+      "correct": 0,
+      "explanation": "DDPG extends Q-learning to continuous action domains (like robotic joint control) using a deterministic actor mu(s) and a critic Q(s, a)."
+    },
+    {
+      "question": "What is Twin Delayed DDPG (TD3, Fujimoto et al., 2018)?",
+      "options": [
+        "An enhanced actor-critic method that uses two critic networks (taking min Q), delays actor updates, and adds target policy smoothing noise to prevent overestimation",
+        "An algorithm running on two GPUs",
+        "A model with 3 actors",
+        "A method for delaying game frames"
+      ],
+      "correct": 0,
+      "explanation": "TD3 fixes the severe Q-value overestimation of DDPG by taking the minimum of two critics, delaying policy updates, and adding noise to target actions."
+    },
+    {
+      "question": "What is Soft Actor-Critic (SAC, Haarnoja et al., 2018)?",
+      "options": [
+        "An off-policy maximum entropy actor-critic algorithm that maximizes both cumulative reward and policy entropy H(pi(.|s)), encouraging robust exploration",
+        "A model with soft padding",
+        "A model that never takes negative actions",
+        "A technique for softening images"
+      ],
+      "correct": 0,
+      "explanation": "SAC optimizes Reward + Temperature * Entropy, encouraging the agent to explore all equally rewarding strategies, achieving state-of-the-art sample efficiency on continuous control benchmarks."
+    },
+    {
+      "question": "What is Model-Based Reinforcement Learning (MBRL)?",
+      "options": [
+        "Learning an explicit model of the environment's transition dynamics P(s' | s, a) and reward function, using mental simulations/planning (e.g. MCTS) to pick actions",
+        "Using models downloaded from Hugging Face",
+        "An RL agent built with decision trees",
+        "Training without environments"
+      ],
+      "correct": 0,
+      "explanation": "MBRL learns an internal simulator of the world, enabling imaginary rollouts and planning (like MuZero and World Models) to achieve extreme sample efficiency."
+    },
+    {
+      "question": "What is Monte Carlo Tree Search (MCTS, used in AlphaGo / AlphaZero)?",
+      "options": [
+        "A heuristic search algorithm that builds a search tree using selection (UCB1), expansion, simulation (rollout), and backpropagation to evaluate moves",
+        "A forest of random trees",
+        "Searching through Monte Carlo casino data",
+        "A sorting algorithm for arrays"
+      ],
+      "correct": 0,
+      "explanation": "MCTS balances exploration and exploitation in decision trees, guiding tree expansion with neural policy and value evaluation networks."
+    },
+    {
+      "question": "What is Curiosity-Driven Exploration (Pathak et al., 2017)?",
+      "options": [
+        "Generating intrinsic rewards based on the agent's inability to predict the consequence of its own actions (forward model prediction error), encouraging exploration of novel states",
+        "An agent asking questions to human users",
+        "An agent exploring the internet randomly",
+        "A method for training with zero reward"
+      ],
+      "correct": 0,
+      "explanation": "Intrinsic curiosity rewards the agent for visiting states where its internal dynamics model makes large prediction errors, enabling learning even with sparse environmental rewards."
+    }
+  ],
+  "level": "professional"
+}

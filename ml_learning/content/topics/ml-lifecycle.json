@@ -1,0 +1,520 @@
+{
+  "id": "ml-lifecycle",
+  "title": "The Machine Learning Lifecycle",
+  "description": "Learn the 6 steps of a real-world ML project: from framing the problem and cleaning data to training, testing, and monitoring.",
+  "duration": "25 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "The Step-by-Step Machine Learning Journey",
+        "subtitle": "How Real ML Projects Go from an Idea to a Working Production App"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "A Common Myth About Machine Learning",
+        "content": "Many beginners think machine learning is just writing one line of code: `model.fit()`. In reality, building a real machine learning application follows a complete **lifecycle**—and actual model training is only a small part of it!"
+      },
+      {
+        "type": "table",
+        "title": "The 6 Stages of the ML Lifecycle",
+        "headers": [
+          "Step",
+          "Stage Name",
+          "What Happens Here?",
+          "Practical Real-World Example"
+        ],
+        "rows": [
+          [
+            "1",
+            "Problem Framing",
+            "Decide what problem you are solving and what to predict.",
+            "'Can we predict which customers might cancel their gym membership next month?'"
+          ],
+          [
+            "2",
+            "Data Collection",
+            "Gather past examples from databases, logs, or surveys.",
+            "Pull 2 years of gym check-in records, payment histories, and customer ages."
+          ],
+          [
+            "3",
+            "Data Cleaning & Prep",
+            "Fix missing values, remove duplicates, and create features.",
+            "Handle missing phone numbers, fix typos, calculate 'average visits per week'."
+          ],
+          [
+            "4",
+            "Model Training",
+            "Feed training data to algorithms to learn patterns.",
+            "Train a Decision Tree or Logistic Regression model on 80% of the gym records."
+          ],
+          [
+            "5",
+            "Testing & Evaluation",
+            "Check accuracy on held-out test data the model hasn't seen.",
+            "Test on the remaining 20% of records. Does it achieve 90% accuracy?"
+          ],
+          [
+            "6",
+            "Deployment & Monitoring",
+            "Launch the model in an app and track performance over time.",
+            "Connect the model to the gym's dashboard; retrain if member habits change."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Why Real-World Models Degrade: 'Data Drift'",
+        "content": "A model trained in 2019 might fail completely in 2020 if customer habits abruptly shift (for example, during a pandemic or economic change). When the real world changes, past patterns become outdated. Engineers must **monitor** models continuously and retrain them with fresh data!"
+      }
+    ]
+  },
+  "interactive": {
+    "type": "sorting-exercise",
+    "title": "Lifecycle Stage Matcher",
+    "description": "Sort tasks into their respective stages of the ML project lifecycle.",
+    "items": [
+      {
+        "text": "Filling in missing values with the average age",
+        "category": "Data Cleaning"
+      },
+      {
+        "text": "Defining what business outcome we want to predict",
+        "category": "Problem Framing"
+      },
+      {
+        "text": "Connecting the model to a website API endpoint",
+        "category": "Deployment"
+      },
+      {
+        "text": "Measuring model accuracy on unseen test data",
+        "category": "Evaluation"
+      },
+      {
+        "text": "Downloading customer transaction logs from a database",
+        "category": "Data Collection"
+      },
+      {
+        "text": "Training a decision tree algorithm on the training dataset",
+        "category": "Model Training"
+      },
+      {
+        "text": "Setting up alerts to detect when model accuracy drops over time",
+        "category": "Deployment"
+      },
+      {
+        "text": "Calculating customer age from their birthdate",
+        "category": "Data Cleaning"
+      }
+    ],
+    "categories": [
+      "Problem Framing",
+      "Data Collection",
+      "Data Cleaning",
+      "Model Training",
+      "Evaluation",
+      "Deployment"
+    ]
+  },
+  "code": {
+    "description": "Run the complete mini ML lifecycle in 15 lines of Python code.",
+    "starter": "from sklearn.datasets import load_iris\nfrom sklearn.model_selection import train_test_split\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.metrics import accuracy_score\n\n# 1 & 2. Problem & Data (Classify Iris flowers based on 4 measurements)\ndata = load_iris()\nX, y = data.data, data.target\n\n# 3. Split into Training (80%) and Testing (20%) sets\nX_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)\n\n# 4. Train the model\nmodel = RandomForestClassifier(n_estimators=10, random_state=42)\nmodel.fit(X_train, y_train)\n\n# 5. Evaluate accuracy on the test set\npredictions = model.predict(X_test)\naccuracy = accuracy_score(y_test, predictions)\nprint(f'Model Test Accuracy: {accuracy * 100:.1f}%')\n\n# 6. Deploy / Predict on a brand new flower!\nnew_flower = [[5.1, 3.5, 1.4, 0.2]]\npredicted_species = model.predict(new_flower)[0]\nprint(f'New flower predicted as: {data.target_names[predicted_species]}')"
+  },
+  "quiz": [
+    {
+      "question": "What is the Machine Learning Lifecycle?",
+      "options": [
+        "The battery lifespan of a computer running machine learning",
+        "The end-to-end process of planning, collecting data, building, testing, deploying, and maintaining an ML system",
+        "The life expectancy of an AI researcher",
+        "The time it takes to download a Python package"
+      ],
+      "correct": 1,
+      "explanation": "The ML lifecycle encompasses the complete journey from business problem definition to ongoing production maintenance."
+    },
+    {
+      "question": "What is the very first step in any machine learning project?",
+      "options": [
+        "Buying the most powerful computer possible",
+        "Clearly defining the problem you want to solve and what outcome you want to predict",
+        "Training a complex neural network",
+        "Writing a 100-page user manual"
+      ],
+      "correct": 1,
+      "explanation": "Every project must begin with understanding the business objective, defining success metrics, and verifying feasibility."
+    },
+    {
+      "question": "Why is defining a clear goal more important than choosing an algorithm first?",
+      "options": [
+        "Because picking the wrong algorithm is illegal",
+        "Because building a technically impressive model that solves the wrong problem provides zero real-world value",
+        "Because algorithms choose themselves automatically",
+        "Because Python only allows one algorithm per computer"
+      ],
+      "correct": 1,
+      "explanation": "A model that achieves 99% accuracy on the wrong objective is completely useless to an organization."
+    },
+    {
+      "question": "What happens during the 'Data Collection' stage of an ML project?",
+      "options": [
+        "Deleting old files to save hard drive space",
+        "Gathering relevant historical examples from databases, sensors, files, or customer logs",
+        "Writing computer code to play games",
+        "Selling data to third parties"
+      ],
+      "correct": 1,
+      "explanation": "Data collection gathers the raw historical records and signals required to teach the model."
+    },
+    {
+      "question": "Why do data scientists spend up to 80% of their time on data preparation and cleaning?",
+      "options": [
+        "Because real-world data is messy, incomplete, and full of errors, and models cannot learn properly from bad data",
+        "Because data scientists do not like writing machine learning code",
+        "Because computer screens take a long time to load spreadsheets",
+        "Because cleaning data makes computer fans quieter"
+      ],
+      "correct": 0,
+      "explanation": "Real-world data is notoriously messy; algorithms strictly depend on clean, well-formatted input data."
+    },
+    {
+      "question": "Which of the following is an example of 'Data Cleaning'?",
+      "options": [
+        "Removing duplicate customer rows, fixing misspelled city names, and handling blank cells in a spreadsheet",
+        "Wiping dust off the physical computer monitor",
+        "Deleting the Python programming language",
+        "Turning off the Wi-Fi router"
+      ],
+      "correct": 0,
+      "explanation": "Data cleaning corrects human errors, typos, duplicates, and missing values in the raw dataset."
+    },
+    {
+      "question": "What is 'Feature Engineering' in simple terms?",
+      "options": [
+        "Designing physical computer chips",
+        "Creating new, helpful clues or measurements from existing raw data to help the model learn better",
+        "Upgrading the RAM inside a laptop",
+        "Writing comments inside code"
+      ],
+      "correct": 1,
+      "explanation": "Feature engineering transforms raw measurements into more informative signals (e.g. converting a birthdate into 'age in years')."
+    },
+    {
+      "question": "Suppose your dataset has a 'Date of Birth' column. What new feature could you engineer from it that is much more useful for predicting insurance risk?",
+      "options": [
+        "The person's current age in years",
+        "The day of the week they were born",
+        "The color of their birth certificate",
+        "The name of the hospital"
+      ],
+      "correct": 0,
+      "explanation": "Calculating current age from birthdate provides a clear, direct numeric signal that correlates with insurance risk."
+    },
+    {
+      "question": "Why do we split data into a 'Training set' and a 'Test set'?",
+      "options": [
+        "Because computers crash if they read an entire file at once",
+        "To teach the model on training data, and then fairly evaluate its true performance on test data it has never seen",
+        "To duplicate the data so it doesn't get lost",
+        "Because half the data is always corrupted"
+      ],
+      "correct": 1,
+      "explanation": "The split ensures we can objectively test whether the model learned general patterns or merely memorized the training examples."
+    },
+    {
+      "question": "What is 'Data Leakage' in machine learning?",
+      "options": [
+        "A hacker stealing your files from the cloud",
+        "When information from the future or from the test set accidentally contaminates the training data, producing unrealistically high test scores",
+        "A physical leak of cooling liquid inside a server",
+        "When data files take up too much disk space"
+      ],
+      "correct": 1,
+      "explanation": "Data leakage happens when a model is accidentally trained on clues that would not be available in real life at prediction time."
+    },
+    {
+      "question": "If an ML model scores 99.8% accuracy during testing in the lab, but drops to 45% when real customers use it, what likely happened?",
+      "options": [
+        "The computer got too warm",
+        "The model overfit to the training data or suffered from hidden data leakage",
+        "The internet speed slowed down",
+        "The customers used the wrong keyboard"
+      ],
+      "correct": 1,
+      "explanation": "A massive gap between laboratory evaluation and production reality is the classic symptom of overfitting or data leakage."
+    },
+    {
+      "question": "What does 'Training a model' actually involve?",
+      "options": [
+        "Teaching a robot how to walk in a gym",
+        "Running an algorithm that reads through training examples to discover patterns and adjust internal settings",
+        "Writing text documentation in Microsoft Word",
+        "Restarting the operating system"
+      ],
+      "correct": 1,
+      "explanation": "Training is the mathematical process of tuning a model's internal weights to minimize prediction mistakes on training data."
+    },
+    {
+      "question": "What is a 'Baseline Model' in a machine learning project?",
+      "options": [
+        "A simple, basic benchmark (such as always guessing the average or the most common class) used to check if an ML model actually adds value",
+        "The most expensive neural network available",
+        "A model that runs with zero CPU usage",
+        "A model developed in the year 1990"
+      ],
+      "correct": 0,
+      "explanation": "A baseline sets the minimum acceptable bar; if a fancy ML model cannot beat a simple average guess, it isn't worth building!"
+    },
+    {
+      "question": "If a complex deep neural network achieves 81% accuracy, but a simple 2-line if/else rule achieves 80% accuracy, what should a smart engineer consider?",
+      "options": [
+        "Using the simple rule, because it is cheaper, faster, easier to maintain, and rarely breaks",
+        "Immediately using the neural network because it sounds more impressive",
+        "Deleting both models and quitting",
+        "Buying 10 more GPUs"
+      ],
+      "correct": 0,
+      "explanation": "In production engineering, simple, interpretable, low-maintenance solutions are preferred when performance is virtually identical."
+    },
+    {
+      "question": "What happens during the 'Model Evaluation' phase?",
+      "options": [
+        "Testing how well the model predicts on fresh test data using metrics like accuracy, error rate, or precision",
+        "Formatting the computer hard drive",
+        "Giving the model a star rating on an app store",
+        "Paying a subscription fee to a cloud provider"
+      ],
+      "correct": 0,
+      "explanation": "Evaluation rigorously measures how well the model performs on unseen test data before deciding to release it."
+    },
+    {
+      "question": "What is 'Hyperparameter Tuning'?",
+      "options": [
+        "Tuning a musical instrument with software",
+        "Adjusting the algorithm's high-level settings (like how fast it learns or how deep a decision tree can grow) to find the best performance",
+        "Cleaning dust out of the computer fans",
+        "Changing the screen brightness"
+      ],
+      "correct": 1,
+      "explanation": "Hyperparameters are the external control knobs adjusted by the engineer to optimize how the algorithm learns."
+    },
+    {
+      "question": "What does 'Deploying a model' mean?",
+      "options": [
+        "Putting the trained model into a real production environment so websites, mobile apps, or internal systems can use it to make live predictions",
+        "Shipping a physical computer to a customer in a box",
+        "Deleting the model after training is finished",
+        "Writing a blog post about machine learning"
+      ],
+      "correct": 0,
+      "explanation": "Deployment is integrating the trained model into production software so it can serve real users in real time."
+    },
+    {
+      "question": "What is an 'API' in machine learning deployment?",
+      "options": [
+        "An Artificial Program Intelligence",
+        "A web interface that allows other apps to send inputs to the model and receive predictions back over the internet",
+        "A type of computer battery",
+        "A file format for storing pictures"
+      ],
+      "correct": 1,
+      "explanation": "An API (Application Programming Interface) enables websites or mobile apps to query a model server seamlessly."
+    },
+    {
+      "question": "Does an engineer's job end once a machine learning model is deployed to production?",
+      "options": [
+        "Yes, machine learning models run forever without any human attention",
+        "No, you must continuously monitor the model to ensure it stays accurate as real-world conditions change",
+        "Yes, models never make mistakes after deployment",
+        "Yes, computers maintain themselves automatically"
+      ],
+      "correct": 1,
+      "explanation": "Models require ongoing monitoring, maintenance, and periodic retraining to remain accurate over time."
+    },
+    {
+      "question": "What is 'Model Drift' (or Data Drift)?",
+      "options": [
+        "When a laptop physically slides across a desk",
+        "When real-world conditions and user behaviors change over time, causing an older model's predictions to become inaccurate",
+        "When code files get accidentally deleted",
+        "When the model's file size grows larger on disk"
+      ],
+      "correct": 1,
+      "explanation": "Model drift happens when the real-world patterns a model learned in the past no longer match how the world behaves today."
+    },
+    {
+      "question": "Which of the following is a real-world example of Model Drift?",
+      "options": [
+        "A retail demand model failing during a sudden global pandemic because people abruptly stopped buying office clothes and started buying home fitness gear",
+        "A computer running out of battery",
+        "A smartphone screen cracking",
+        "A printer running out of ink"
+      ],
+      "correct": 0,
+      "explanation": "Abrupt shifts in consumer habits make historical pre-pandemic training data outdated, leading to model drift."
+    },
+    {
+      "question": "How do engineers fix a model that has suffered from Model Drift?",
+      "options": [
+        "Restart the computer five times",
+        "Collect recent real-world data, retrain the model on the fresh data, and redeploy it",
+        "Change the font of the code editor",
+        "Make the model simpler by deleting features"
+      ],
+      "correct": 1,
+      "explanation": "Retraining the model on fresh, recent data updates its patterns to reflect current real-world realities."
+    },
+    {
+      "question": "What is 'Batch Prediction' (Offline Scoring)?",
+      "options": [
+        "Making predictions on a large list of records all at once on a scheduled timer (like generating movie recommendations for all users every night at 2 AM)",
+        "Typing code in batches of 10 words",
+        "Training two models on the same laptop",
+        "Sending emails to 10 friends"
+      ],
+      "correct": 0,
+      "explanation": "Batch prediction processes large volumes of data on a schedule where immediate sub-second response is not needed."
+    },
+    {
+      "question": "What is 'Real-time Prediction' (Online Scoring)?",
+      "options": [
+        "Making an instant prediction for an individual user in a few milliseconds (like checking for fraud while a credit card is being swiped)",
+        "Predicting what the weather was 100 years ago",
+        "Running a model only during daytime hours",
+        "Downloading a movie from the internet"
+      ],
+      "correct": 0,
+      "explanation": "Real-time inference responds immediately to live user requests within milliseconds."
+    },
+    {
+      "question": "When Google Maps predicts live traffic delays while you are actively driving, is it Real-time or Batch prediction?",
+      "options": [
+        "Real-time prediction",
+        "Batch prediction",
+        "Unsupervised clustering",
+        "Hardware testing"
+      ],
+      "correct": 0,
+      "explanation": "Live navigation requires immediate real-time predictions based on current GPS and traffic sensor streams."
+    },
+    {
+      "question": "When a bank runs a script once every Sunday night to calculate credit risk scores for all account holders, is it Real-time or Batch?",
+      "options": [
+        "Real-time prediction",
+        "Batch prediction",
+        "Reinforcement learning",
+        "Video streaming"
+      ],
+      "correct": 1,
+      "explanation": "Running predictions in bulk on a scheduled weekly timer is Batch prediction."
+    },
+    {
+      "question": "What is a 'Confusion Matrix' in plain terms?",
+      "options": [
+        "A confusing error message displayed by Python",
+        "A simple table that compares what the model predicted against what actually happened, showing correct guesses and mistakes",
+        "A matrix of random numbers used for encryption",
+        "A hardware component on a motherboard"
+      ],
+      "correct": 1,
+      "explanation": "A confusion matrix lays out True Positives, False Positives, True Negatives, and False Negatives in a clear summary table."
+    },
+    {
+      "question": "What is an 'Outlier' in a dataset?",
+      "options": [
+        "A person who works outdoors",
+        "A data point that is drastically different from all the other examples, such as someone reporting an age of 250 years",
+        "The first column in a spreadsheet",
+        "A computer disconnected from the internet"
+      ],
+      "correct": 1,
+      "explanation": "Outliers are extreme or unusual values that lie far outside the normal range of the rest of the data."
+    },
+    {
+      "question": "Why should you inspect your data for outliers before training an ML model?",
+      "options": [
+        "Because outliers can distort the model and pull its learned rules in the wrong direction",
+        "Because computers cannot process numbers greater than 100",
+        "To make sure the file fits on a USB drive",
+        "Because outliers cause the computer screen to flicker"
+      ],
+      "correct": 0,
+      "explanation": "Severe outliers (like typos or measurement glitches) can skew model training and damage overall accuracy."
+    },
+    {
+      "question": "What is 'Underfitting'?",
+      "options": [
+        "Wearing clothes that are too small",
+        "When a model is too simple to capture the underlying pattern in the data, performing poorly on both training and test data",
+        "When a model achieves 100% test accuracy",
+        "When a dataset has too many rows"
+      ],
+      "correct": 1,
+      "explanation": "Underfitting happens when a model lacks the capacity or clues to learn the pattern, like trying to fit a straight line to a wave."
+    },
+    {
+      "question": "What is 'Overfitting'?",
+      "options": [
+        "Wearing too many coats in winter",
+        "When a model memorizes the training data too closely (including its random noise), but fails on new unseen data",
+        "When a model runs out of computer memory",
+        "When a dataset has no missing values"
+      ],
+      "correct": 1,
+      "explanation": "Overfitting is the 'memorization trap': the model gets an A+ on practice questions but fails the real test."
+    },
+    {
+      "question": "What is the easiest way to tell if your model is overfitting?",
+      "options": [
+        "The model takes less than 1 second to train",
+        "The model achieves near-perfect accuracy on the training data, but scores poorly on the held-out test data",
+        "The model prints text in green font",
+        "The computer fan turns on"
+      ],
+      "correct": 1,
+      "explanation": "A large gap where training score is high but test score is poor is the telltale sign of overfitting."
+    },
+    {
+      "question": "What is 'A/B Testing' when deploying a new model?",
+      "options": [
+        "Testing if the letter A comes before B",
+        "Directing 50% of real users to Model A (the current version) and 50% to Model B (the new version) to measure which one performs better",
+        "Running tests on two different laptops",
+        "Testing code on Apple and BlackBerry phones"
+      ],
+      "correct": 1,
+      "explanation": "A/B testing provides safe, real-world proof of whether a new model improves business metrics before replacing the old one."
+    },
+    {
+      "question": "Why is version control (like Git) important for machine learning code and datasets?",
+      "options": [
+        "So you can undo mistakes, collaborate with teammates, and know exactly which code and data produced a specific model",
+        "To prevent your computer from turning off",
+        "Because cloud companies require it by law",
+        "To make code run twice as fast"
+      ],
+      "correct": 0,
+      "explanation": "Version control ensures reproducibility, tracking changes over time and enabling easy rollbacks if problems occur."
+    },
+    {
+      "question": "Which of the following shows the correct order of the main stages in the Machine Learning Lifecycle?",
+      "options": [
+        "Deploy Model -> Collect Data -> Frame Problem -> Train Model",
+        "Frame Problem -> Collect & Clean Data -> Train Model -> Evaluate -> Deploy & Monitor",
+        "Train Model -> Frame Problem -> Deploy -> Collect Data",
+        "Evaluate -> Deploy -> Collect Data -> Train Model"
+      ],
+      "correct": 1,
+      "explanation": "The lifecycle logically progresses from defining the problem to data prep, training, evaluation, and finally deployment with monitoring."
+    }
+  ],
+  "level": "novice"
+}

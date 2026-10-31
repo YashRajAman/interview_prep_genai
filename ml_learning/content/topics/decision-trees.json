@@ -1,0 +1,471 @@
+{
+  "id": "decision-trees",
+  "title": "Decision Trees & Recursive Partitioning",
+  "description": "Recursive binary splitting, Entropy, Information Gain, Gini Impurity, CART algorithm, variance reduction, pruning, and handling non-linear data.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Decision Trees & Recursive Partitioning",
+        "subtitle": "Intuitive, Highly Interpretable Non-Linear Models Formed by Orthogonal Splits"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Core Algorithm Mechanism (CART)",
+        "content": "A Decision Tree recursively partitions feature space into axis-aligned rectangular regions. Predictions are made by passing a query down the tree until reaching a terminal leaf node:\n- **Classification:** Predicts the **majority class** (mode) of training samples in the leaf.\n- **Regression:** Predicts the **mean target value** of samples in the leaf."
+      },
+      {
+        "type": "text",
+        "title": "Mathematical Splitting Criteria for Classification",
+        "content": "At each node, the algorithm greedily searches across all features $j$ and split thresholds $t$ to maximize purity:\n\n1. **Gini Impurity (CART Default):** Measures the probability of misclassifying a randomly chosen element:\n$$I_G(p) = 1 - \\sum_{k=1}^K p_k^2$$\n- Pure node (all one class): $I_G = 0$.\n- Maximum impurity (equal split in binary): $I_G = 0.5$.\n\n2. **Entropy & Information Gain (ID3 / C4.5):** Measures information disorder in bits:\n$$H(p) = -\\sum_{k=1}^K p_k \\log_2(p_k)$$\n$$\\text{Information Gain} = H(D) - \\left( \\frac{|D_L|}{|D|} H(D_L) + \\frac{|D_R|}{|D|} H(D_R) \\right)$$"
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Gini Impurity vs. Entropy",
+        "content": "| Metric | Mathematical Formula | Computation Speed | Behavior |\n|---|---|---|---|\n| **Gini Impurity** | $1 - \\sum p_k^2$ | Faster (no logarithms) | CART standard; tends to isolate dominant classes |\n| **Entropy** | $-\\sum p_k \\log_2(p_k)$ | Slightly slower (log calculations) | Information theoretic; produces slightly more balanced trees |"
+      },
+      {
+        "type": "text",
+        "title": "Splitting Criterion for Regression",
+        "content": "For continuous regression, trees split by minimizing **Variance Reduction** (equivalent to Mean Squared Error):\n\n$$\\text{MSE}_{\\text{node}} = \\frac{1}{n} \\sum_{i=1}^n (y_i - \\bar{y}_{\\text{node}})^2$$\nThe split $(j, t)$ is chosen to minimize the weighted sum of left and right child MSE."
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Primary Vulnerability: Overfitting & Instability",
+        "content": "Unconstrained decision trees will continue splitting until every leaf contains a single sample, achieving 100% training accuracy but memorizing noise! **Remedy:** Pre-pruning (`max_depth`, `min_samples_split`, `min_samples_leaf`) or post-pruning via cost-complexity pruning ($\\alpha$)."
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Key Architectural Advantage",
+        "content": "Decision trees require **zero feature scaling**, naturally handle mixed continuous and categorical data, and provide complete white-box interpretability through visual tree diagrams."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Tree Purity Calculator",
+    "description": "Calculate Gini Impurity and Entropy for different node class distributions.",
+    "items": [
+      {
+        "text": "Node with 100 Class A, 0 Class B (Pure)",
+        "category": "Gini = 0.00"
+      },
+      {
+        "text": "Node with 50 Class A, 50 Class B (Maximum Impurity)",
+        "category": "Gini = 0.50"
+      },
+      {
+        "text": "Node with 80 Class A, 20 Class B",
+        "category": "Gini = 0.32"
+      }
+    ],
+    "categories": [
+      "Gini = 0.00",
+      "Gini = 0.50",
+      "Gini = 0.32"
+    ]
+  },
+  "code": {
+    "description": "Train a Decision Tree Classifier, inspect feature importances, tune max_depth to observe the effect on overfitting, and export text rules.",
+    "starter": "from sklearn.datasets import load_iris\nfrom sklearn.tree import DecisionTreeClassifier, export_text\nfrom sklearn.model_selection import train_test_split\n\n# Load iris dataset\niris = load_iris()\nX_train, X_test, y_train, y_test = train_test_split(iris.data, iris.target, test_size=0.3, random_state=42)\n\n# 1. Train an interpretable constrained tree (max_depth=3)\nclf = DecisionTreeClassifier(max_depth=3, criterion='gini', random_state=42)\nclf.fit(X_train, y_train)\n\nprint(f'Train Accuracy: {clf.score(X_train, y_train)*100:.2f}%')\nprint(f'Test Accuracy:  {clf.score(X_test, y_test)*100:.2f}%')\n\nprint('\\n=== Feature Importances (Gini Importance) ===')\nfor name, imp in zip(iris.feature_names, clf.feature_importances_):\n    print(f'{name:20s}: {imp:.4f}')\n\nprint('\\n=== Exported Tree Decision Rules ===')\nprint(export_text(clf, feature_names=list(iris.feature_names)))\n"
+  },
+  "quiz": [
+    {
+      "question": "What is the Gini Impurity of a completely pure node containing 50 positive samples and 0 negative samples?",
+      "options": [
+        "0.0",
+        "0.5",
+        "1.0",
+        "-1.0"
+      ],
+      "correct": 0,
+      "explanation": "$I_G = 1 - (1.0)^2 - (0.0)^2 = 0.0$. Pure nodes have zero impurity."
+    },
+    {
+      "question": "What is the Gini Impurity of a binary node with 50 positive and 50 negative samples?",
+      "options": [
+        "0.0",
+        "0.5",
+        "1.0",
+        "0.25"
+      ],
+      "correct": 1,
+      "explanation": "$I_G = 1 - (0.5)^2 - (0.5)^2 = 1 - 0.25 - 0.25 = 0.50$ (maximum binary impurity)."
+    },
+    {
+      "question": "What is the Entropy of a binary node with an equal 50/50 split of classes?",
+      "options": [
+        "0.0 bits",
+        "1.0 bit",
+        "0.5 bits",
+        "2.0 bits"
+      ],
+      "correct": 1,
+      "explanation": "$H = -[0.5 \\log_2(0.5) + 0.5 \\log_2(0.5)] = -[-0.5 - 0.5] = 1.0$ bit."
+    },
+    {
+      "question": "What is Information Gain in decision tree splitting?",
+      "options": [
+        "The monetary value of the dataset",
+        "The reduction in entropy achieved by partitioning a dataset according to a specific feature split",
+        "The increase in model training time",
+        "The depth of the tree"
+      ],
+      "correct": 1,
+      "explanation": "Information Gain measures the decrease in disorder (entropy) before vs after a split."
+    },
+    {
+      "question": "What algorithm does Scikit-learn use to build decision trees?",
+      "options": [
+        "ID3",
+        "C4.5",
+        "CART (Classification and Regression Trees)",
+        "Apriori"
+      ],
+      "correct": 2,
+      "explanation": "Scikit-learn implements an optimized version of Breiman's CART algorithm, producing binary trees."
+    },
+    {
+      "question": "Why do Decision Trees NOT require feature scaling (such as StandardScaler or MinMaxScaler)?",
+      "options": [
+        "Because trees run in parallel",
+        "Tree splitting decisions depend strictly on the rank ordering of values within a single feature ($x_j \\leq t$), unaffected by monotonic scaling",
+        "Because trees only accept integers",
+        "Because trees normalize data automatically"
+      ],
+      "correct": 1,
+      "explanation": "Splitting thresholds are invariant to monotonic transformations; scaling a feature changes the threshold number but not the order."
+    },
+    {
+      "question": "What is the primary danger of leaving `max_depth=None` in a Decision Tree?",
+      "options": [
+        "The tree will not train",
+        "The tree will grow until every leaf is pure, memorizing training noise and overfitting severely (high variance)",
+        "The tree becomes a linear model",
+        "The tree cannot output predictions"
+      ],
+      "correct": 1,
+      "explanation": "Unconstrained trees grow until all leaves are pure or contain fewer than min_samples_split, causing catastrophic overfitting."
+    },
+    {
+      "question": "What does the `min_samples_leaf` hyperparameter control?",
+      "options": [
+        "The number of leaves in the tree",
+        "The minimum number of training samples that must be present in a terminal leaf node for a split to be valid",
+        "The maximum number of features evaluated per split",
+        "The depth of the root node"
+      ],
+      "correct": 1,
+      "explanation": "`min_samples_leaf` prevents leaves from isolating tiny idiosyncratic noise samples (e.g. 1 sample)."
+    },
+    {
+      "question": "What does `min_samples_split` control in Decision Trees?",
+      "options": [
+        "The number of trees in an ensemble",
+        "The minimum number of samples a node must contain in order to be considered for further splitting",
+        "The maximum number of output classes",
+        "The learning rate of the tree"
+      ],
+      "correct": 1,
+      "explanation": "A node with fewer samples than `min_samples_split` cannot be split further and becomes a terminal leaf."
+    },
+    {
+      "question": "How does a Decision Tree make a prediction in a regression task?",
+      "options": [
+        "By taking a majority vote",
+        "By computing the arithmetic mean (average) of the target values of training samples falling into that leaf node",
+        "By fitting a polynomial curve inside the leaf",
+        "By inverting the covariance matrix"
+      ],
+      "correct": 1,
+      "explanation": "Regression trees predict the mean average target value of training instances in the terminal leaf."
+    },
+    {
+      "question": "What is cost-complexity pruning (minimal cost-complexity pruning)?",
+      "options": [
+        "A way to buy cheaper cloud GPUs",
+        "A post-pruning technique that penalizes tree size using hyperparameter $\\alpha$: $R_\\alpha(T) = R(T) + \\alpha |T|$, pruning leaves that do not justify their complexity",
+        "Deleting features with low variance",
+        "Converting trees into linear models"
+      ],
+      "correct": 1,
+      "explanation": "Cost-complexity pruning balances tree misclassification cost $R(T)$ against tree size penalty $\\alpha |T|$."
+    },
+    {
+      "question": "What is an axis-aligned split in decision trees?",
+      "options": [
+        "Splits that rotate diagonally across features",
+        "Splits that are orthogonal (perpendicular) to a single feature axis (e.g., $x_1 \\leq 4.5$)",
+        "Splits that create spherical boundaries",
+        "Splits that follow curved polynomial lines"
+      ],
+      "correct": 1,
+      "explanation": "Standard decision trees split one feature at a time, creating orthogonal, box-like decision boundaries in feature space."
+    },
+    {
+      "question": "Why do Decision Trees struggle with diagonal linear boundaries (e.g. $x_1 + x_2 > 5$)?",
+      "options": [
+        "Trees cannot process positive numbers",
+        "Because trees can only make axis-aligned orthogonal splits, requiring an inefficient staircase of many steps to approximate a simple diagonal line",
+        "Trees can only predict circles",
+        "Diagonal boundaries cause division by zero"
+      ],
+      "correct": 1,
+      "explanation": "Approximating a simple 45-degree diagonal requires a jagged staircase of many orthogonal splits, leading to high complexity."
+    },
+    {
+      "question": "What is Gini Importance (Mean Decrease in Impurity) in Decision Trees?",
+      "options": [
+        "The money saved by using decision trees",
+        "The total normalized reduction in Gini impurity brought by all splits on a given feature across the tree",
+        "The number of times a feature appears in the CSV",
+        "The correlation of a feature with the target"
+      ],
+      "correct": 1,
+      "explanation": "Gini importance quantifies how much each feature contributed to purifying nodes across the tree."
+    },
+    {
+      "question": "What is a known bias of Gini Importance (Mean Decrease in Impurity)?",
+      "options": [
+        "It biases toward features with few values",
+        "It artificially favors continuous features and categorical features with high cardinality (many unique categories) because they offer more splitting opportunities",
+        "It only measures linear correlation",
+        "It always selects the first column in the dataset"
+      ],
+      "correct": 1,
+      "explanation": "High-cardinality features offer more split candidates, artificially inflating impurity reduction even on pure noise."
+    },
+    {
+      "question": "What is Permutation Feature Importance, and why is it preferred over Gini Importance?",
+      "options": [
+        "An algorithm that sorts columns alphabetically",
+        "It measures the drop in model score when a feature's values are randomly shuffled on a validation set, eliminating the cardinality bias",
+        "A method for pruning trees",
+        "An algorithm that converts trees into random forests"
+      ],
+      "correct": 1,
+      "explanation": "Permutation importance evaluates the true performance drop when a feature's values are randomly permuted on held-out data."
+    },
+    {
+      "question": "Why are single Decision Trees considered 'high-variance' (unstable) models?",
+      "options": [
+        "They use too much RAM",
+        "Small perturbations in the training data can alter the root split, cascading completely different splits down the entire tree",
+        "They cannot predict probabilities",
+        "They only train on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Trees are hierarchical; a tiny change in data can flip an early split, radically altering the entire tree structure."
+    },
+    {
+      "question": "How do ensemble methods (like Random Forests) resolve the high variance of individual decision trees?",
+      "options": [
+        "By training only 1 tree on more epochs",
+        "By training dozens or hundreds of diverse trees on bootstrap samples and averaging their predictions to cancel out variance",
+        "By converting trees into neural networks",
+        "By pruning trees to depth 1"
+      ],
+      "correct": 1,
+      "explanation": "Averaging decorrelated high-variance trees dramatically reduces overall ensemble variance without increasing bias."
+    },
+    {
+      "question": "What is a decision tree stump?",
+      "options": [
+        "A dead tree model that crashed",
+        "A 1-level decision tree containing only a single split and two terminal leaf nodes",
+        "A tree with infinite depth",
+        "A tree trained on zero samples"
+      ],
+      "correct": 1,
+      "explanation": "A decision stump is a tree of depth 1, used as a weak learner in algorithms like AdaBoost."
+    },
+    {
+      "question": "Can a Decision Tree handle non-linear relationships?",
+      "options": [
+        "No, decision trees are purely linear",
+        "Yes, recursive orthogonal splitting allows trees to model complex non-linear piecewise constant decision surfaces",
+        "Only if features are squared first",
+        "Only in regression, not classification"
+      ],
+      "correct": 1,
+      "explanation": "By segmenting space into localized rectangular regions, trees fit arbitrary non-linear boundaries."
+    },
+    {
+      "question": "What is the time complexity of building a balanced decision tree on $N$ samples with $D$ features?",
+      "options": [
+        "$O(1)$",
+        "$O(D \\cdot N \\log N)$",
+        "$O(N^3)$",
+        "$O(2^N)$"
+      ],
+      "correct": 1,
+      "explanation": "Sorting $N$ samples per feature takes $O(N \\log N)$, and there are $D$ features across $\\log N$ tree levels: $O(D \\cdot N \\log N)$."
+    },
+    {
+      "question": "How does a Decision Tree handle missing values during inference in classical CART?",
+      "options": [
+        "It raises an unhandled exception",
+        "Using surrogate splits (substitute features that mimic the primary split) or imputing with leaf medians",
+        "It predicts zero",
+        "It deletes the query sample"
+      ],
+      "correct": 1,
+      "explanation": "Surrogate splits identify alternative correlated features that mimic the primary split when the primary value is missing."
+    },
+    {
+      "question": "What happens when you train a decision tree on a dataset where two features are perfectly correlated ($r = 1.0$)?",
+      "options": [
+        "The algorithm crashes",
+        "The tree greedily chooses one of the features for a split, and the redundant feature may never be selected, receiving zero importance",
+        "Both features receive 50% importance exactly",
+        "The tree becomes a neural network"
+      ],
+      "correct": 1,
+      "explanation": "Greedy tree algorithms pick one feature; once chosen, the other provides zero additional impurity reduction and is ignored."
+    },
+    {
+      "question": "In regression trees, what metric is used to evaluate split quality in Scikit-learn?",
+      "options": [
+        "Mean Squared Error (squared_error), Friedman MSE, or Mean Absolute Error (absolute_error)",
+        "Gini Impurity",
+        "Information Gain",
+        "Entropy"
+      ],
+      "correct": 0,
+      "explanation": "Regression trees evaluate variance reduction via squared error (MSE) or absolute error (MAE)."
+    },
+    {
+      "question": "What is the maximum depth of a binary decision tree with $L$ leaf nodes?",
+      "options": [
+        "$L$",
+        "$\\log_2(L)$ for a balanced tree, or up to $L-1$ for a degenerate skewed tree",
+        "$L^2$",
+        "$0$"
+      ],
+      "correct": 1,
+      "explanation": "A balanced binary tree with $L$ leaves has depth $\\approx \\log_2(L)$; an unbalanced chain tree has depth $L - 1$."
+    },
+    {
+      "question": "Why is a Decision Tree incapable of extrapolating continuous trends outside the training feature range?",
+      "options": [
+        "Because decision trees cannot output numbers",
+        "Terminal leaves output constant piecewise values; any query far outside the boundary receives the value of the nearest leaf, ignoring upward or downward slope trends",
+        "Because trees only predict between 0 and 1",
+        "Because trees use logarithms"
+      ],
+      "correct": 1,
+      "explanation": "Trees make piecewise constant predictions; outside the bounding box of training data, predictions plateau horizontally."
+    },
+    {
+      "question": "What is pre-pruning in decision trees?",
+      "options": [
+        "Pruning the tree before collecting data",
+        "Halting the growth of the tree early by enforcing constraints like `max_depth`, `min_samples_split`, or `max_leaf_nodes` during construction",
+        "Deleting rows from the CSV",
+        "Running PCA on features"
+      ],
+      "correct": 1,
+      "explanation": "Pre-pruning stops splitting when stopping criteria are met during the recursive building phase."
+    },
+    {
+      "question": "What is post-pruning in decision trees?",
+      "options": [
+        "Growing a full, unconstrained tree and then systematically collapsing or pruning non-significant branches backward using a validation set or complexity penalty",
+        "Training a model after it is deployed",
+        "Pruning only odd-numbered leaves",
+        "Deleting columns after training"
+      ],
+      "correct": 0,
+      "explanation": "Post-pruning builds a deep tree first, then prunes leaves upward to find the optimal sub-tree."
+    },
+    {
+      "question": "What does `max_features` control in `DecisionTreeClassifier`?",
+      "options": [
+        "The total number of columns in the CSV",
+        "The number of features randomly sampled to consider when looking for the best split at each node",
+        "The depth of the tree",
+        "The number of output classes"
+      ],
+      "correct": 1,
+      "explanation": "`max_features` introduces random feature subsampling at each split, foundational for building Random Forests."
+    },
+    {
+      "question": "Why are Decision Trees considered 'white-box' models?",
+      "options": [
+        "Because their charts have a white background",
+        "Their inner logic can be directly translated into a readable set of explicit human if-else rules and visualized as a flowchart",
+        "Because they only process text",
+        "Because they cannot overfit"
+      ],
+      "correct": 1,
+      "explanation": "Trees provide transparent, auditable decision paths, allowing non-technical domain experts to inspect why a decision was reached."
+    },
+    {
+      "question": "What is variance reduction in regression decision trees?",
+      "options": [
+        "Reducing the learning rate",
+        "The decrease in the target's variance achieved by splitting a node into two child subsets: $\\text{Var}(S) - \\sum \\frac{|S_v|}{|S|} \\text{Var}(S_v)$",
+        "Deleting noisy rows",
+        "Scaling features with StandardScaler"
+      ],
+      "correct": 1,
+      "explanation": "Variance reduction measures how much a split groups similar continuous values into tighter, lower-variance child nodes."
+    },
+    {
+      "question": "Can Decision Trees be used for multi-output (multitarget) classification or regression in Scikit-learn?",
+      "options": [
+        "No, trees only predict a single target",
+        "Yes, Scikit-learn decision trees natively support multi-output targets by computing vector impurity across multiple target variables",
+        "Only if combined with logistic regression",
+        "Only on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Decision trees natively support multi-output problems by storing vector targets in leaf nodes and summing impurities."
+    },
+    {
+      "question": "What is the effect of setting `class_weight='balanced'` in `DecisionTreeClassifier`?",
+      "options": [
+        "It equalizes the number of rows in the dataset",
+        "It automatically weights Gini impurity inversely proportional to class frequencies, preventing majority classes from dominating split selection",
+        "It forces 50% accuracy",
+        "It trains two separate trees"
+      ],
+      "correct": 1,
+      "explanation": "Balanced class weighting scales impurity by inverse class frequency, making minority classes equally influential in split decisions."
+    },
+    {
+      "question": "What happens when a Decision Tree is trained on a feature that is purely a unique customer ID (1, 2, 3, ... N)?",
+      "options": [
+        "The tree refuses to train",
+        "The tree can easily overfit by creating a split for every individual ID, achieving 100% training accuracy with 0% test generalization",
+        "The tree automatically deletes the ID column",
+        "The tree becomes a linear model"
+      ],
+      "correct": 1,
+      "explanation": "High-cardinality unique IDs offer perfect spurious splits, causing unconstrained trees to memorize individual rows."
+    },
+    {
+      "question": "Why are Decision Trees sensitive to class imbalance?",
+      "options": [
+        "Because Gini impurity decreases more by isolating a large chunk of the majority class than by finding minority class patterns",
+        "Because trees cannot calculate fractions",
+        "Because trees only work with balanced classes",
+        "Because minority classes crash Python"
+      ],
+      "correct": 0,
+      "explanation": "Greedy impurity criteria favor large reductions in the dominant class, often failing to split on small minority groups."
+    }
+  ],
+  "level": "beginner"
+}

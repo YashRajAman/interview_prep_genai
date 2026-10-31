@@ -1,0 +1,503 @@
+{
+  "id": "neural-networks-intro",
+  "title": "Neural Networks & Architectures",
+  "description": "Perceptrons, Multi-Layer Perceptrons (MLPs), Activation Functions (Sigmoid, Tanh, ReLU, GELU, Swish), and the Universal Approximation Theorem.",
+  "duration": "35 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Neural Networks & Deep Learning Foundations",
+        "subtitle": "From Frank Rosenblatt's Perceptron to Modern Deep Non-Linear Architectures"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is an Artificial Neural Network?",
+        "text": "An **Artificial Neural Network (ANN)** is a computational model composed of interconnected layers of artificial neurons (nodes). Each connection carries a scalar **weight** ($W$), and each neuron computes a weighted sum of inputs plus a **bias** ($b$), passing the result through a non-linear **activation function** $\\sigma(z)$:\n\n$$z = \\sum_{i=1}^{n} w_i x_i + b = \\mathbf{w}^T \\mathbf{x} + b$$\n$$a = \\sigma(z)$$\n\nStacking these operations across multiple layers enables the network to approximate virtually any continuous function."
+      },
+      {
+        "type": "text",
+        "title": "The Perceptron and the XOR Crisis",
+        "body": "In 1957, Frank Rosenblatt introduced the **Perceptron**, a binary classifier with a step activation function:\n\n$$\\hat{y} = \\begin{cases} 1 & \\text{if } \\mathbf{w}^T \\mathbf{x} + b \\ge 0 \\\\ 0 & \\text{otherwise} \\end{cases}$$\n\nIn 1969, Marvin Minsky and Seymour Papert published their famous critique proving that a single-layer perceptron could not learn non-linearly separable functions like the **XOR (Exclusive OR)** logic gate. This triggered the first 'AI Winter' until researchers formalized that adding hidden layers with non-linear activations overcomes this limitation completely."
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Universal Approximation Theorem (Cybenko, 1989; Hornik, 1991)",
+        "text": "The **Universal Approximation Theorem** states that a feedforward network with a single hidden layer containing a finite number of neurons and a non-linear activation function (like sigmoid or ReLU) can approximate any continuous function on compact subsets of $\\mathbb{R}^n$ to any arbitrary degree of precision $\\epsilon > 0$.\n\n> **Key Caveat:** The theorem is an *existence proof*, not an *algorithmic guarantee*. It does not tell us how many neurons are needed (it could require exponentially many) or whether gradient descent can find the optimal weights."
+      },
+      {
+        "type": "table",
+        "title": "Comprehensive Guide to Activation Functions",
+        "headers": [
+          "Activation Function",
+          "Mathematical Formula",
+          "Output Range",
+          "Derivative Range",
+          "Key Advantages & Common Drawbacks"
+        ],
+        "rows": [
+          [
+            "Sigmoid (Logistic)",
+            "$\\sigma(z) = \\frac{1}{1 + e^{-z}}$",
+            "$(0, 1)$",
+            "$(0, 0.25]$",
+            "Smooth probability interpretation; suffers from severe vanishing gradients for $|z| > 4$; not zero-centered."
+          ],
+          [
+            "Hyperbolic Tangent (Tanh)",
+            "$\\tanh(z) = \\frac{e^z - e^{-z}}{e^z + e^{-z}}$",
+            "$(-1, 1)$",
+            "$(0, 1.0]$",
+            "Zero-centered gradients improve convergence over Sigmoid; still suffers from vanishing gradients at saturation tails."
+          ],
+          [
+            "ReLU (Rectified Linear Unit)",
+            "$f(z) = \\max(0, z)$",
+            "$[0, \\infty)$",
+            "$\\{0, 1\\}$",
+            "Cheap to compute, constant gradient 1 for positive inputs preventing vanishing gradients; vulnerable to 'Dying ReLU' problem."
+          ],
+          [
+            "Leaky ReLU",
+            "$f(z) = \\max(\\alpha z, z), \\; \\alpha \\approx 0.01$",
+            "$(-\\infty, \\infty)$",
+            "$\\{\\alpha, 1\\}$",
+            "Prevents dying neurons by providing a small gradient $\\alpha$ for negative inputs."
+          ],
+          [
+            "ELU (Exponential Linear)",
+            "$f(z) = z \\text{ if } z > 0 \\text{ else } \\alpha(e^z - 1)$",
+            "$(-\\alpha, \\infty)$",
+            "Smooth everywhere",
+            "Brings mean activations closer to zero; computationally more expensive due to exponential."
+          ],
+          [
+            "GELU (Gaussian Error Linear)",
+            "$f(z) = z \\cdot \\Phi(z) \\approx 0.5z(1 + \\tanh(\\sqrt{2/\\pi}(z + 0.044715z^3)))$",
+            "$(-0.17, \\infty)$",
+            "Smooth, non-monotonic",
+            "Standard in modern Transformers (BERT, GPT, ViT); probabilistic gating based on input magnitude."
+          ],
+          [
+            "Swish / SiLU",
+            "$f(z) = z \\cdot \\sigma(\\beta z)$",
+            "$(-0.28, \\infty)$",
+            "Smooth, self-gated",
+            "Discovered via automated search by Google Brain; outperforms ReLU in deep networks (EfficientNet)."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The 'Dying ReLU' Pathology",
+        "text": "If a neuron's weights are updated such that $\\mathbf{w}^T \\mathbf{x} + b < 0$ for **all** training examples, the neuron outputs 0 and its gradient is identically 0:\n\n$$\\frac{\\partial \\text{Loss}}{\\partial w_i} = \\frac{\\partial \\text{Loss}}{\\partial a} \\cdot 0 \\cdot x_i = 0$$\n\nBecause the gradient is zero, gradient descent will never update its weights again. The neuron is effectively permanently dead. Mitigations: lower the learning rate, use He initialization, or adopt Leaky ReLU / GELU."
+      },
+      {
+        "type": "text",
+        "title": "Matrix Formulation of Forward Propagation",
+        "body": "For layer $l$ with weight matrix $W^{[l]} \\in \\mathbb{R}^{n^{[l]} \\times n^{[l-1]}}$, bias vector $\\mathbf{b}^{[l]} \\in \\mathbb{R}^{n^{[l]}}$, and batch input $A^{[l-1]} \\in \\mathbb{R}^{n^{[l-1]} \\times m}$ (where $m$ is batch size):\n\n$$Z^{[l]} = W^{[l]} A^{[l-1]} + \\mathbf{b}^{[l]}$$\n$$A^{[l]} = g^{[l]}(Z^{[l]})$$\n\nVectorized batching executes via highly optimized Basic Linear Algebra Subprograms (BLAS) or Tensor Cores on GPUs, achieving trillions of floating point operations per second (TFLOPS)."
+      }
+    ],
+    "code_example": {
+      "title": "Building a Multi-Layer Perceptron with Vectorized NumPy",
+      "code": "import numpy as np\nimport matplotlib.pyplot as plt\n\nnp.random.seed(42)\n\n# Activation functions\ndef relu(Z): return np.maximum(0, Z)\ndef sigmoid(Z): return 1.0 / (1.0 + np.exp(-np.clip(Z, -25, 25)))\n\n# Architecture: 2 inputs -> 4 hidden neurons -> 1 output neuron\nn_x, n_h, n_y = 2, 4, 1\nm = 200 # sample points\n\n# He / Xavier initialization\nW1 = np.random.randn(n_h, n_x) * np.sqrt(2.0 / n_x)\nb1 = np.zeros((n_h, 1))\nW2 = np.random.randn(n_y, n_h) * np.sqrt(1.0 / n_h)\nb2 = np.zeros((n_y, 1))\n\n# Generate XOR-like non-linear dataset\nX = np.random.randn(n_x, m)\nY = ((X[0, :] * X[1, :] > 0).astype(int)).reshape(1, m)\n\n# Forward propagation\nZ1 = np.dot(W1, X) + b1\nA1 = relu(Z1)\nZ2 = np.dot(W2, A1) + b2\nA2 = sigmoid(Z2)\n\n# Binary Cross Entropy Loss\nloss = -np.mean(Y * np.log(A2 + 1e-12) + (1 - Y) * np.log(1 - A2 + 1e-12))\nprint(f'Initial Forward Pass Loss: {loss:.4f}')\nprint(f'A1 shape: {A1.shape}, A2 shape: {A2.shape}')\n\n# Plot activations distribution\nplt.figure(figsize=(7, 4))\nplt.hist(A1.flatten(), bins=20, color='skyblue', edgecolor='black', alpha=0.7)\nplt.title('Distribution of Hidden Layer Activations (ReLU)')\nplt.xlabel('Activation Value')\nplt.ylabel('Frequency')\nplt.grid(True, linestyle='--', alpha=0.5)\nplt.show()"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Who introduced the Perceptron algorithm in 1957?",
+      "options": [
+        "Alan Turing",
+        "Frank Rosenblatt",
+        "Marvin Minsky",
+        "Geoffrey Hinton"
+      ],
+      "correct": 1,
+      "explanation": "Frank Rosenblatt developed the Perceptron at the Cornell Aeronautical Laboratory in 1957."
+    },
+    {
+      "question": "Which fundamental problem proved that a single-layer perceptron cannot solve non-linearly separable problems?",
+      "options": [
+        "Linear Regression",
+        "XOR Problem",
+        "AND Gate",
+        "OR Gate"
+      ],
+      "correct": 1,
+      "explanation": "Minsky and Papert (1969) proved single-layer perceptrons cannot compute XOR because its classes are not linearly separable."
+    },
+    {
+      "question": "What does the Universal Approximation Theorem state about single hidden-layer feedforward networks?",
+      "options": [
+        "They can achieve zero training error on any discrete set",
+        "They can approximate any continuous function on a compact domain given enough neurons and non-linear activations",
+        "They always converge to the global minimum using gradient descent",
+        "They require fewer parameters than deep networks"
+      ],
+      "correct": 1,
+      "explanation": "It proves that a single hidden layer with non-linear activation can approximate any continuous function on compact subsets of R^n to arbitrary precision."
+    },
+    {
+      "question": "What is the maximum derivative value of the standard logistic Sigmoid function?",
+      "options": [
+        "1.0",
+        "0.5",
+        "0.25",
+        "0.1"
+      ],
+      "correct": 2,
+      "explanation": "The derivative is sigma'(z) = sigma(z)(1 - sigma(z)). The maximum occurs at z=0, where 0.5 * (1 - 0.5) = 0.25."
+    },
+    {
+      "question": "Why does the Sigmoid activation function cause vanishing gradients in deep networks?",
+      "options": [
+        "Its derivative is always greater than 1",
+        "For large positive or negative inputs, its derivative approaches zero, multiplying to near zero across layers",
+        "It outputs non-zero-centered negative values",
+        "It is non-differentiable at the origin"
+      ],
+      "correct": 1,
+      "explanation": "Because the derivative saturates near 0 when inputs are far from zero, backpropagating gradients through multiple sigmoid layers rapidly decays them toward zero."
+    },
+    {
+      "question": "What is the primary advantage of Tanh over Sigmoid?",
+      "options": [
+        "Tanh is computationally much cheaper",
+        "Tanh outputs are zero-centered in (-1, 1), leading to faster and less zig-zagging gradient updates",
+        "Tanh never suffers from gradient saturation",
+        "Tanh is piecewise linear"
+      ],
+      "correct": 1,
+      "explanation": "Tanh outputs values in (-1, 1) with an average near zero, preventing all weights in a layer from moving in the same positive or negative direction simultaneously."
+    },
+    {
+      "question": "What is the mathematical formulation of the standard ReLU activation function?",
+      "options": [
+        "f(z) = 1 / (1 + exp(-z))",
+        "f(z) = max(0, z)",
+        "f(z) = tanh(z)",
+        "f(z) = ln(1 + exp(z))"
+      ],
+      "correct": 1,
+      "explanation": "ReLU is defined as f(z) = max(0, z)."
+    },
+    {
+      "question": "What is the derivative of ReLU for any input z > 0?",
+      "options": [
+        "0",
+        "0.5",
+        "1",
+        "z"
+      ],
+      "correct": 2,
+      "explanation": "For z > 0, the derivative of max(0, z) with respect to z is constant 1, which avoids gradient saturation."
+    },
+    {
+      "question": "What occurs during the 'Dying ReLU' phenomenon?",
+      "options": [
+        "The weights grow to infinity causing an overflow",
+        "A neuron's output is consistently <= 0, causing its gradient to be permanently 0 so it never learns again",
+        "The activation becomes non-linear",
+        "The learning rate decays to zero"
+      ],
+      "correct": 1,
+      "explanation": "If a neuron's activation falls into the negative region for all training examples, its gradient is 0 and gradient descent never updates it again."
+    },
+    {
+      "question": "How does Leaky ReLU resolve the Dying ReLU problem?",
+      "options": [
+        "By setting negative outputs to positive infinity",
+        "By replacing ReLU with a polynomial curve",
+        "By allowing a small non-zero slope (e.g. 0.01) for negative inputs so gradients can flow",
+        "By clipping activations between 0 and 1"
+      ],
+      "correct": 2,
+      "explanation": "Leaky ReLU assigns f(z) = alpha * z for z < 0 (typically alpha = 0.01), ensuring a non-zero gradient even for negative inputs."
+    },
+    {
+      "question": "Which modern activation function is standard in BERT, GPT-2, and Vision Transformers?",
+      "options": [
+        "Sigmoid",
+        "Hard Tanh",
+        "GELU (Gaussian Error Linear Unit)",
+        "Step function"
+      ],
+      "correct": 2,
+      "explanation": "GELU weights inputs by their probability under a Gaussian cumulative distribution, and is the standard default in modern Transformer language models."
+    },
+    {
+      "question": "Swish (SiLU) is defined mathematically as:",
+      "options": [
+        "f(z) = z * sigma(beta * z)",
+        "f(z) = max(0.1z, z)",
+        "f(z) = exp(z) / sum(exp(z))",
+        "f(z) = tanh(z) + z"
+      ],
+      "correct": 0,
+      "explanation": "Swish is defined as f(z) = z * sigma(beta * z), discovered via neural architecture search."
+    },
+    {
+      "question": "In the linear equation Z = W X + b, if X has shape (n_in, m) and W has shape (n_out, n_in), what is the shape of Z?",
+      "options": [
+        "(n_in, m)",
+        "(n_out, m)",
+        "(n_out, n_in)",
+        "(m, n_out)"
+      ],
+      "correct": 1,
+      "explanation": "Matrix multiplication of (n_out, n_in) with (n_in, m) yields (n_out, m)."
+    },
+    {
+      "question": "Why do we need non-linear activation functions in multi-layer neural networks?",
+      "options": [
+        "To ensure all values stay strictly positive",
+        "Without non-linearities, a multi-layer network collapses mathematically into an equivalent single linear transformation",
+        "To prevent floating point underflow in matrix multiplication",
+        "To make backpropagation unnecessary"
+      ],
+      "correct": 1,
+      "explanation": "The composition of linear functions is itself a linear function: W2 * (W1 * X) = (W2 * W1) * X = W_combined * X. Hidden layers add no expressive power without non-linearities."
+    },
+    {
+      "question": "What activation function is typically placed at the output layer for multi-class classification with K mutually exclusive classes?",
+      "options": [
+        "Sigmoid",
+        "ReLU",
+        "Softmax",
+        "Tanh"
+      ],
+      "correct": 2,
+      "explanation": "Softmax normalizes unnormalized logits into a valid probability distribution summing to 1 across K classes."
+    },
+    {
+      "question": "The Softmax function for logit vector z is calculated as:",
+      "options": [
+        "exp(z_i) / sum_j exp(z_j)",
+        "z_i / sum_j z_j",
+        "max(0, z_i)",
+        "1 / (1 + exp(-z_i))"
+      ],
+      "correct": 0,
+      "explanation": "Softmax is sigma(z)_i = exp(z_i) / sum_j exp(z_j)."
+    },
+    {
+      "question": "What is a common numerical stability trick when implementing Softmax in code?",
+      "options": [
+        "Subtracting max(z) from all logits before computing exp(z)",
+        "Dividing logits by 0",
+        "Taking the square root of logits",
+        "Multiplying logits by 1000"
+      ],
+      "correct": 0,
+      "explanation": "Subtracting max(z) prevents numerical overflow (inf) in exp(z) without changing the mathematical quotient."
+    },
+    {
+      "question": "What is the output range of the Softmax function?",
+      "options": [
+        "[-1, 1]",
+        "[0, infinity)",
+        "(0, 1) such that all outputs sum to 1.0",
+        "(-infinity, infinity)"
+      ],
+      "correct": 2,
+      "explanation": "Softmax produces valid probability values in (0, 1) that sum to exactly 1."
+    },
+    {
+      "question": "What is the role of the bias term 'b' in a neural network layer?",
+      "options": [
+        "It scales the slope of the activation",
+        "It shifts the activation function left or right independently of the inputs",
+        "It normalizes the input variance to 1",
+        "It regularizes the weight matrix"
+      ],
+      "correct": 1,
+      "explanation": "The bias allows the decision boundary to shift away from the origin, enabling the neuron to fit data that is not centered at zero."
+    },
+    {
+      "question": "What happens if you initialize all weights in a multi-layer perceptron to exactly 0.0?",
+      "options": [
+        "The network trains normally because bias breaks symmetry",
+        "All neurons in each hidden layer compute identical values and receive identical gradients, preventing feature diversification",
+        "The loss becomes negative infinity immediately",
+        "The gradients explode to infinity on the first step"
+      ],
+      "correct": 1,
+      "explanation": "This is the 'symmetry problem': all neurons compute identical outputs and receive identical gradients, behaving as a single neuron."
+    },
+    {
+      "question": "Why is Xavier (Glorot) initialization preferred for Tanh and Sigmoid networks?",
+      "options": [
+        "It initializes all weights to 1.0",
+        "It keeps the variance of activations and backpropagated gradients roughly equal across all layers",
+        "It eliminates negative numbers",
+        "It forces weights to be orthogonal"
+      ],
+      "correct": 1,
+      "explanation": "Xavier initialization sets weight variance Var(W) = 2 / (n_in + n_out), stabilizing signal variance across forward and backward passes."
+    },
+    {
+      "question": "Why was He (Kaiming) initialization specifically designed for ReLU networks?",
+      "options": [
+        "Because ReLU halves the variance by zeroing out negative inputs, requiring Var(W) = 2 / n_in",
+        "Because ReLU requires weights to be positive integers",
+        "Because it guarantees zero training loss in 1 epoch",
+        "Because it is designed for recurrent networks only"
+      ],
+      "correct": 0,
+      "explanation": "Since ReLU zeros out approximately half of the incoming distribution, He initialization uses Var(W) = 2 / n_in to compensate for the lost variance."
+    },
+    {
+      "question": "What is the Parametric ReLU (PReLU)?",
+      "options": [
+        "A ReLU where the negative slope alpha is learned as a trainable parameter during backpropagation",
+        "A ReLU where all positive values are capped at 1",
+        "A ReLU with random noise added to weights",
+        "A ReLU that uses sinusoidal functions"
+      ],
+      "correct": 0,
+      "explanation": "PReLU treats the negative slope alpha as an adaptive parameter learned alongside the network weights via gradient descent."
+    },
+    {
+      "question": "Which activation function has a smooth continuous curve with non-monotonic behavior?",
+      "options": [
+        "Step Function",
+        "GELU",
+        "Standard ReLU",
+        "Signum"
+      ],
+      "correct": 1,
+      "explanation": "GELU dips slightly below zero (around -0.17) before rising smoothly, making it non-monotonic."
+    },
+    {
+      "question": "In binary classification with a single output neuron, what is the standard loss function combined with a sigmoid output?",
+      "options": [
+        "Mean Squared Error (MSE)",
+        "Binary Cross-Entropy (Log Loss)",
+        "Hinge Loss",
+        "Huber Loss"
+      ],
+      "correct": 1,
+      "explanation": "Binary Cross-Entropy is the negative log-likelihood for Bernoulli trials and naturally pairs with Sigmoid to yield clean linear error gradients."
+    },
+    {
+      "question": "When computing cross-entropy loss, why do we add an epsilon (e.g. 1e-12) inside log(y_hat)?",
+      "options": [
+        "To accelerate convergence",
+        "To prevent numerical error log(0) which evaluates to -inf or NaN",
+        "To convert probabilities into logits",
+        "To regularize the model parameters"
+      ],
+      "correct": 1,
+      "explanation": "If the predicted probability is exactly 0.0, log(0) produces -inf, causing NaN loss. A small epsilon prevents division by zero or log(0)."
+    },
+    {
+      "question": "What is the primary architectural difference between a Perceptron and a Multi-Layer Perceptron (MLP)?",
+      "options": [
+        "MLP has one or more hidden layers with non-linear activation functions between input and output",
+        "MLP can only use binary inputs",
+        "MLP does not use weights",
+        "MLP cannot perform backpropagation"
+      ],
+      "correct": 0,
+      "explanation": "An MLP consists of an input layer, one or more non-linear hidden layers, and an output layer."
+    },
+    {
+      "question": "What is a feedforward neural network?",
+      "options": [
+        "A network where information flows strictly in one direction from input to output without cycles or loops",
+        "A network that only predicts future stock prices",
+        "A network with backward recurrent feedback loops",
+        "A network without any trainable weights"
+      ],
+      "correct": 0,
+      "explanation": "In feedforward networks, connections between nodes do not form directed cycles or loops."
+    },
+    {
+      "question": "What is the depth of a neural network?",
+      "options": [
+        "The number of features in the input vector",
+        "The number of hidden layers (or total parameterized layers) in the network",
+        "The number of classes in the output",
+        "The number of training samples"
+      ],
+      "correct": 1,
+      "explanation": "Network depth refers to the number of parameterized layers (hidden layers + output layer) from input to output."
+    },
+    {
+      "question": "What is the width of a neural network layer?",
+      "options": [
+        "The number of neurons (units) present in that specific layer",
+        "The precision in bits of the floating-point weights",
+        "The physical memory consumed by the layer",
+        "The number of training epochs"
+      ],
+      "correct": 0,
+      "explanation": "Layer width represents the count of parallel processing units (neurons) in that layer."
+    },
+    {
+      "question": "Can an MLP with linear activation functions compute non-linear decision boundaries?",
+      "options": [
+        "Yes, if it has at least 10 layers",
+        "No, any sequence of linear transformations remains strictly linear",
+        "Yes, if the bias is non-zero",
+        "Yes, if trained for 1000 epochs"
+      ],
+      "correct": 1,
+      "explanation": "No matter how deep, a network with only linear activations is mathematically equivalent to a single linear layer."
+    },
+    {
+      "question": "What is the primary motivation for Deep architectures over very wide shallow architectures?",
+      "options": [
+        "Deep networks can compose hierarchical features exponentially more efficiently than shallow networks",
+        "Deep networks require no activation functions",
+        "Wide networks cannot run on GPUs",
+        "Deep networks are immune to overfitting"
+      ],
+      "correct": 0,
+      "explanation": "Deep networks represent complex compositional functions (e.g. edges -> shapes -> objects) with exponentially fewer neurons than a single huge shallow layer."
+    },
+    {
+      "question": "What is the gradient of the Tanh activation function in terms of its output a = tanh(z)?",
+      "options": [
+        "1 - a^2",
+        "a * (1 - a)",
+        "1 + a^2",
+        "exp(a)"
+      ],
+      "correct": 0,
+      "explanation": "The derivative of tanh(z) is sech^2(z) = 1 - tanh^2(z) = 1 - a^2."
+    },
+    {
+      "question": "How does the output range of ELU differ from standard ReLU for negative values?",
+      "options": [
+        "ELU saturates smoothly to -alpha rather than hard-zeroing",
+        "ELU goes to negative infinity linearly",
+        "ELU outputs positive values only",
+        "ELU equals zero everywhere"
+      ],
+      "correct": 0,
+      "explanation": "For negative inputs, ELU outputs alpha * (exp(z) - 1), approaching -alpha smoothly as z goes to negative infinity."
+    },
+    {
+      "question": "Why is the step activation function unusable for gradient descent training in multi-layer networks?",
+      "options": [
+        "Its derivative is 0 everywhere (and undefined at 0), meaning gradients cannot flow to update weights",
+        "It produces negative probabilities",
+        "It requires too much GPU memory",
+        "It cannot output binary values"
+      ],
+      "correct": 0,
+      "explanation": "Because the derivative of a step function is zero everywhere (except at the threshold where it is undefined), gradient descent cannot determine which direction to update the weights."
+    }
+  ],
+  "level": "advanced"
+}

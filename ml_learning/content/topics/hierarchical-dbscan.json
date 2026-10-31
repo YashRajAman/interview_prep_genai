@@ -1,0 +1,466 @@
+{
+  "id": "hierarchical-dbscan",
+  "title": "Hierarchical & Density-Based (DBSCAN) Clustering",
+  "description": "Agglomerative hierarchical clustering, linkage criteria (Ward, Complete, Average), dendrograms, DBSCAN density reachability, Core/Border/Noise points, and HDBSCAN.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Hierarchical & Density-Based Clustering",
+        "subtitle": "Discovering Arbitrary Geometric Shapes and Hierarchies Without Specifying Cluster Counts"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Agglomerative Hierarchical Clustering",
+        "content": "A **bottom-up** approach where each observation starts in its own individual cluster. At each step, the two closest clusters are iteratively merged according to a **linkage criterion** until all points belong to a single root cluster, visualized as a **Dendrogram**."
+      },
+      {
+        "type": "text",
+        "title": "Linkage Criteria for Hierarchical Merging",
+        "content": "The distance between two clusters $A$ and $B$ is defined by the linkage method:\n\n- **Ward's Linkage (Default in Scikit-learn):** Minimizes the total within-cluster variance increase resulting from merging clusters. Produces compact, spherical clusters similar to K-Means.\n- **Complete Linkage (Maximum):** Distance is the **maximum distance** between any point in $A$ and any point in $B$: $\\max \\{d(a, b) : a \\in A, b \\in B\\}$. Avoids long chaining; produces compact clusters.\n- **Single Linkage (Minimum):** Distance is the **minimum distance** between any point in $A$ and any point in $B$: $\\min \\{d(a, b) : a \\in A, b \\in B\\}$. Can trace non-elliptical shapes, but suffers from chaining artifacts.\n- **Average Linkage:** Average distance between all pairs: $\\frac{1}{|A||B|} \\sum_{a \\in A} \\sum_{b \\in B} d(a, b)$."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "DBSCAN: Density-Based Spatial Clustering of Applications with Noise",
+        "content": "Pioneered by Ester et al. (1996), DBSCAN groups points based on spatial **density reachability** rather than distance to centroids. It requires two hyperparameters:\n- **$\\epsilon$ (eps):** Radius of the neighborhood around a point.\n- **`min_samples`:** Minimum number of points required within $\\epsilon$-radius to form a dense region.\n\n| Point Classification | Condition | Role in Algorithm |\n|---|---|---|\n| **Core Point** | Has $\\ge \\text{min\\_samples}$ within $\\epsilon$-radius | Forms the dense foundation of a cluster |\n| **Border Point** | Has $< \\text{min\\_samples}$ within $\\epsilon$, but within $\\epsilon$ of a Core Point | Belongs to the cluster on the perimeter |\n| **Noise Point (Outlier)** | Neither a Core Point nor a Border Point | Labelled as **-1** (pure anomaly / outlier) |"
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Why DBSCAN Beats K-Means on Complex Geometry",
+        "content": "DBSCAN **does not require specifying $K$ in advance**, can find **arbitrary non-linear shapes** (concentric rings, smiling faces, road networks), and **naturally isolates outliers as noise (-1)** instead of forcing them into clusters!"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Core Algorithm Selection",
+        "content": "Use **Agglomerative Hierarchical** when taxonomy or dendrogram hierarchies are needed (e.g. biological phylogenetics, document taxonomies). Use **DBSCAN / HDBSCAN** when data has non-convex geometries and noisy spatial outliers."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "DBSCAN Point Classifier",
+    "description": "Classify points into Core Points, Border Points, or Noise Outliers based on epsilon and min_samples.",
+    "items": [
+      {
+        "text": "Point with 10 neighbors within epsilon radius (min_samples=5)",
+        "category": "Core Point"
+      },
+      {
+        "text": "Point with 2 neighbors, but within epsilon of a Core Point",
+        "category": "Border Point"
+      },
+      {
+        "text": "Isolated point with 0 neighbors within epsilon",
+        "category": "Noise Point (-1)"
+      }
+    ],
+    "categories": [
+      "Core Point",
+      "Border Point",
+      "Noise Point (-1)"
+    ]
+  },
+  "code": {
+    "description": "Compare K-Means vs DBSCAN on non-linear concentric circles, showing how DBSCAN cleanly discovers arbitrary non-convex manifolds.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import make_circles\nfrom sklearn.cluster import KMeans, DBSCAN\nfrom sklearn.preprocessing import StandardScaler\n\n# Generate concentric circles (non-linear manifold)\nX, _ = make_circles(n_samples=300, factor=0.4, noise=0.05, random_state=42)\nX_scaled = StandardScaler().fit_transform(X)\n\n# 1. K-Means (Fails on non-convex data)\nkm = KMeans(n_clusters=2, random_state=42, n_init='auto')\nkm_labels = km.fit_predict(X_scaled)\n\n# 2. DBSCAN (Succeeds via density reachability)\ndb = DBSCAN(eps=0.3, min_samples=5)\ndb_labels = db.fit_predict(X_scaled)\n\nn_clusters_db = len(set(db_labels)) - (1 if -1 in db_labels else 0)\nn_noise = list(db_labels).count(-1)\n\nprint(f'K-Means forced 2 clusters with linear boundary split.')\nprint(f'DBSCAN automatically found {n_clusters_db} clusters and {n_noise} noise points!')\nprint(f'DBSCAN unique labels: {set(db_labels)}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What does a Dendrogram visualize in hierarchical clustering?",
+      "options": [
+        "A plot of loss versus iterations",
+        "A tree-like diagram showing the sequence of cluster merges (or splits) and the distance/dissimilarity at which each merge occurred",
+        "A matrix of feature correlations",
+        "A decision tree flowchart"
+      ],
+      "correct": 1,
+      "explanation": "A dendrogram illustrates hierarchical cluster combinations, where vertical branch heights represent dissimilarity at merging."
+    },
+    {
+      "question": "In Agglomerative Hierarchical Clustering, what is Ward's linkage criterion?",
+      "options": [
+        "Merging clusters that have the minimum Euclidean distance between closest points",
+        "Merging the two clusters that minimize the increase in total within-cluster sum of squares (variance)",
+        "Merging clusters with the largest distance",
+        "Merging clusters with equal sizes"
+      ],
+      "correct": 1,
+      "explanation": "Ward's method merges clusters that minimize the increase in overall within-cluster variance, producing compact balanced clusters."
+    },
+    {
+      "question": "What is Complete Linkage in hierarchical clustering?",
+      "options": [
+        "Distance between the two most distant points in the two clusters: $\\max \\{d(a, b) : a \\in A, b \\in B\\}$",
+        "Distance between the two closest points",
+        "Average distance between all pairs",
+        "Distance between cluster centroids"
+      ],
+      "correct": 0,
+      "explanation": "Complete linkage defines inter-cluster distance as the maximum pairwise distance between any sample in A and any sample in B."
+    },
+    {
+      "question": "What is Single Linkage in hierarchical clustering, and what artifact is it prone to?",
+      "options": [
+        "It uses centroids; prone to high variance",
+        "Distance is the minimum pairwise distance: $\\min \\{d(a, b)\\}$; prone to 'chaining' artifacts where clusters string out into long thin lines",
+        "It averages distances; prone to spherical bias",
+        "It uses medians; prone to outliers"
+      ],
+      "correct": 1,
+      "explanation": "Single linkage merges clusters based on closest points, causing a 'chaining' effect where distinct clusters are bridged by single noise points."
+    },
+    {
+      "question": "How do you extract a specific number of clusters from a hierarchical clustering dendrogram?",
+      "options": [
+        "By training a neural network on the tree",
+        "By drawing a horizontal cut line across the dendrogram at a specified dissimilarity height; the number of vertical lines intersected equals the cluster count",
+        "By deleting the root node",
+        "By scaling the features"
+      ],
+      "correct": 1,
+      "explanation": "Cutting the dendrogram horizontally at a chosen threshold partitions the tree into distinct disjoint clusters."
+    },
+    {
+      "question": "What is the primary computational disadvantage of standard Agglomerative Hierarchical Clustering?",
+      "options": [
+        "It only runs on 1 CPU",
+        "High computational complexity of $O(N^3)$ (or $O(N^2)$ optimized) and $O(N^2)$ memory for the distance matrix, scaling poorly to $N > 20,000$",
+        "It can only produce 2 clusters",
+        "It requires labels"
+      ],
+      "correct": 1,
+      "explanation": "Constructing and updating the full pairwise distance matrix scales with $O(N^2)$ space and $O(N^2)$ to $O(N^3)$ time complexity."
+    },
+    {
+      "question": "What are the two core hyperparameters required by DBSCAN?",
+      "options": [
+        "K and learning rate",
+        "$\\epsilon$ (eps: neighborhood radius) and `min_samples` (minimum density threshold)",
+        "Tree depth and split criterion",
+        "C and gamma"
+      ],
+      "correct": 1,
+      "explanation": "DBSCAN requires defining neighborhood search radius $\\epsilon$ and the minimum sample count `min_samples` to qualify as dense."
+    },
+    {
+      "question": "In DBSCAN, what defines a 'Core Point'?",
+      "options": [
+        "A point with the largest target value",
+        "A point that has at least `min_samples` data points (including itself) within its $\\epsilon$-radius neighborhood",
+        "A point located at the origin (0, 0)",
+        "The center of mass of the dataset"
+      ],
+      "correct": 1,
+      "explanation": "A core point contains at least `min_samples` observations within its $\\epsilon$-neighborhood: $|N_\\epsilon(p)| \\ge \\text{min\\_samples}$."
+    },
+    {
+      "question": "In DBSCAN, what defines a 'Border Point'?",
+      "options": [
+        "A point with zero neighbors",
+        "A point that has fewer than `min_samples` within its $\\epsilon$-radius, but falls within the $\\epsilon$-neighborhood of a Core Point",
+        "A point with negative coordinates",
+        "A point on the outer edge of the CSV file"
+      ],
+      "correct": 1,
+      "explanation": "Border points lack sufficient density themselves, but are reachable within $\\epsilon$ of an established Core Point."
+    },
+    {
+      "question": "In DBSCAN, how are Noise Points (Outliers) labeled by Scikit-learn?",
+      "options": [
+        "`label = 0`",
+        "`label = -1`",
+        "`label = 999`",
+        "`label = NaN`"
+      ],
+      "correct": 1,
+      "explanation": "Scikit-learn assigns label `-1` to any sample that is neither a core point nor reachable from any core point (noise/outlier)."
+    },
+    {
+      "question": "What is a major advantage of DBSCAN over K-Means?",
+      "options": [
+        "DBSCAN runs in $O(1)$ time",
+        "DBSCAN does not require specifying the number of clusters $K$ in advance and can discover arbitrary non-linear geometric shapes",
+        "DBSCAN requires no parameters",
+        "DBSCAN always produces spherical clusters"
+      ],
+      "correct": 1,
+      "explanation": "DBSCAN discovers natural cluster counts organically and traces arbitrary non-linear shapes (circles, manifolds, roads)."
+    },
+    {
+      "question": "What is density-reachability in DBSCAN?",
+      "options": [
+        "The speed of network packets",
+        "Point $p$ is density-reachable from point $q$ if there is a chain of core points $p_1, p_2, \\dots, p_n$ where each point is within $\\epsilon$ of the next",
+        "The percentage of missing values",
+        "The Euclidean distance between two servers"
+      ],
+      "correct": 1,
+      "explanation": "Density-reachability links points transitively through contiguous chains of overlapping core-point neighborhoods."
+    },
+    {
+      "question": "What happens in DBSCAN if $\\epsilon$ (eps) is chosen too small?",
+      "options": [
+        "All points merge into 1 cluster",
+        "Most data points fail to meet the density threshold and are classified as noise (-1)",
+        "The computer memory overflows",
+        "The algorithm converts into K-Means"
+      ],
+      "correct": 1,
+      "explanation": "An excessively tiny $\\epsilon$ means neighborhoods rarely contain enough points, falsely flagging genuine clusters as noise."
+    },
+    {
+      "question": "What happens in DBSCAN if $\\epsilon$ (eps) is chosen too large?",
+      "options": [
+        "All points are classified as noise",
+        "Most or all clusters merge into a single giant connected cluster",
+        "The algorithm fails to run",
+        "The number of clusters approaches infinity"
+      ],
+      "correct": 1,
+      "explanation": "An overly large $\\epsilon$ bridges distinct density valleys, erroneously consolidating separate groups into one giant cluster."
+    },
+    {
+      "question": "How can the k-distance graph (elbow of nearest neighbor distances) be used to select $\\epsilon$ in DBSCAN?",
+      "options": [
+        "By plotting the training accuracy",
+        "By plotting the sorted distance of every point to its $k$-th nearest neighbor; the 'elbow' inflection point indicates optimal $\\epsilon$",
+        "By measuring GPU clock frequency",
+        "By setting $\\epsilon = k$"
+      ],
+      "correct": 1,
+      "explanation": "A sorted k-NN distance plot shows a sharp threshold (elbow) where noise points diverge from dense cluster points, indicating ideal $\\epsilon$."
+    },
+    {
+      "question": "Why does standard DBSCAN struggle on datasets containing clusters with significantly differing densities?",
+      "options": [
+        "DBSCAN only works on binary data",
+        "A single global $\\epsilon$ cannot simultaneously capture dense clusters (requiring small $\\epsilon$) and sparse clusters (requiring large $\\epsilon$)",
+        "DBSCAN requires all clusters to have equal sample counts",
+        "DBSCAN converts density to variance"
+      ],
+      "correct": 1,
+      "explanation": "Because $\\epsilon$ is fixed globally, a setting that isolates sparse clusters will blur dense clusters together, and vice versa."
+    },
+    {
+      "question": "What is HDBSCAN (Hierarchical DBSCAN)?",
+      "options": [
+        "DBSCAN running on hard drives",
+        "An extension of DBSCAN that performs hierarchical clustering over varying $\\epsilon$ values, automatically extracting clusters of varying densities",
+        "A supervised version of DBSCAN",
+        "A deep learning neural network"
+      ],
+      "correct": 1,
+      "explanation": "HDBSCAN eliminates the sensitive $\\epsilon$ hyperparameter by finding persistent clusters across a hierarchy of density levels."
+    },
+    {
+      "question": "Why is feature scaling mandatory before running DBSCAN?",
+      "options": [
+        "Because DBSCAN requires scaled features to run in Python",
+        "Because neighborhood search uses distance metrics (Euclidean); unscaled features with large numerical ranges distort spherical neighborhoods into needles",
+        "Because DBSCAN converts features to probabilities",
+        "Because scaling eliminates noise points"
+      ],
+      "correct": 1,
+      "explanation": "An $\\epsilon$-radius hypersphere requires uniform coordinate scaling; unscaled features cause search balls to distort along the largest axis."
+    },
+    {
+      "question": "What is the time complexity of DBSCAN with spatial indexing (e.g. KD-Tree or Ball Tree) in low dimensions?",
+      "options": [
+        "$O(N^2)$",
+        "$O(N \\log N)$",
+        "$O(N^3)$",
+        "$O(1)$"
+      ],
+      "correct": 1,
+      "explanation": "Spatial indexing trees reduce neighborhood range queries to $O(\\log N)$, yielding an overall complexity of $O(N \\log N)$."
+    },
+    {
+      "question": "What is the worst-case time complexity of DBSCAN without spatial indexing (or in very high dimensions)?",
+      "options": [
+        "$O(N \\log N)$",
+        "$O(N^2)$ due to computing all pairwise distances",
+        "$O(N!)$",
+        "$O(D)$"
+      ],
+      "correct": 1,
+      "explanation": "Without indexing (or when high dimensionality forces brute-force distance scans), DBSCAN evaluates $O(N^2)$ pairwise queries."
+    },
+    {
+      "question": "What is the difference between Agglomerative and Divisive hierarchical clustering?",
+      "options": [
+        "Agglomerative is bottom-up (merges points); Divisive is top-down (recursively splits the root cluster)",
+        "Agglomerative is supervised; Divisive is unsupervised",
+        "Agglomerative is for text; Divisive is for images",
+        "They are identical algorithms"
+      ],
+      "correct": 0,
+      "explanation": "Agglomerative begins with $N$ individual clusters and merges upward; Divisive starts with 1 giant cluster and splits downward."
+    },
+    {
+      "question": "What is Cophenetic Correlation in hierarchical clustering?",
+      "options": [
+        "The correlation between two features in pandas",
+        "A measure of how faithfully a dendrogram preserves the original pairwise distances between data points",
+        "The ratio of noise points to core points",
+        "The execution time of the dendrogram"
+      ],
+      "correct": 1,
+      "explanation": "The cophenetic correlation coefficient quantifies how closely dendrogram branch merge heights reflect original point distances."
+    },
+    {
+      "question": "In DBSCAN, can a Border Point belong to more than one cluster?",
+      "options": [
+        "No, border points cannot belong to any cluster",
+        "Yes, if a point is within $\\epsilon$ of core points from two different clusters, its assignment depends on which cluster processes it first",
+        "Border points are always labeled -1",
+        "Border points only exist in K-Means"
+      ],
+      "correct": 1,
+      "explanation": "Border points equidistant between two clusters can be non-deterministically assigned depending on sample evaluation order."
+    },
+    {
+      "question": "Is Core Point classification deterministic in DBSCAN?",
+      "options": [
+        "No, it changes every run",
+        "Yes, core point qualification is strictly deterministic because it depends only on sample counts within a fixed $\\epsilon$ radius",
+        "Only if random seed is set",
+        "Only on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Core point identification is 100% deterministic: a sample either has $\\ge \\text{min\\_samples}$ in its neighborhood or it does not."
+    },
+    {
+      "question": "What is an empirical heuristic for choosing `min_samples` in DBSCAN for a dataset with $D$ features?",
+      "options": [
+        "`min_samples = 1`",
+        "`min_samples >= 2 * D` (or at least 3-5 in 2D)",
+        "`min_samples = N / 2`",
+        "`min_samples = 100`"
+      ],
+      "correct": 1,
+      "explanation": "A standard heuristic established by Ester et al. is setting $\\text{min\\_samples} \\ge 2 \\times D$, with $\\ge 3$ minimum in low dimensions."
+    },
+    {
+      "question": "What happens in DBSCAN if `min_samples = 1`?",
+      "options": [
+        "The algorithm crashes",
+        "Every point becomes a core point, and the algorithm degrades to single-linkage hierarchical clustering with zero noise points",
+        "All points become noise (-1)",
+        "The algorithm creates only 1 cluster"
+      ],
+      "correct": 1,
+      "explanation": "With `min_samples=1`, every point is its own core point, merging all points within $\\epsilon$ into single-linkage chains with zero noise."
+    },
+    {
+      "question": "What is the OPTICS algorithm (Ordering Points To Identify the Clustering Structure)?",
+      "options": [
+        "An algorithm for camera lenses",
+        "A generalization of DBSCAN that addresses varying densities by ordering points such that spatially closest points are neighbors in the ordering",
+        "An algorithm for image compression",
+        "A supervised classification model"
+      ],
+      "correct": 1,
+      "explanation": "OPTICS produces a reachability plot that visualizes clustering structure across continuous density levels, overcoming DBSCAN's fixed $\\epsilon$."
+    },
+    {
+      "question": "Can DBSCAN predict cluster assignments for new unseen test samples in Scikit-learn via `predict()`?",
+      "options": [
+        "Yes, DBSCAN has a predict() method",
+        "No, Scikit-learn's DBSCAN has no `predict()` method; it is transductive, clustering only the data provided during `fit()`",
+        "Only if the test set has no noise",
+        "Only if $K$ is specified"
+      ],
+      "correct": 1,
+      "explanation": "DBSCAN in scikit-learn is transductive; assigning new points requires retraining or using `dbscan.components_` nearest-neighbor lookup."
+    },
+    {
+      "question": "What is the Mean Shift clustering algorithm?",
+      "options": [
+        "An algorithm that changes the mean of the data",
+        "A non-parametric centroid-based algorithm that locates modes (peaks) of a density function by iteratively shifting points toward regional density maxima",
+        "A method for imputing missing values",
+        "A linear regression model"
+      ],
+      "correct": 1,
+      "explanation": "Mean Shift updates candidates as the mean of points within a kernel window, converging to local density modes without specifying $K$."
+    },
+    {
+      "question": "What does bandwidth control in Mean Shift clustering?",
+      "options": [
+        "The speed of the network card",
+        "The radius of the kernel window that determines how broadly density peaks are smoothed and how many clusters are discovered",
+        "The number of CPU threads",
+        "The learning rate multiplier"
+      ],
+      "correct": 1,
+      "explanation": "Bandwidth determines the kernel search radius: large bandwidth merges peaks into few clusters; small bandwidth isolates multiple peaks."
+    },
+    {
+      "question": "Which clustering algorithm is best suited for detecting arbitrary-shaped spatial clusters in geographic GPS data?",
+      "options": [
+        "K-Means",
+        "DBSCAN / HDBSCAN",
+        "Logistic Regression",
+        "Gaussian Naive Bayes"
+      ],
+      "correct": 1,
+      "explanation": "GPS coordinates trace non-linear roads, coastlines, and urban clusters with GPS noise, making DBSCAN/HDBSCAN ideal."
+    },
+    {
+      "question": "Why is DBSCAN sensitive to the curse of dimensionality?",
+      "options": [
+        "DBSCAN cannot process more than 3 columns",
+        "In high dimensions, spatial volume explodes and density becomes uniform, making all regions appear sparse unless $\\epsilon$ is set massive",
+        "Because DBSCAN uses tree depth",
+        "Because DBSCAN requires categorical features"
+      ],
+      "correct": 1,
+      "explanation": "As dimensions grow, spatial density drops to near zero; points become equidistant, breaking density-based reachability."
+    },
+    {
+      "question": "What is Affinity Propagation clustering?",
+      "options": [
+        "An algorithm that pairs models in ensembles",
+        "A clustering algorithm based on 'message passing' between data points to identify exemplary points (exemplars) that best represent clusters",
+        "A method for feature selection",
+        "An algorithm that deletes outliers"
+      ],
+      "correct": 1,
+      "explanation": "Affinity Propagation passes responsibility and availability messages between points until optimal exemplar centroids emerge."
+    },
+    {
+      "question": "In Agglomerative Clustering, what does setting `distance_threshold=0` in Scikit-learn do?",
+      "options": [
+        "It stops the model immediately",
+        "It builds the complete tree all the way to the single root node without cutting, allowing the full dendrogram to be visualized",
+        "It causes an error",
+        "It sets all distances to zero"
+      ],
+      "correct": 1,
+      "explanation": "`distance_threshold=0` forces the algorithm to complete all merges up to the root, capturing the full hierarchical tree."
+    },
+    {
+      "question": "What is the linkage criterion that computes the distance between cluster centroids directly?",
+      "options": [
+        "Ward Linkage",
+        "Centroid Linkage (UPGMC)",
+        "Complete Linkage",
+        "Single Linkage"
+      ],
+      "correct": 1,
+      "explanation": "Centroid linkage defines distance as the Euclidean distance between cluster centers: $\\|\\boldsymbol{\\mu}_A - \\boldsymbol{\\mu}_B\\|$."
+    }
+  ],
+  "level": "intermediate"
+}

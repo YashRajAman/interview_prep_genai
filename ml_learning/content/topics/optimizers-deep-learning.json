@@ -1,0 +1,478 @@
+{
+  "id": "optimizers-deep-learning",
+  "title": "Optimizers & Learning Rate Schedules",
+  "description": "SGD with Momentum, Nesterov, AdaGrad, RMSprop, Adam, AdamW (decoupled weight decay), and modern Learning Rate Schedules.",
+  "duration": "35 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Optimizers & Learning Rate Dynamics",
+        "subtitle": "Navigating Non-Convex Loss Landscapes with Adaptive and Momentum Methods"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Optimization Challenge in Deep Learning",
+        "text": "Deep network loss landscapes are high-dimensional, highly non-convex surfaces filled with saddle points, ill-conditioned ravines (where curvature is much steeper in some directions than others), and noisy stochastic gradients. Modern optimizers incorporate **momentum** to accelerate through ravines and **adaptive learning rates** to scale updates per parameter according to historical gradient magnitudes."
+      },
+      {
+        "type": "table",
+        "title": "Evolution of First-Order Optimizers",
+        "headers": [
+          "Optimizer",
+          "Update Equations",
+          "Key Mechanism",
+          "Ideal Use Case"
+        ],
+        "rows": [
+          [
+            "SGD + Momentum",
+            "$v_t = \\beta v_{t-1} + (1-\\beta)g_t$\n$\\theta_t = \\theta_{t-1} - \\alpha v_t$",
+            "Exponential moving average of gradients acts like a heavy ball rolling down a hill; dampens oscillations in steep ravines.",
+            "Computer Vision (ResNets, ConvNets), often achieves superior generalization when tuned."
+          ],
+          [
+            "Nesterov Accelerated Gradient (NAG)",
+            "$v_t = \\beta v_{t-1} + \\alpha \\nabla f(\\theta_{t-1} - \\beta v_{t-1})$\n$\\theta_t = \\theta_{t-1} + v_t$",
+            "Computes gradient at look-ahead position; applies 'brakes' before overshooting valleys.",
+            "High-curvature optimization tasks."
+          ],
+          [
+            "AdaGrad (2011)",
+            "$s_t = s_{t-1} + g_t \\odot g_t$\n$\\theta_t = \\theta_{t-1} - \\frac{\\alpha}{\\sqrt{s_t} + \\epsilon} g_t$",
+            "Divides learning rate by square root of sum of past squared gradients. Frequently decaying step size.",
+            "Sparse data (text/NLP word embeddings); stalls prematurely on deep networks."
+          ],
+          [
+            "RMSprop (Hinton, 2012)",
+            "$s_t = \\beta s_{t-1} + (1-\\beta)g_t^2$\n$\\theta_t = \\theta_{t-1} - \\frac{\\alpha}{\\sqrt{s_t} + \\epsilon} g_t$",
+            "Replaces infinite accumulation with exponentially decaying average of squared gradients.",
+            "Recurrent neural networks (RNNs), non-stationary problems."
+          ],
+          [
+            "Adam (Kingma & Ba, 2014)",
+            "$m_t = \\beta_1 m_{t-1} + (1-\\beta_1) g_t$\n$v_t = \\beta_2 v_{t-1} + (1-\\beta_2) g_t^2$\n$\\hat{m}_t = m_t / (1-\\beta_1^t), \\; \\hat{v}_t = v_t / (1-\\beta_2^t)$",
+            "Combines 1st moment (momentum) and 2nd moment (adaptive variance) with bias correction for zero initialization.",
+            "Default baseline across deep learning, fast early convergence."
+          ],
+          [
+            "AdamW (Loshchilov & Hutter, 2017)",
+            "Decouples $L_2$ weight decay $\\lambda \\theta$ directly from the adaptive gradient updates.",
+            "Fixes incorrect interaction between $L_2$ penalty and adaptive scale $\\sqrt{v_t}$ in Adam.",
+            "Standard default for Transformers (BERT, GPT, Llama, ViT)."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Why AdamW Replaced Adam + L2 Regularization",
+        "text": "In standard Adam with $L_2$ regularization, the weight penalty $\\lambda \\theta$ is added to the gradient $g_t$. The adaptive update then divides this term by $\\sqrt{v_t} + \\epsilon$. As a result, weights with large historical gradients receive *less* weight decay than weights with small gradients! **AdamW fixes this** by applying weight decay directly to $\\theta$ outside the gradient division:\n\n$$\\theta_t = \\theta_{t-1} - \\alpha \\left( \\frac{\\hat{m}_t}{\\sqrt{\\hat{v}_t} + \\epsilon} + \\lambda \\theta_{t-1} \\right)$$"
+      },
+      {
+        "type": "text",
+        "title": "Learning Rate Schedules & Warmup",
+        "body": "The learning rate is the single most important hyperparameter in deep learning:\n\n1. **Linear Warmup:** Start from near zero for the first $K$ steps, ramping up to $\\alpha_{max}$. Prevents unstable gradient updates when initial moments ($m_t, v_t$) are noisy.\n2. **Cosine Annealing:** Smoothly decays $\\alpha$ following a half-cosine curve down to a minimum $\\alpha_{min}$, allowing gentle convergence into flat minima.\n3. **OneCycle Policy (Smith, 2018):** Increases learning rate while decreasing momentum, then decreases learning rate to achieve rapid super-convergence."
+      }
+    ],
+    "code_example": {
+      "title": "Implementing AdamW Optimizer from Scratch in Python",
+      "code": "import numpy as np\nimport matplotlib.pyplot as plt\n\nclass AdamW:\n    def __init__(self, params, lr=1e-3, beta1=0.9, beta2=0.999, eps=1e-8, weight_decay=1e-2):\n        self.params = params\n        self.lr = lr\n        self.beta1 = beta1\n        self.beta2 = beta2\n        self.eps = eps\n        self.weight_decay = weight_decay\n        self.m = [np.zeros_like(p) for p in params]\n        self.v = [np.zeros_like(p) for p in params]\n        self.t = 0\n        \n    def step(self, grads):\n        self.t += 1\n        for i in range(len(self.params)):\n            p = self.params[i]\n            g = grads[i]\n            \n            # Decoupled weight decay update\n            p -= self.lr * self.weight_decay * p\n            \n            # 1st and 2nd moment updates\n            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * g\n            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * (g ** 2)\n            \n            # Bias corrections\n            m_hat = self.m[i] / (1.0 - self.beta1 ** self.t)\n            v_hat = self.v[i] / (1.0 - self.beta2 ** self.t)\n            \n            # Parameter update\n            p -= self.lr * m_hat / (np.sqrt(v_hat) + self.eps)\n\n# Test on 2D Rosenbrock (banana) function: f(x, y) = (1-x)^2 + 100(y - x^2)^2\ntheta = np.array([-1.5, 2.0])\nopt = AdamW([theta], lr=0.05, weight_decay=1e-4)\ntrajectory = [theta.copy()]\n\nfor _ in range(300):\n    x, y = theta[0], theta[1]\n    grad_x = -2 * (1 - x) - 400 * x * (y - x**2)\n    grad_y = 200 * (y - x**2)\n    opt.step([np.array([grad_x, grad_y])])\n    trajectory.append(theta.copy())\n\ntraj = np.array(trajectory)\nprint(f'Optimized Point: x={traj[-1, 0]:.4f}, y={traj[-1, 1]:.4f} (Global min at 1, 1)')\n\nplt.figure(figsize=(6, 4))\nplt.plot(traj[:, 0], traj[:, 1], 'ro-', markersize=2, label='AdamW Path')\nplt.plot(1, 1, 'g*', markersize=12, label='Target (1,1)')\nplt.title('AdamW Optimizing Rosenbrock Valley')\nplt.xlabel('x'); plt.ylabel('y'); plt.grid(True); plt.legend()\nplt.show()"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What is the primary motivation for using mini-batch gradient descent over full-batch gradient descent?",
+      "options": [
+        "Mini-batch updates weights frequently per epoch, escapes shallow local minima via noise, and fits within GPU memory",
+        "Full batch is always slower per iteration",
+        "Mini-batch guarantees exact convergence to zero training loss",
+        "Mini-batch eliminates the need for learning rates"
+      ],
+      "correct": 0,
+      "explanation": "Mini-batch combines computational vectorization efficiency with stochastic gradient noise that helps escape saddle points and fits in VRAM."
+    },
+    {
+      "question": "In SGD with Momentum, what physical analogy describes the moving average of gradients?",
+      "options": [
+        "A heavy iron ball rolling down a curved hill that accumulates velocity and powers through flat areas",
+        "A feather floating in the wind",
+        "An elastic spring oscillating forever",
+        "A rocket with infinite fuel"
+      ],
+      "correct": 0,
+      "explanation": "Momentum acts like velocity of a mass: it dampens rapid oscillations perpendicular to the valley while building speed along the valley floor."
+    },
+    {
+      "question": "What typical values are used for momentum beta (or mu) in practice?",
+      "options": [
+        "0.01",
+        "0.5",
+        "0.9 or 0.99",
+        "1.5"
+      ],
+      "correct": 2,
+      "explanation": "A momentum coefficient of 0.9 (or 0.99) is standard, corresponding to averaging over approximately the last 10 (or 100) steps."
+    },
+    {
+      "question": "How does Nesterov Accelerated Gradient (NAG) differ from standard momentum?",
+      "options": [
+        "It computes the gradient at the 'look-ahead' position (theta - beta * v) rather than the current position",
+        "It sets learning rate to zero",
+        "It only updates biases",
+        "It squares the gradients"
+      ],
+      "correct": 0,
+      "explanation": "Nesterov evaluates the gradient after making an anticipatory momentum step, providing an early correction before overshooting."
+    },
+    {
+      "question": "Why did AdaGrad fail to remain the dominant optimizer for deep neural networks?",
+      "options": [
+        "It was mathematically incorrect",
+        "Its denominator continually sums all past squared gradients from step 1, causing the effective step size to shrink monotonically to near zero before convergence",
+        "It requires second derivatives",
+        "It only works with binary weights"
+      ],
+      "correct": 1,
+      "explanation": "Because the sum of squared gradients grows monotonically with every step, the learning rate decays indefinitely and freezes the model early."
+    },
+    {
+      "question": "How did RMSprop fix the premature stalling issue of AdaGrad?",
+      "options": [
+        "By setting gradients to zero",
+        "By using an exponentially decaying moving average of squared gradients instead of an unweighted infinite sum",
+        "By multiplying gradients by epoch count",
+        "By using matrix inversion"
+      ],
+      "correct": 1,
+      "explanation": "RMSprop keeps an exponential moving average of squared gradients (beta ~ 0.99), discarding distant history and keeping step sizes adaptable."
+    },
+    {
+      "question": "Who proposed the RMSprop optimizer?",
+      "options": [
+        "Yann LeCun in 1989",
+        "Geoffrey Hinton in Lecture 6 of his Coursera deep learning course (2012)",
+        "Diederik Kingma and Jimmy Ba in 2014",
+        "Ian Goodfellow in 2014"
+      ],
+      "correct": 1,
+      "explanation": "Geoffrey Hinton introduced RMSprop in his Coursera online lectures; it became widely adopted before formal journal publication."
+    },
+    {
+      "question": "What does the 'm_t' vector represent in the Adam optimizer?",
+      "options": [
+        "The exponentially decaying average of past gradients (first raw moment / momentum)",
+        "The second uncentered moment (variance)",
+        "The learning rate schedule",
+        "The model weights"
+      ],
+      "correct": 0,
+      "explanation": "m_t tracks the first moment (the mean) of historical gradients, serving as momentum."
+    },
+    {
+      "question": "What does the 'v_t' vector represent in the Adam optimizer?",
+      "options": [
+        "The first moment",
+        "The exponentially decaying average of past squared gradients (second uncentered moment / variance)",
+        "The batch size",
+        "The weight decay parameter"
+      ],
+      "correct": 1,
+      "explanation": "v_t tracks the second moment (variance) of historical gradients, scaling the step size inversely with parameter volatility."
+    },
+    {
+      "question": "Why are bias corrections m_hat = m_t / (1 - beta1^t) and v_hat = v_t / (1 - beta2^t) necessary in Adam?",
+      "options": [
+        "Because m_0 and v_0 are initialized to zero, causing early estimates to be severely biased toward zero when t is small",
+        "To prevent gradients from becoming negative",
+        "To normalize the loss to [0, 1]",
+        "To adjust for CPU floating point inaccuracy"
+      ],
+      "correct": 0,
+      "explanation": "Because m and v start at 0, their early moving averages are heavily biased toward 0. Dividing by (1 - beta^t) provides an unbiased estimator early in training."
+    },
+    {
+      "question": "What are the standard recommended default hyperparameter values for Adam?",
+      "options": [
+        "lr=0.001, beta1=0.9, beta2=0.999, eps=1e-8",
+        "lr=0.1, beta1=0.5, beta2=0.5, eps=1.0",
+        "lr=1.0, beta1=0.0, beta2=0.0, eps=0.0",
+        "lr=0.01, beta1=0.99, beta2=0.9, eps=1e-2"
+      ],
+      "correct": 0,
+      "explanation": "Kingma and Ba empirically recommended lr=1e-3, beta1=0.9, beta2=0.999, and eps=1e-8, which remain standard defaults across frameworks."
+    },
+    {
+      "question": "What fundamental bug in Adam does AdamW (Loshchilov & Hutter, 2017) resolve?",
+      "options": [
+        "Adam fails on multi-class classification",
+        "Adam couples L2 weight decay to gradient updates, dividing decay by sqrt(v) and penalizing frequently updated weights less than rarely updated ones",
+        "Adam crashes on GPUs",
+        "Adam cannot calculate momentum"
+      ],
+      "correct": 1,
+      "explanation": "AdamW decouples weight decay from the adaptive gradient moment denominator, restoring true L2 weight shrinkage."
+    },
+    {
+      "question": "Why do vision models (like ResNets on ImageNet) frequently achieve slightly better test accuracy with SGD + Momentum than standard Adam?",
+      "options": [
+        "Adam requires too much compute",
+        "SGD + Momentum tends to find flatter, more generalizable minima, whereas Adam may overfit to sharp local minima",
+        "Adam cannot optimize convolutional layers",
+        "SGD avoids backpropagation"
+      ],
+      "correct": 1,
+      "explanation": "Empirical studies show that tuned SGD with momentum often finds wider, flatter basins in parameter space, yielding superior out-of-distribution generalization in vision tasks."
+    },
+    {
+      "question": "What is a 'saddle point' in high-dimensional optimization?",
+      "options": [
+        "A point where the loss is absolute zero",
+        "A point where the gradient is zero, but some orthogonal directions curve upward (minima) and others curve downward (maxima)",
+        "A point where loss is infinite",
+        "A point where learning rate is zero"
+      ],
+      "correct": 1,
+      "explanation": "In high dimensions, critical points with zero gradient are almost always saddle points rather than isolated local minima."
+    },
+    {
+      "question": "What is Learning Rate Warmup?",
+      "options": [
+        "Gradually increasing the learning rate from a tiny fraction up to the base learning rate over initial steps or epochs",
+        "Heating up the physical GPU before training starts",
+        "Running the model on the CPU first",
+        "Doubling the batch size every 10 steps"
+      ],
+      "correct": 0,
+      "explanation": "Warmup stabilizes early training by allowing moving moment averages and layer normalizations to initialize stably before large parameter steps occur."
+    },
+    {
+      "question": "What is Cosine Annealing learning rate schedule?",
+      "options": [
+        "Decaying the learning rate following the shape of a cosine curve from max_lr down to min_lr over the training budget",
+        "Randomly oscillating the learning rate with a sine wave",
+        "Setting learning rate equal to cosine of the loss",
+        "Decreasing learning rate by exactly 10% every epoch"
+      ],
+      "correct": 0,
+      "explanation": "Cosine Annealing smoothly reduces the learning rate according to eta_t = eta_min + 0.5 * (eta_max - eta_min) * (1 + cos(pi * t / T_max))."
+    },
+    {
+      "question": "What is the primary behavior of the `ReduceLROnPlateau` scheduler?",
+      "options": [
+        "It reduces learning rate when validation loss stops improving for a specified patience period",
+        "It increases learning rate when loss plateaus",
+        "It halts training immediately",
+        "It randomly resets weights"
+      ],
+      "correct": 0,
+      "explanation": "It monitors a validation metric (e.g. val_loss) and divides the learning rate by a factor (e.g. 0.1) if no improvement is seen after a 'patience' number of epochs."
+    },
+    {
+      "question": "What is 'Stochastic Weight Averaging' (SWA)?",
+      "options": [
+        "Averaging weights along the trajectory of SGD exploration to find wider, flatter minima with better generalization",
+        "Averaging weights across different random seeds before training",
+        "Dividing weights by the number of neurons",
+        "Averaging input features randomly"
+      ],
+      "correct": 0,
+      "explanation": "SWA averages multiple checkpoints along an SGD trajectory with a cyclical or high learning rate, producing an ensemble-like point in a flat loss basin."
+    },
+    {
+      "question": "What is the effect of an excessively high learning rate during training?",
+      "options": [
+        "The loss oscillates wildly or diverges toward infinity (NaN)",
+        "The weights freeze permanently",
+        "The training converges in fewer than 3 steps",
+        "The batch size increases automatically"
+      ],
+      "correct": 0,
+      "explanation": "Too high a learning rate causes weight updates to overshoot the loss valley, leading to numerical overflow and divergence."
+    },
+    {
+      "question": "What is the effect of an excessively low learning rate?",
+      "options": [
+        "Training progresses imperceptibly slowly and may get permanently trapped in suboptimal shallow basins",
+        "Gradients explode immediately",
+        "Weights decay to zero instantly",
+        "Validation loss becomes zero"
+      ],
+      "correct": 0,
+      "explanation": "A learning rate that is too small requires an impractical number of iterations to converge and fails to traverse rough loss surfaces."
+    },
+    {
+      "question": "What is the relationship between batch size and learning rate suggested by the 'Linear Scaling Rule' (Goyal et al., 2017)?",
+      "options": [
+        "When the mini-batch size is multiplied by k, the learning rate should also be multiplied by k (for SGD)",
+        "When batch size is multiplied by k, learning rate must be divided by k",
+        "Learning rate is completely independent of batch size",
+        "Learning rate must be squared when batch size doubles"
+      ],
+      "correct": 0,
+      "explanation": "Goyal et al. demonstrated that scaling learning rate linearly with batch size preserves the magnitude of weight updates over identical amounts of data."
+    },
+    {
+      "question": "What is the Lion optimizer (Google, 2023)?",
+      "options": [
+        "An optimizer using sign operations for momentum that requires only tracking the momentum buffer, cutting optimizer memory by 50% compared to Adam",
+        "A second-order Newton optimizer",
+        "An optimizer designed only for audio models",
+        "A genetic algorithm optimizer"
+      ],
+      "correct": 0,
+      "explanation": "Lion uses sign(beta1 * m + (1-beta1) * g), eliminating the need for a second-moment buffer and saving substantial GPU memory on large models."
+    },
+    {
+      "question": "What is gradient accumulation useful for when training large deep models?",
+      "options": [
+        "Simulating large batch sizes when GPU VRAM limits the physical batch size that can fit concurrently",
+        "Accelerating computation speed by 10x",
+        "Eliminating the need for backward passes",
+        "Calculating exact test error during training"
+      ],
+      "correct": 0,
+      "explanation": "It sums gradients across several small forward/backward passes before calling optimizer.step(), emulating a large batch size."
+    },
+    {
+      "question": "Why is the epsilon parameter (e.g. 1e-8) present in the denominator of adaptive optimizers like Adam and RMSprop?",
+      "options": [
+        "To prevent division by zero when the accumulated second moment v_t is near zero",
+        "To ensure positive weights",
+        "To scale the gradient down by 10^8",
+        "To count the number of training steps"
+      ],
+      "correct": 0,
+      "explanation": "Adding epsilon inside the denominator 1 / (sqrt(v) + eps) ensures numerical stability if past gradients are zero."
+    },
+    {
+      "question": "How does gradient noise in small mini-batch training act as an implicit regularizer?",
+      "options": [
+        "The stochastic fluctuations act like thermal noise that helps the optimizer escape sharp, narrow local minima toward wide, robust minima",
+        "It corrupts the labels deliberately",
+        "It deletes 50% of the weights randomly",
+        "It reduces the dimensionality of input features"
+      ],
+      "correct": 0,
+      "explanation": "Mini-batch sampling noise injects stochasticity into gradients, naturally nudging parameters out of sharp overfitted crevices into flat basins with superior generalization."
+    },
+    {
+      "question": "What is Sharpness-Aware Minimization (SAM)?",
+      "options": [
+        "An optimization technique that seeks parameters in regions with uniformly low loss rather than just minimizing loss at a single point",
+        "A technique that sharpens blurred images before training",
+        "An optimizer that uses knife-edge learning rates",
+        "A method for pruning sharp activation spikes"
+      ],
+      "correct": 0,
+      "explanation": "SAM explicitly minimizes both the loss and loss sharpness (curvature), finding parameters in flat neighborhoods that generalize substantially better."
+    },
+    {
+      "question": "What is the Lookahead optimizer?",
+      "options": [
+        "An outer-loop wrapper that maintains 'slow weights' and 'fast weights', interpolating toward the fast weights every k steps",
+        "An optimizer that peeks at test data labels",
+        "An optimizer that anticipates future batches using time series prediction",
+        "A scheduler that skips forward epochs"
+      ],
+      "correct": 0,
+      "explanation": "Lookahead steps fast weights using standard SGD/Adam and periodically updates slow weights toward them, improving stability and convergence."
+    },
+    {
+      "question": "What is Adafactor, and why is it popular for large language models like T5?",
+      "options": [
+        "It factorizes the 2nd moment matrix into row and column sums, reducing optimizer state memory from O(n*m) to O(n+m)",
+        "It uses 4-bit integer weights only",
+        "It eliminates the loss function",
+        "It is an unregularized variant of SGD"
+      ],
+      "correct": 0,
+      "explanation": "By tracking low-rank row and column projections of squared gradients, Adafactor reduces VRAM memory overhead dramatically for large matrix weights."
+    },
+    {
+      "question": "How does gradient clipping prevent training collapse in Transformers and RNNs?",
+      "options": [
+        "By capping gradient norm at a maximum threshold, preventing occasional catastrophic gradient spikes from destroying learned weights",
+        "By setting gradients to zero if loss increases",
+        "By discarding negative values",
+        "By setting all gradients to exactly 1.0"
+      ],
+      "correct": 0,
+      "explanation": "Clipping guarantees that parameter step updates are strictly bounded in magnitude, even when encountering severe high-curvature landscape features."
+    },
+    {
+      "question": "In PyTorch, what is the effect of setting `betas=(0.9, 0.98)` instead of `(0.9, 0.999)` in Adam?",
+      "options": [
+        "The second moment adapts much faster to recent gradients (averages over ~50 steps instead of ~1000 steps), often used in large Transformer training",
+        "Momentum is disabled entirely",
+        "The learning rate becomes negative",
+        "Weights are clamped to zero"
+      ],
+      "correct": 0,
+      "explanation": "A smaller beta2 (0.98 vs 0.999) reduces the memory window of squared gradients, allowing faster adaptation during rapid loss shifts in language modeling."
+    },
+    {
+      "question": "What happens when learning rate is decayed too early in training?",
+      "options": [
+        "The model stops exploring and prematurely settles into an inferior local minimum",
+        "The model achieves global optimum immediately",
+        "The training time increases by 100x",
+        "The gradients explode"
+      ],
+      "correct": 0,
+      "explanation": "Premature decay freezes the model's exploratory power before finding the optimal attractor basin."
+    },
+    {
+      "question": "What is the Cyclical Learning Rate (CLR) approach?",
+      "options": [
+        "Varying the learning rate cyclically between lower and upper bounds throughout training",
+        "Cycling between different optimizers every epoch",
+        "Rotating the training data 90 degrees",
+        "Switching between CPU and GPU dynamically"
+      ],
+      "correct": 0,
+      "explanation": "CLR periodically increases and decreases the learning rate, allowing the optimizer to transiently escape saddle points without manual scheduling."
+    },
+    {
+      "question": "What does learning rate 'Warm Restarts' (SGDR) do?",
+      "options": [
+        "Periodically resets the learning rate back to its maximum value and decays it via cosine annealing over increasing cycle lengths",
+        "Re-initializes all weights randomly",
+        "Restarts the computer server when loss reaches zero",
+        "Clears the cache every 10 epochs"
+      ],
+      "correct": 0,
+      "explanation": "SGDR decays learning rate to near zero, then restarts it back to maximum to jump out of local minima, often doubling cycle length (T_mult=2)."
+    },
+    {
+      "question": "Which optimizer state consumes the most GPU memory during FP32 Adam training?",
+      "options": [
+        "Two state buffers per trainable parameter (first moment m and second moment v), requiring 8 bytes of optimizer states per parameter",
+        "The loss history array",
+        "The learning rate float scalar",
+        "The mini-batch index counter"
+      ],
+      "correct": 0,
+      "explanation": "For each 4-byte FP32 weight, Adam requires 4 bytes for momentum and 4 bytes for variance, totaling 8 bytes of optimizer states (plus 4 bytes for gradient and 4 bytes for weight = 16 bytes total per parameter)."
+    },
+    {
+      "question": "What is 8-bit Adam (BitsAndBytes)?",
+      "options": [
+        "Quantizing the optimizer moment states (m and v) to non-linear 8-bit representations, cutting optimizer VRAM by 75% with zero loss in convergence",
+        "Training the entire model using only 8-bit integers",
+        "Running the optimizer on 8 parallel CPUs",
+        "A model with only 8 layers"
+      ],
+      "correct": 0,
+      "explanation": "Tim Dettmers' 8-bit Adam stores momentum and variance in block-wise 8-bit floats, drastically reducing VRAM while maintaining FP32 update precision."
+    }
+  ],
+  "level": "advanced"
+}

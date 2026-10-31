@@ -1,0 +1,470 @@
+{
+  "id": "rag-vector-db",
+  "title": "Retrieval-Augmented Generation & Vector DBs",
+  "description": "Dense vs Sparse Retrieval, HNSW, FAISS, Chunking strategies, Re-ranking with Cross-Encoders, and HyDE.",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Retrieval-Augmented Generation (RAG) & Vector Search",
+        "subtitle": "Grounding Generative AI on External Knowledge to Eliminate Hallucinations"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is Retrieval-Augmented Generation (Lewis et al., 2020)?",
+        "text": "Parametric knowledge stored in LLM weights suffers from knowledge cutoffs, hallucination of non-existent facts, and inability to access private proprietary data. **RAG** resolves this by pairing an information retrieval system with a generative model:\n1. **Retrieve:** Given user query $q$, search external knowledge bases to find the top-$k$ most relevant text chunks $\\{d_1, \\dots, d_k\\}$.\n2. **Augment:** Construct a context-rich prompt: $\\text{Prompt} = [\\text{SystemInstructions}, d_1, \\dots, d_k, q]$.\n3. **Generate:** The LLM generates an answer grounded strictly on the retrieved context."
+      },
+      {
+        "type": "table",
+        "title": "Retrieval Paradigms: Sparse vs Dense vs Hybrid",
+        "headers": [
+          "Retriever Type",
+          "Underlying Mechanism",
+          "Strengths",
+          "Weaknesses",
+          "Examples"
+        ],
+        "rows": [
+          [
+            "Sparse (Lexical)",
+            "Exact keyword matching via inverted indices and Term Frequency-Inverse Document Frequency.",
+            "High precision on domain-specific codes, part numbers, exact acronyms, and product IDs.",
+            "Vulnerable to vocabulary mismatch (synonyms: 'automobile' vs 'car').",
+            "BM25, TF-IDF, Elasticsearch, SPLADE."
+          ],
+          [
+            "Dense (Semantic)",
+            "Deep bi-encoders project text into continuous semantic vector embeddings; computes cosine/dot-product distance.",
+            "Understands conceptual intent, synonyms, and multilingual semantics.",
+            "Can miss exact alphanumeric part numbers; computationally heavier.",
+            "OpenAI text-embedding-3, BGE, E5, Cohere Embed."
+          ],
+          [
+            "Hybrid Retrieval",
+            "Combines sparse (BM25) and dense retrieval scores using **Reciprocal Rank Fusion (RRF)**.",
+            "Best of both worlds: robust keyword matching and deep semantic understanding.",
+            "Requires managing two search indices concurrently.",
+            "Pinecone Hybrid, Weaviate, Qdrant, Elasticsearch."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Reciprocal Rank Fusion (RRF) Formula",
+        "text": "Given rankings from multiple retrievers $R \\in \\mathcal{R}$ for document $d$, RRF calculates a combined score:\n\n$$\\text{RRF}(d) = \\sum_{R \\in \\mathcal{R}} \\frac{1}{k + \\text{rank}_R(d)}$$\n\nWhere $k$ is a constant (typically $k=60$) that prevents top-ranked items from drowning out consistent runners-up across systems."
+      },
+      {
+        "type": "text",
+        "title": "Vector Indexing Algorithms: Flat vs IVF vs HNSW",
+        "body": "- **Flat Index:** Exact brute-force $O(N)$ comparison against all $N$ vectors. 100% recall, but completely unscalable beyond $100,000$ vectors.\n- **Inverted File (IVF):** Partitions vector space into Voronoi cells via k-means. Queries search only the nearest centroids and their associated inverted lists.\n- **Hierarchical Navigable Small World (HNSW, Malkov & Yashunin, 2018):** State-of-the-art multi-layer proximity graph. Queries enter at a sparse top layer and greedily zoom into fine-grained local neighborhoods in $O(\\log N)$ time."
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "Two-Stage Retrieval with Cross-Encoder Re-Ranking",
+        "text": "1. **Stage 1 (Bi-Encoder Retrieval):** Fast vector search retrieves candidate pool of top-50 documents in $<15\\text{ms}$.\n2. **Stage 2 (Cross-Encoder Re-Ranker):** Concatenates $[\\text{query}, d_i]$ and passes it through a deep bidirectional Transformer with full cross-attention. Ranks top-50 candidates with high precision down to the top-5 documents fed to the LLM."
+      }
+    ],
+    "code_example": {
+      "title": "Minimal In-Memory RAG System with Vector Search in NumPy",
+      "code": "import numpy as np\n\n# Simulated embedding function (producing normalized 4D vectors)\ndef mock_embed(text):\n    np.random.seed(abs(hash(text)) % (2**32))\n    v = np.random.randn(4)\n    return v / np.linalg.norm(v)\n\n# Knowledge Base documents\ncorpus = [\n    'FastAPI is a modern, fast web framework for building APIs with Python 3.8+.',\n    'Convolutional neural networks excel at extracting 2D spatial features from images.',\n    'Retrieval-Augmented Generation combines external document retrieval with LLMs to reduce hallucination.',\n    'Gradient descent updates weights in the opposite direction of the loss gradient.'\n]\n\n# Build vector index\nindex = np.array([mock_embed(doc) for doc in corpus])\n\n# Query\nquery = 'How to stop LLM hallucinations using external documents?'\nq_vec = mock_embed(query)\n\n# Cosine similarity search (dot product of unit vectors)\nsimilarities = np.dot(index, q_vec)\ntop_idx = np.argmax(similarities)\n\nprint(f'Query: \"{query}\"')\nprint(f'Top Match Score: {similarities[top_idx]:.4f}')\nprint(f'Retrieved Document: \"{corpus[top_idx]}\"')\n\n# Construct Grounded Prompt\nprompt = f'''Context:\\n{corpus[top_idx]}\\n\\nQuestion: {query}\\nAnswer based ONLY on the context above:'''\nprint('\\n=== Constructed Grounded Prompt ===\\n' + prompt)"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What is the primary motivation for Retrieval-Augmented Generation (RAG)?",
+      "options": [
+        "Grounding LLM outputs in verified external knowledge to reduce hallucinations, provide citations, and access proprietary data without full retraining",
+        "To train smaller models from scratch",
+        "To speed up Python code execution",
+        "To eliminate the need for vector databases"
+      ],
+      "correct": 0,
+      "explanation": "RAG connects LLMs to external dynamic databases, grounding responses in retrieved evidence to eliminate hallucinations and knowledge obsolescence."
+    },
+    {
+      "question": "What is the fundamental difference between a Bi-Encoder and a Cross-Encoder?",
+      "options": [
+        "A Bi-Encoder embeds queries and documents into vectors independently for fast search; a Cross-Encoder processes (query, doc) pairs jointly through full cross-attention",
+        "Bi-Encoders have two GPUs; Cross-Encoders have one",
+        "Bi-Encoders only work on images",
+        "Cross-Encoders cannot compute similarity"
+      ],
+      "correct": 0,
+      "explanation": "Bi-encoders produce decoupled vector representations for ultra-fast ANN search; cross-encoders compute deep query-document cross-attention for high-precision re-ranking."
+    },
+    {
+      "question": "Why cannot Cross-Encoders be used for Stage 1 initial retrieval over millions of documents?",
+      "options": [
+        "Evaluating a Cross-Encoder requires running the heavy Transformer model for every single document in the database, which is computationally intractable for millions of docs",
+        "Cross-Encoders cannot run on GPUs",
+        "Cross-Encoders only output binary numbers",
+        "Cross-Encoders require unlabelled data"
+      ],
+      "correct": 0,
+      "explanation": "Comparing a query against 1 million documents with a Cross-Encoder would require 1 million full forward passes, causing unacceptable latency."
+    },
+    {
+      "question": "What is Hierarchical Navigable Small World (HNSW)?",
+      "options": [
+        "A graph-based approximate nearest neighbor algorithm that organizes vectors into a hierarchy of proximity graphs for logarithmic-time search",
+        "A neural network that navigates small worlds",
+        "A routing protocol for smart homes",
+        "A compression format for video"
+      ],
+      "correct": 0,
+      "explanation": "HNSW structures vectors into multi-layer skip-list graphs, enabling logarithmic O(log N) approximate nearest neighbor search with exceptional recall."
+    },
+    {
+      "question": "What is Inverted File with Product Quantization (IVF-PQ)?",
+      "options": [
+        "A vector indexing method that clusters vectors into Voronoi cells and compresses high-dimensional vectors into short byte codes to slash RAM usage",
+        "An image search algorithm for inverted colors",
+        "A method for training neural networks backwards",
+        "A file system for storing PDFs"
+      ],
+      "correct": 0,
+      "explanation": "IVF-PQ partitions the space with k-means and compresses residual vectors via product quantization, reducing memory footprint by up to 95%."
+    },
+    {
+      "question": "What is the difference between Cosine Similarity and Dot Product for normalized vectors?",
+      "options": [
+        "They are mathematically identical: if vectors have unit L2 norm (||u|| = 1), cosine similarity equals their dot product",
+        "Cosine similarity is always negative",
+        "Dot product requires square matrices",
+        "Cosine similarity ignores the angle"
+      ],
+      "correct": 0,
+      "explanation": "When vectors are L2-normalized to unit length, cosine(u, v) = (u . v) / (1 * 1) = u . v."
+    },
+    {
+      "question": "What is the BM25 algorithm?",
+      "options": [
+        "A probabilistic sparse retrieval algorithm based on TF-IDF that incorporates document length normalization and term frequency saturation",
+        "A neural network architecture with 25 layers",
+        "A benchmark for 25 large models",
+        "A compression format for text"
+      ],
+      "correct": 0,
+      "explanation": "BM25 (Best Matching 25) is the industry-standard lexical keyword ranking algorithm used in search engines like Lucene and Elasticsearch."
+    },
+    {
+      "question": "What is Vocabulary Mismatch in information retrieval?",
+      "options": [
+        "When a user query uses different words from a document even though they mean the same concept (e.g. 'automobile repair' vs 'car fixing')",
+        "When the tokenizer runs out of memory",
+        "When text has spelling mistakes",
+        "When a foreign language is used"
+      ],
+      "correct": 0,
+      "explanation": "Sparse lexical search fails when synonyms differ; dense vector embeddings overcome vocabulary mismatch by embedding semantic meaning."
+    },
+    {
+      "question": "What is Hybrid Search in modern RAG systems?",
+      "options": [
+        "Combining sparse lexical retrieval (BM25) with dense semantic vector search to capture both exact keyword matches and conceptual intent",
+        "Searching across both audio and video",
+        "Using both CPU and GPU for search",
+        "Searching two different websites simultaneously"
+      ],
+      "correct": 0,
+      "explanation": "Hybrid search leverages BM25 for precise keywords (acronyms, serial numbers) and dense embeddings for semantic context, merging rankings."
+    },
+    {
+      "question": "What is Reciprocal Rank Fusion (RRF)?",
+      "options": [
+        "An algorithm that merges ranked lists from different retrieval systems by summing reciprocal rank scores: sum 1 / (k + rank_i)",
+        "A method for fusing two neural networks",
+        "A technique for nuclear fusion simulations",
+        "A sorting algorithm for integers"
+      ],
+      "correct": 0,
+      "explanation": "RRF combines multiple ranked lists without needing score calibration, stably rewarding documents ranked highly across multiple retrievers."
+    },
+    {
+      "question": "Why is Chunking necessary before indexing documents for RAG?",
+      "options": [
+        "Documents are too large to fit effectively into embedding models and LLM context windows; chunking splits text into coherent, semantically focused passages",
+        "Because vector databases can only store 10 words per file",
+        "To delete punctuation marks",
+        "To hide private data"
+      ],
+      "correct": 0,
+      "explanation": "Chunking breaks lengthy documents into granular passages (e.g. 256-512 tokens), preserving local semantic specificity for accurate retrieval."
+    },
+    {
+      "question": "What is 'Chunk Overlap' and why is it used?",
+      "options": [
+        "Retaining a small percentage (e.g. 10-20%) of shared tokens between consecutive chunks to prevent contextual fractures at boundary seams",
+        "Duplicating all documents twice",
+        "Overlapping vector database indices across servers",
+        "A memory leak in text processing"
+      ],
+      "correct": 0,
+      "explanation": "Chunk overlap ensures that sentences crossing chunk boundaries are not split in half, preserving semantic continuity."
+    },
+    {
+      "question": "What is Semantic Chunking?",
+      "options": [
+        "Splitting text dynamically at points where the semantic distance between adjacent sentence embeddings exceeds a threshold, rather than at fixed character counts",
+        "Splitting text by alphabet letters",
+        "Cutting paragraphs in half",
+        "Chunking based on file size"
+      ],
+      "correct": 0,
+      "explanation": "Semantic chunking monitors cosine distance between consecutive sentences, creating chunk boundaries only when topics shift significantly."
+    },
+    {
+      "question": "What is Parent-Child (Hierarchical) Chunking?",
+      "options": [
+        "Indexing small child chunks for granular vector search, but retrieving the surrounding larger parent chunk to provide complete context to the LLM",
+        "Chunking files into folders and subfolders",
+        "A method for training child neural networks",
+        "A model that inherits from another model"
+      ],
+      "correct": 0,
+      "explanation": "Small child chunks produce sharp, accurate embedding matches, while passing the broader parent chunk to the LLM provides sufficient context for generation."
+    },
+    {
+      "question": "What is Hypothetical Document Embeddings (HyDE, Gao et al., 2022)?",
+      "options": [
+        "Using an LLM to generate a hypothetical answer to the query, then embedding that hypothetical document to search for real documents with similar content",
+        "Searching for documents that do not exist",
+        "A loss function for embeddings",
+        "A method for generating false data"
+      ],
+      "correct": 0,
+      "explanation": "HyDE transforms an uninformative short query into a rich, hypothetical document vector that matches the embedding manifold of real corpus passages."
+    },
+    {
+      "question": "What is 'Lost in the Middle' phenomenon (Liu et al., 2023) in long-context LLMs?",
+      "options": [
+        "LLMs recall information located at the very beginning or end of long context prompts significantly better than information buried in the middle",
+        "LLMs crashing when reading 100 pages",
+        "Tokens being randomly deleted during inference",
+        "Attention weights becoming zero in the middle of a sentence"
+      ],
+      "correct": 0,
+      "explanation": "Empirical benchmarks prove that language models exhibit a U-shaped performance curve, frequently failing to retrieve facts located in the middle third of context windows."
+    },
+    {
+      "question": "How can Re-ranking mitigate the 'Lost in the Middle' problem?",
+      "options": [
+        "By sorting the most critical retrieved documents to the very top and very bottom of the context prompt",
+        "By deleting all middle documents",
+        "By reversing the entire prompt",
+        "By training with larger learning rates"
+      ],
+      "correct": 0,
+      "explanation": "Cross-encoder re-ranking surfaces the most relevant passages and places them at the beginning (or ends) where the model's attention is sharpest."
+    },
+    {
+      "question": "What is Self-RAG (Asai et al., 2023)?",
+      "options": [
+        "A framework where an LLM dynamically decides when to retrieve, evaluates the relevance of retrieved passages, and critiques its own generated output via reflection tokens",
+        "A RAG system running on a local laptop",
+        "A model that writes its own code",
+        "A vector database that updates itself"
+      ],
+      "correct": 0,
+      "explanation": "Self-RAG trains models with specialized critique tokens (`[Retrieve]`, `[IsRel]`, `[IsSup]`) to retrieve adaptively and verify answer faithfulness."
+    },
+    {
+      "question": "What is Corrective RAG (CRAG, Yan et al., 2024)?",
+      "options": [
+        "A framework that evaluates retrieval quality with a lightweight evaluator: if confidence is high, it refines documents; if low, it falls back to web search",
+        "Correcting grammar errors in prompts",
+        "A spellchecker for vector databases",
+        "A method for fixing broken embeddings"
+      ],
+      "correct": 0,
+      "explanation": "CRAG assesses retrieval confidence and triggers alternative retrieval pathways (like external web search) when local corpus retrieval is deemed poor."
+    },
+    {
+      "question": "What is Sentence-Window Retrieval?",
+      "options": [
+        "Embedding individual sentences for precise search, but replacing the retrieved sentence with a surrounding window of k sentences before prompt injection",
+        "Opening a sentence in a new desktop window",
+        "Splitting sentences by punctuation",
+        "A sliding window attention mechanism"
+      ],
+      "correct": 0,
+      "explanation": "Sentence-window retrieval matches single sentences for pinpoint precision, while surrounding window context provides necessary paragraph nuance."
+    },
+    {
+      "question": "What is Multi-Query Retrieval (Query Expansion)?",
+      "options": [
+        "Using an LLM to generate multiple alternative phrasings and perspectives of the user query, executing searches for all of them, and pooling results",
+        "Running 10 queries on Google",
+        "Searching with multiple users at once",
+        "A SQL JOIN operation"
+      ],
+      "correct": 0,
+      "explanation": "Multi-query expansion overcomes prompt phrasing limitations by querying the vector store from multiple conceptual angles and taking the union of top results."
+    },
+    {
+      "question": "What is Contextual Compression in RAG?",
+      "options": [
+        "Extracting only the specific sentences or spans within a retrieved document that are relevant to the query, discarding irrelevant background filler",
+        "Compressing documents using Gzip before sending to LLM",
+        "Quantizing text to 8-bit characters",
+        "Summarizing documents into 1 word"
+      ],
+      "correct": 0,
+      "explanation": "Contextual compression extracts only the salient facts from retrieved passages, minimizing token count and reducing context clutter."
+    },
+    {
+      "question": "What is RAG Triad of Metrics (TruLens / Ragas)?",
+      "options": [
+        "Context Relevance, Groundedness (Faithfulness), and Answer Relevance",
+        "Precision, Recall, and F1 Score",
+        "Latency, Throughput, and VRAM",
+        "Accuracy, Loss, and Perplexity"
+      ],
+      "correct": 0,
+      "explanation": "The RAG evaluation triad measures: 1. Did we retrieve relevant context? 2. Is the answer supported by context? 3. Does the answer address the question?"
+    },
+    {
+      "question": "What does 'Faithfulness' measure in RAG evaluation?",
+      "options": [
+        "The extent to which all claims in the generated response can be directly inferred from the provided context passages",
+        "How much the user trusts the system",
+        "Whether the model uses correct grammar",
+        "The uptime of the API server"
+      ],
+      "correct": 0,
+      "explanation": "Faithfulness measures the absence of hallucinations by verifying that all generated statements are grounded in retrieved evidence."
+    },
+    {
+      "question": "What is Context Recall in RAG evaluation?",
+      "options": [
+        "The extent to which all necessary information required to answer the question was successfully retrieved in the context",
+        "The speed of the vector index",
+        "The memory size of the index",
+        "The number of chunks retrieved"
+      ],
+      "correct": 0,
+      "explanation": "Context recall evaluates whether the retriever brought back all relevant facts present in the ground-truth reference answer."
+    },
+    {
+      "question": "What is an Inverted Index in information retrieval?",
+      "options": [
+        "A data structure mapping each unique word to the list of documents and positions where that word occurs",
+        "An index stored in reverse alphabetical order",
+        "An index that inverts pixel values",
+        "A database that reads from bottom to top"
+      ],
+      "correct": 0,
+      "explanation": "Inverted indices allow instant O(1) keyword lookups by mapping tokens to postings lists of document IDs."
+    },
+    {
+      "question": "What is Metadata Filtering in Vector Databases?",
+      "options": [
+        "Filtering vectors by scalar metadata attributes (e.g. `user_id == '123' AND date >= 2024`) before or during approximate nearest neighbor search",
+        "Deleting corrupted vector files",
+        "Filtering out stopwords from metadata",
+        "Renaming database columns"
+      ],
+      "correct": 0,
+      "explanation": "Metadata filtering restricts vector search to authorized or relevant subsets based on structured relational tags."
+    },
+    {
+      "question": "What is the difference between Pre-Filtering and Post-Filtering in vector databases?",
+      "options": [
+        "Pre-filtering applies metadata constraints before vector similarity calculation; post-filtering searches the whole vector space first and discards matches that fail metadata rules",
+        "Pre-filtering is only for text; post-filtering is for images",
+        "Post-filtering runs on CPUs; pre-filtering on GPUs",
+        "They are identical in performance"
+      ],
+      "correct": 0,
+      "explanation": "Pre-filtering guarantees metadata criteria are satisfied and restricts the search scope; post-filtering can return zero results if top vector matches all fail metadata checks."
+    },
+    {
+      "question": "What is ColBERT (Khattab & Zaharia, 2020)?",
+      "options": [
+        "A late-interaction retrieval model that computes token-level vector representations and computes maximum similarity scores via MaxSim: sum_q max_d (q . d)",
+        "A model that translates between English and French",
+        "A sparse retrieval model based on BM25",
+        "A video retrieval architecture"
+      ],
+      "correct": 0,
+      "explanation": "ColBERT preserves rich token-level contextual embeddings while retaining near-bi-encoder search speed via efficient MaxSim matrix operations."
+    },
+    {
+      "question": "What is SPLADE (Formal et al., 2021)?",
+      "options": [
+        "A neural sparse retrieval model that uses a masked language model to expand queries and documents into rich, sparse lexical representations over vocabulary tokens",
+        "A vector database written in Rust",
+        "A chunking library for PDFs",
+        "A method for splitting datasets"
+      ],
+      "correct": 0,
+      "explanation": "SPLADE learns sparse lexical representations with automatic term expansion, outperforming BM25 while executing on traditional inverted index engines."
+    },
+    {
+      "question": "What is GraphRAG (Edge et al., Microsoft 2024)?",
+      "options": [
+        "Extracting knowledge graphs (entities, relations, claims) from raw text with an LLM and using community detection summaries to answer global corpus-wide questions",
+        "A RAG system for social networks only",
+        "Plotting RAG metrics on a graph",
+        "A database using graph neural networks for image search"
+      ],
+      "correct": 0,
+      "explanation": "GraphRAG builds structured knowledge graphs from unstructured text, enabling holistic answers to broad questions like 'What are the main themes of this entire corpus?'"
+    },
+    {
+      "question": "What is the impact of embedding dimension on vector database memory?",
+      "options": [
+        "A 1536-dimensional float32 vector requires 6,144 bytes per vector; 1 million vectors consume ~6 GB of RAM just for raw vector data",
+        "Embedding dimension has zero impact on memory",
+        "Higher dimension always uses less memory",
+        "Vectors are stored as 1-bit integers"
+      ],
+      "correct": 0,
+      "explanation": "Memory scales linearly with vector dimension: dim * 4 bytes per vector (e.g. 1536 * 4 = 6.144 KB per vector)."
+    },
+    {
+      "question": "What is Matryoshka Representation Learning (MRL, Kusupati et al., 2022)?",
+      "options": [
+        "Training embedding models so that the first d dimensions (e.g. 256 of 1024) form valid, high-performing embeddings, allowing flexible dimension truncation to save 75% memory",
+        "An embedding model developed in Russia",
+        "A model with nested recursive layers",
+        "A technique for stacking doll images"
+      ],
+      "correct": 0,
+      "explanation": "MRL enforces information density into early dimensions, enabling practitioners to truncate vectors (e.g. 1536 -> 512) with negligible loss in retrieval recall."
+    },
+    {
+      "question": "What is Distance Metric selection in vector search (Euclidean L2 vs Cosine vs Inner Product)?",
+      "options": [
+        "If vectors are L2-normalized, Cosine Similarity, Inner Product, and Euclidean distance produce identical ranking orders",
+        "Inner Product only works on integers",
+        "Cosine distance is non-linear",
+        "Euclidean distance cannot run on GPUs"
+      ],
+      "correct": 0,
+      "explanation": "For unit-normalized vectors: ||u - v||^2 = 2 - 2*(u . v). Thus, ranking by minimum Euclidean distance is mathematically identical to ranking by maximum dot product or cosine."
+    },
+    {
+      "question": "What is 'Chunk Size' optimization trade-off in RAG?",
+      "options": [
+        "Small chunks capture specific facts but lack context; large chunks preserve complete context but dilute semantic specificity and fill LLM context budgets",
+        "Small chunks take longer to embed",
+        "Large chunks cannot be stored in databases",
+        "Chunk size has no effect on retrieval"
+      ],
+      "correct": 0,
+      "explanation": "Tuning chunk size (typically 256-1024 tokens) balances pinpoint search relevance against broad context sufficiency."
+    }
+  ],
+  "level": "professional"
+}

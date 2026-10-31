@@ -1,0 +1,453 @@
+{
+  "id": "model-evaluation",
+  "title": "Model Evaluation: Accuracy, Precision, Recall, F1 & ROC",
+  "description": "Confusion matrix, Accuracy paradox, Precision vs Recall trade-off, F1-Score, F-beta, ROC-AUC, PR-AUC, and regression evaluation metrics.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Model Evaluation & Performance Metrics",
+        "subtitle": "Choosing the Right Evaluation Metric for Symmetric and Asymmetric Decision Costs"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Confusion Matrix",
+        "content": "Every binary prediction falls into one of four fundamental quadrants:\n\n| | Predicted Negative (0) | Predicted Positive (1) |\n|---|---|---|\n| **Actual Negative (0)** | **True Negative (TN)** ✅ | **False Positive (FP)** ❌ (Type I Error) |\n| **Actual Positive (1)** | **False Negative (FN)** ❌ (Type II Error) | **True Positive (TP)** ✅ |\n\n- **Accuracy:** $\\frac{TP + TN}{TP + TN + FP + FN}$ (Deceptive under class imbalance!)\n- **Precision:** $\\frac{TP}{TP + FP}$ ('When the model flags fraud, how often is it right?')\n- **Recall (Sensitivity / True Positive Rate):** $\\frac{TP}{TP + FN}$ ('Of all real fraud, how much did we catch?')\n- **Specificity (True Negative Rate):** $\\frac{TN}{TN + FP}$\n- **F1-Score:** Harmonic mean of Precision and Recall: $2 \\times \\frac{\\text{Precision} \\times \\text{Recall}}{\\text{Precision} + \\text{Recall}}$"
+      },
+      {
+        "type": "text",
+        "title": "The Precision-Recall Trade-off",
+        "content": "By shifting the classification decision threshold $t \\in [0, 1]$:\n- **Lowering Threshold ($t = 0.2$):** Flags more items as positive. Recall increases, but False Positives increase, driving **Precision down**.\n- **Raising Threshold ($t = 0.8$):** Flags only highly confident positives. Precision increases, but False Negatives increase, driving **Recall down**."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "When to Prioritize Precision vs. Recall",
+        "content": "| Objective | High Priority Metric | Primary Danger | Real-World Application |\n|---|---|---|---|\n| **High Cost of False Positives** | **Precision** | Annoying users with false alarms | Spam filtering (don't delete important client emails), hiring shortlists |\n| **High Cost of False Negatives** | **Recall** | Letting a catastrophic event slip through undetected | Cancer detection, credit card fraud, airport security weapon screening |\n| **Balanced Evaluation** | **F1-Score** or **PR-AUC** | Balances false positives and false negatives | Search retrieval, document tagging, general benchmark comparisons |"
+      },
+      {
+        "type": "text",
+        "title": "Regression Metrics Summary Table",
+        "content": "| Metric | Mathematical Formula | Units | Sensitivity to Outliers |\n|---|---|---|---|\n| **MAE** | $\\frac{1}{n} \\sum |y_i - \\hat{y}_i|$ | Same as target $y$ | Robust to extreme outliers |\n| **MSE** | $\\frac{1}{n} \\sum (y_i - \\hat{y}_i)^2$ | Squared units ($y^2$) | Highly sensitive to outliers (quadratic penalty) |\n| **RMSE** | $\\sqrt{\\frac{1}{n} \\sum (y_i - \\hat{y}_i)^2}$ | Same as target $y$ | Sensitive to outliers; standard in regression |\n| **$R^2$** | $1 - \\frac{\\sum (y_i - \\hat{y}_i)^2}{\\sum (y_i - \\bar{y})^2}$ | Unitless ($-\\infty$ to $1$) | Relative performance vs naive mean baseline |"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Senior Engineer Rule",
+        "content": "Never evaluate an imbalanced classification problem using raw Accuracy. Always inspect the full **Confusion Matrix**, track **PR-AUC**, and calibrate the decision threshold to align with business costs."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "statistics-calculator",
+    "title": "Confusion Matrix & Metric Calculator",
+    "description": "Enter TP, FP, TN, and FN counts to compute Accuracy, Precision, Recall, Specificity, and F1-Score instantly.",
+    "metrics": [
+      "accuracy",
+      "precision",
+      "recall",
+      "specificity",
+      "f1_score"
+    ]
+  },
+  "code": {
+    "description": "Compute a Confusion Matrix, calculate Precision/Recall/F1, and plot ROC and Precision-Recall curves using Scikit-learn.",
+    "starter": "import numpy as np\nfrom sklearn.metrics import confusion_matrix, classification_report, roc_auc_score, average_precision_score\n\n# Simulated Ground Truth and Predicted Probabilities\ny_true = np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1])  # 8 negatives, 2 positives (imbalanced)\ny_probs = np.array([0.05, 0.12, 0.08, 0.65, 0.22, 0.15, 0.03, 0.45, 0.78, 0.88])\n\n# Default threshold = 0.5\ny_pred = (y_probs >= 0.5).astype(int)\n\nprint('=== Confusion Matrix (Threshold = 0.5) ===')\ncm = confusion_matrix(y_true, y_pred)\nprint('               Predicted 0  Predicted 1')\nprint(f'Actual 0 (TN/FP):    {cm[0][0]:2d}          {cm[0][1]:2d}')\nprint(f'Actual 1 (FN/TP):    {cm[1][0]:2d}          {cm[1][1]:2d}')\n\nprint('\\n=== Classification Report ===')\nprint(classification_report(y_true, y_pred, target_names=['Class 0', 'Class 1']))\nprint(f'ROC-AUC Score: {roc_auc_score(y_true, y_probs):.4f}')\nprint(f'PR-AUC Score:  {average_precision_score(y_true, y_probs):.4f}')\n"
+  },
+  "quiz": [
+    {
+      "question": "In binary classification, what is a False Positive (Type I Error)?",
+      "options": [
+        "Predicting negative when the actual label is negative",
+        "Predicting positive when the actual label is negative (false alarm)",
+        "Predicting positive when the actual label is positive",
+        "A syntax error in code"
+      ],
+      "correct": 1,
+      "explanation": "A False Positive occurs when the model incorrectly flags a negative observation as positive."
+    },
+    {
+      "question": "What is a False Negative (Type II Error)?",
+      "options": [
+        "Predicting negative when the actual label is positive (a miss)",
+        "Predicting positive when the actual label is negative",
+        "A prediction that took too long to compute",
+        "A data point with zero features"
+      ],
+      "correct": 0,
+      "explanation": "A False Negative occurs when a real positive case is missed by the model (falsely labeled negative)."
+    },
+    {
+      "question": "What is the formula for Precision?",
+      "options": [
+        "$\\frac{TP}{TP + FN}$",
+        "$\\frac{TP}{TP + FP}$",
+        "$\\frac{TN}{TN + FP}$",
+        "$\\frac{TP + TN}{Total}$"
+      ],
+      "correct": 1,
+      "explanation": "Precision is $\\frac{TP}{TP + FP}$: of all predicted positives, the fraction that were truly positive."
+    },
+    {
+      "question": "What is the formula for Recall (Sensitivity / True Positive Rate)?",
+      "options": [
+        "$\\frac{TP}{TP + FP}$",
+        "$\\frac{TP}{TP + FN}$",
+        "$\\frac{TN}{TN + FP}$",
+        "$\\frac{FP}{FP + TN}$"
+      ],
+      "correct": 1,
+      "explanation": "Recall is $\\frac{TP}{TP + FN}$: of all actual ground-truth positives, the fraction caught by the model."
+    },
+    {
+      "question": "What is the Accuracy Paradox in machine learning?",
+      "options": [
+        "Models running slower as accuracy increases",
+        "In imbalanced datasets, a trivial model predicting only the majority class achieves deceptively high accuracy while having zero utility",
+        "Models having higher test accuracy than training accuracy",
+        "Accuracy exceeding 100%"
+      ],
+      "correct": 1,
+      "explanation": "If 99% of data is negative, a model predicting negative 100% of the time gets 99% accuracy while catching zero positives."
+    },
+    {
+      "question": "Why is the F1-Score calculated as the harmonic mean of Precision and Recall rather than the arithmetic average?",
+      "options": [
+        "Because harmonic mean executes faster",
+        "The harmonic mean severely penalizes extreme disparities, remaining low if either Precision or Recall is close to zero",
+        "Because arithmetic averages cannot be computed in Python",
+        "Because F1 is a probability"
+      ],
+      "correct": 1,
+      "explanation": "The harmonic mean $\\frac{2PR}{P+R}$ penalizes lopsided models; if Precision is 1.0 but Recall is 0.01, arithmetic mean is 0.505, but F1 is only 0.0198!"
+    },
+    {
+      "question": "In an email spam filter, which error is generally far more disruptive to user experience?",
+      "options": [
+        "False Negative (a spam email reaches the inbox)",
+        "False Positive (an important client contract or job offer email is deleted/sent to spam)",
+        "Both are equally harmless",
+        "Neither matters to users"
+      ],
+      "correct": 1,
+      "explanation": "A False Positive destroys critical user communications; users strongly prefer tolerating occasional spam over losing important emails."
+    },
+    {
+      "question": "In automated breast cancer screening, which error is far more dangerous to patient health?",
+      "options": [
+        "False Positive (healthy patient called back for confirmation ultrasound)",
+        "False Negative (patient with malignant tumor sent home undiagnosed)",
+        "Both are equally dangerous",
+        "Neither matters in healthcare"
+      ],
+      "correct": 1,
+      "explanation": "A False Negative misses a life-threatening cancer, preventing early intervention when the disease is curable."
+    },
+    {
+      "question": "What is the $F_\\beta$ score formula, and what does setting $\\beta = 2$ ($F_2$ score) accomplish?",
+      "options": [
+        "It multiplies accuracy by 2",
+        "It weights Recall twice as heavily as Precision: $\\frac{(1 + \\beta^2) P \\cdot R}{\\beta^2 P + R}$",
+        "It weights Precision twice as heavily as Recall",
+        "It computes the F1-score across 2 epochs"
+      ],
+      "correct": 1,
+      "explanation": "$F_2$ gives twice as much weight to Recall as Precision, ideal for fraud and medical screening."
+    },
+    {
+      "question": "What does setting $\\beta = 0.5$ ($F_{0.5}$ score) prioritize?",
+      "options": [
+        "Weights Recall higher than Precision",
+        "Weights Precision twice as heavily as Recall, ideal when False Positives are expensive",
+        "Computes the square root of F1",
+        "Sets the decision threshold to 0.5"
+      ],
+      "correct": 1,
+      "explanation": "$F_{0.5}$ weights Precision over Recall, suitable for applications where False Positives carry severe costs."
+    },
+    {
+      "question": "What is Specificity (True Negative Rate)?",
+      "options": [
+        "$\\frac{TP}{TP + FN}$",
+        "$\\frac{TN}{TN + FP}$, measuring the proportion of actual negatives correctly identified",
+        "$\\frac{FP}{FP + TN}$",
+        "$\\frac{TP + TN}{Total}$"
+      ],
+      "correct": 1,
+      "explanation": "Specificity measures the fraction of true negative instances that were correctly flagged as negative."
+    },
+    {
+      "question": "What does the False Positive Rate (FPR) equal in terms of Specificity?",
+      "options": [
+        "$\\text{FPR} = \\text{Specificity}$",
+        "$\\text{FPR} = 1 - \\text{Specificity}$",
+        "$\\text{FPR} = \\text{Specificity}^2$",
+        "$\\text{FPR} = \\frac{1}{\\text{Specificity}}$"
+      ],
+      "correct": 1,
+      "explanation": "False Positive Rate is the proportion of negatives incorrectly labeled positive: $\\text{FPR} = 1 - \\text{Specificity}$."
+    },
+    {
+      "question": "What are the axes of a standard Receiver Operating Characteristic (ROC) curve?",
+      "options": [
+        "X: Accuracy, Y: Loss",
+        "X: False Positive Rate ($1 - \\text{Specificity}$), Y: True Positive Rate (Recall)",
+        "X: Precision, Y: Recall",
+        "X: Epochs, Y: Learning Rate"
+      ],
+      "correct": 1,
+      "explanation": "The ROC curve plots True Positive Rate (Sensitivity) on the y-axis against False Positive Rate on the x-axis across thresholds."
+    },
+    {
+      "question": "What does an Area Under the ROC Curve (ROC-AUC) of 0.85 mean statistically?",
+      "options": [
+        "The model has 85% accuracy",
+        "There is an 85% probability that the model will score a randomly chosen positive sample higher than a randomly chosen negative sample",
+        "The model trained for 85 epochs",
+        "85% of features are informative"
+      ],
+      "correct": 1,
+      "explanation": "ROC-AUC is equivalent to the Wilcoxon-Mann-Whitney statistic: the probability of correctly ranking a positive above a negative."
+    },
+    {
+      "question": "When is a Precision-Recall (PR) curve strictly preferred over an ROC curve?",
+      "options": [
+        "When evaluating linear regression",
+        "When evaluating heavily imbalanced classification datasets where the positive class is rare (e.g. fraud, defect detection)",
+        "When classes are perfectly 50/50 balanced",
+        "When there are no false positives"
+      ],
+      "correct": 1,
+      "explanation": "In severe imbalance, massive True Negatives artificially compress FPR in ROC curves, whereas PR curves reflect real minority class precision."
+    },
+    {
+      "question": "What is the baseline PR-AUC score for a completely random guesser on a dataset with 2% positive prevalence?",
+      "options": [
+        "0.50",
+        "0.02 (the positive class prevalence ratio)",
+        "0.00",
+        "1.00"
+      ],
+      "correct": 1,
+      "explanation": "Unlike ROC-AUC where a random guesser scores 0.50, a random guesser on a PR curve has a horizontal line at the positive class prevalence (0.02)."
+    },
+    {
+      "question": "What is Cohen's Kappa used for in model evaluation?",
+      "options": [
+        "Measuring GPU memory consumption",
+        "Evaluating inter-rater agreement or classification accuracy adjusted for agreement occurring by chance alone",
+        "Calculating the learning rate",
+        "Measuring the variance of regression errors"
+      ],
+      "correct": 1,
+      "explanation": "Cohen's Kappa measures agreement between predicted and actual labels while adjusting for chance agreement."
+    },
+    {
+      "question": "What is Matthew's Correlation Coefficient (MCC)?",
+      "options": [
+        "A metric for regression only",
+        "A balanced metric for binary classification that utilizes all four quadrants of the confusion matrix, robust even under extreme class imbalance",
+        "The learning rate multiplier",
+        "A measure of CPU utilization"
+      ],
+      "correct": 1,
+      "explanation": "MCC is considered one of the most reliable binary classification metrics, returning a value from -1 to +1 using TP, TN, FP, and FN."
+    },
+    {
+      "question": "What does a Matthew's Correlation Coefficient (MCC) of 0.0 indicate?",
+      "options": [
+        "Perfect prediction",
+        "Prediction no better than random coin flipping",
+        "Total inverse prediction",
+        "100% false positives"
+      ],
+      "correct": 1,
+      "explanation": "MCC = +1 indicates perfect prediction, 0 indicates random performance, and -1 indicates complete inverse disagreement."
+    },
+    {
+      "question": "In multiclass classification, what is Macro-Averaging of a metric (e.g. Macro F1)?",
+      "options": [
+        "Weighting each class by its sample count",
+        "Computing the metric independently for each class and taking the unweighted arithmetic mean across all classes",
+        "Summing all TP across all classes globally",
+        "Evaluating only the majority class"
+      ],
+      "correct": 1,
+      "explanation": "Macro-averaging calculates the metric per class and averages them equally, treating all classes with equal importance regardless of size."
+    },
+    {
+      "question": "In multiclass classification, what is Micro-Averaging of a metric (e.g. Micro F1)?",
+      "options": [
+        "Computing metrics globally by summing all TP, FP, FN across all classes before calculating the metric",
+        "Taking the median of all classes",
+        "Dividing by the number of features",
+        "Evaluating only the smallest class"
+      ],
+      "correct": 0,
+      "explanation": "Micro-averaging pools global counts across all classes, giving more weight to larger, dominant classes."
+    },
+    {
+      "question": "In multiclass classification, what is Weighted-Averaging of a metric?",
+      "options": [
+        "Weighting classes by their alphabetical order",
+        "Computing the metric for each class and taking the average weighted by the number of true instances (support) in each class",
+        "Multiplying accuracy by 100",
+        "Averaging only top 2 classes"
+      ],
+      "correct": 1,
+      "explanation": "Weighted averaging weights each class's score by its prevalence (support) in the true dataset."
+    },
+    {
+      "question": "What is Log Loss (Cross-Entropy Loss) in classification evaluation?",
+      "options": [
+        "The number of log files generated",
+        "A metric that penalizes wrong predictions based on the probability confidence assigned by the model ($-\\frac{1}{n} \\sum y \\ln p + (1-y)\\ln(1-p)$)",
+        "The difference between mean and median",
+        "A metric that only works for regression"
+      ],
+      "correct": 1,
+      "explanation": "Log loss rewards well-calibrated probabilities and severely penalizes overconfident incorrect predictions."
+    },
+    {
+      "question": "What does a confusion matrix tell you that overall accuracy cannot?",
+      "options": [
+        "The GPU execution time",
+        "The exact breakdown and distribution of specific error types: which classes are being confused with which other classes",
+        "The size of the hard drive",
+        "The number of parameters in the model"
+      ],
+      "correct": 1,
+      "explanation": "A confusion matrix shows the precise error distribution: whether class A is mistaken for B or C."
+    },
+    {
+      "question": "What is the Top-k Accuracy metric often used in recommendation engines and ImageNet classification?",
+      "options": [
+        "The accuracy of the top 10% fastest models",
+        "The proportion of test samples where the true correct label is among the model's top $k$ highest-probability predictions",
+        "The accuracy on the largest 5 features",
+        "The maximum possible accuracy"
+      ],
+      "correct": 1,
+      "explanation": "Top-k accuracy (e.g. Top-5 on ImageNet) checks whether the ground-truth label appears in the top $k$ predicted candidates."
+    },
+    {
+      "question": "What is the Cumulative Gains Chart in marketing response modeling?",
+      "options": [
+        "A plot of corporate stock prices",
+        "A visual curve showing the percentage of total positive targets captured as a function of the percentage of top-ranked prospective customers contacted",
+        "A plot of model parameters",
+        "A residual plot for linear regression"
+      ],
+      "correct": 1,
+      "explanation": "Cumulative gains curves show how much response is captured by targeting the top deciles of scored prospects."
+    },
+    {
+      "question": "What is a Lift Chart in predictive modeling?",
+      "options": [
+        "Measuring how fast a drone flies",
+        "A visual metric showing how many times better the model performs at targeting positives compared to random selection in a given decile",
+        "A plot of learning rate vs loss",
+        "A test of server hardware lift"
+      ],
+      "correct": 1,
+      "explanation": "Lift measures model efficiency multiplier (e.g. 4x lift in top decile means 4 times more conversions than random targeting)."
+    },
+    {
+      "question": "What is the Mean Absolute Error (MAE) of predictions $[10, 12, 14]$ against true targets $[12, 12, 10]$?",
+      "options": [
+        "0.0",
+        "2.0 ($\\frac{|10-12| + |12-12| + |14-10|}{3} = \\frac{2 + 0 + 4}{3} = 2.0$)",
+        "4.0",
+        "6.0"
+      ],
+      "correct": 1,
+      "explanation": "Absolute errors: $|-2| = 2, |0| = 0, |4| = 4$. Sum = 6. Mean = $6 / 3 = 2.0$."
+    },
+    {
+      "question": "What is the Mean Squared Error (MSE) of predictions $[10, 12, 14]$ against true targets $[12, 12, 10]$?",
+      "options": [
+        "2.0",
+        "6.67 ($\\frac{2^2 + 0^2 + 4^2}{3} = \\frac{4 + 0 + 16}{3} = \\frac{20}{3} \\approx 6.67$)",
+        "20.0",
+        "4.0"
+      ],
+      "correct": 1,
+      "explanation": "Squared errors: $2^2 = 4, 0^2 = 0, 4^2 = 16$. Sum = 20. Mean = $20 / 3 \\approx 6.67$."
+    },
+    {
+      "question": "Why is Root Mean Squared Error (RMSE) preferred over Mean Squared Error (MSE) for human reporting?",
+      "options": [
+        "RMSE runs in fewer CPU cycles",
+        "RMSE takes the square root, returning the error magnitude to the original physical units of the target variable",
+        "RMSE is always smaller than zero",
+        "RMSE only works with integers"
+      ],
+      "correct": 1,
+      "explanation": "MSE produces squared units (e.g. dollars squared); RMSE returns the metric to intuitive original units (dollars)."
+    },
+    {
+      "question": "What is Median Absolute Error (MedAE) in regression?",
+      "options": [
+        "The average of the medians",
+        "The median of all absolute differences $|y_i - \\hat{y}_i|$, representing the most outlier-robust error measure in regression",
+        "The difference between Q1 and Q3",
+        "The mean divided by 2"
+      ],
+      "correct": 1,
+      "explanation": "MedAE is completely robust to extreme outlier anomalies because it evaluates the 50th percentile of absolute errors."
+    },
+    {
+      "question": "What is Explained Variance Score in regression?",
+      "options": [
+        "The percentage of missing data",
+        "$1 - \\frac{\\text{Var}(y - \\hat{y})}{\\text{Var}(y)}$, measuring the proportion of variance explained independent of systematic mean offset bias",
+        "The correlation squared",
+        "The learning rate of the model"
+      ],
+      "correct": 1,
+      "explanation": "Explained Variance measures the proportion of variance explained by model errors relative to total variance."
+    },
+    {
+      "question": "What is the Youden's J statistic used for on an ROC curve?",
+      "options": [
+        "Calculating training duration",
+        "Finding the optimal decision threshold that maximizes $J = \\text{Sensitivity} + \\text{Specificity} - 1$",
+        "Computing the matrix determinant",
+        "Measuring feature cardinality"
+      ],
+      "correct": 1,
+      "explanation": "Youden's index identifies the point on the ROC curve farthest from the random diagonal, balancing sensitivity and specificity."
+    },
+    {
+      "question": "If a model predicts the exact same constant value for every test sample, what is its $R^2$ score on the training set?",
+      "options": [
+        "1.0",
+        "0.0 (explains 0% of variance beyond the mean baseline)",
+        "-1.0",
+        "Undefined"
+      ],
+      "correct": 1,
+      "explanation": "A model predicting the training mean has $SS_{\\text{res}} = SS_{\\text{tot}}$, producing $R^2 = 1 - 1 = 0.0$."
+    },
+    {
+      "question": "Why is model calibration evaluated using Reliability Diagrams (Calibration Curves)?",
+      "options": [
+        "To check if the computer is reliable",
+        "To plot predicted probability bins against empirical observed frequencies, checking whether predictions represent true probabilities",
+        "To test hard drive write reliability",
+        "To measure network uptime"
+      ],
+      "correct": 1,
+      "explanation": "A reliability curve plots bin confidence against empirical accuracy; a perfectly calibrated model follows a 45-degree diagonal."
+    }
+  ],
+  "level": "beginner"
+}

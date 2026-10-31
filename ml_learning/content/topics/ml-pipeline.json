@@ -1,0 +1,474 @@
+{
+  "id": "ml-pipeline",
+  "title": "Building End-to-End ML Pipelines",
+  "description": "Constructing modular production ML pipelines with Scikit-learn: ColumnTransformer, Pipeline, FeatureUnion, custom BaseEstimator transformers, and serialization.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Production ML Pipelines with Scikit-learn",
+        "subtitle": "Encapsulating Feature Engineering, Modeling, and Hyperparameter Tuning into Atomic Deployable Objects"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "What is an ML Pipeline?",
+        "content": "A **Pipeline** chains multiple data transformation steps sequentially, terminating in a final estimator (model). It provides a unified API where calling **`pipeline.fit(X, y)`** executes all transformers and fits the model, and **`pipeline.predict(X_new)`** transforms raw inference data through all steps automatically."
+      },
+      {
+        "type": "text",
+        "title": "Why Pipelines Are Mandatory in Production",
+        "content": "1. **Zero Data Leakage:** Guarantees that scalers, encoders, and imputers learn statistics **strictly from training folds** during cross-validation, applying only `transform()` to validation/test sets.\n2. **Atomic Deployment:** The entire preprocessing recipe and model weights serialize as a **single atomic file (`model.joblib`)**, eliminating manual glue code at serving time.\n3. **Unified Hyperparameter Tuning:** Allows simultaneous optimization of preprocessing parameters and model hyperparameters (e.g. tuning PCA component count and classifier regularizer $C$ inside one `GridSearchCV`)."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Pipeline Architectural Building Blocks",
+        "content": "| Class | Role | Input / Output Behavior |\n|---|---|---|\n| **`Pipeline`** | Chained sequential execution | Output of step $i$ becomes input to step $i+1$; final step must be an Estimator |\n| **`ColumnTransformer`** | Parallel feature-specific routing | Applies specific transformers to specified subsets of columns and concatenates results horizontally |\n| **`FeatureUnion`** | Parallel transformation | Applies multiple transformers to the entire dataset and concatenates extracted feature matrices side-by-side |\n| **Custom Transformer** | Domain-specific logic | Inherits from `BaseEstimator` and `TransformerMixin`; implements `fit()` and `transform()` |"
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The Estimator vs. Transformer Contract",
+        "content": "- **Transformer:** Must implement `fit(X, y)` and `transform(X)`. Returns transformed feature matrix $X'$.\n- **Estimator:** Must implement `fit(X, y)` and `predict(X)` (or `predict_proba`). Cannot appear in the middle of a pipeline; only as the final step!"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Senior Engineer Rule",
+        "content": "Never write raw, loose preprocessing code in notebooks that must be rewritten in production services. Build a Scikit-learn `Pipeline` on Day 1: it runs identically in notebooks, cross-validation, and production microservice endpoints."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "sorting-exercise",
+    "title": "Pipeline Step Architect",
+    "description": "Construct an end-to-end production pipeline in the correct logical execution sequence.",
+    "items": [
+      {
+        "text": "1. Numerical Imputation (SimpleImputer: median)",
+        "category": "Preprocessing Phase"
+      },
+      {
+        "text": "2. Categorical Encoding (OneHotEncoder: drop first)",
+        "category": "Preprocessing Phase"
+      },
+      {
+        "text": "3. Feature Scaling (StandardScaler)",
+        "category": "Feature Transformation"
+      },
+      {
+        "text": "4. Dimensionality Reduction (PCA)",
+        "category": "Feature Transformation"
+      },
+      {
+        "text": "5. Final Classification Model (LogisticRegression)",
+        "category": "Model Estimator"
+      }
+    ],
+    "categories": [
+      "Preprocessing Phase",
+      "Feature Transformation",
+      "Model Estimator"
+    ]
+  },
+  "code": {
+    "description": "Build a complete end-to-end ColumnTransformer pipeline with custom feature engineering and evaluate via cross_val_score.",
+    "starter": "import pandas as pd\nimport numpy as np\nfrom sklearn.base import BaseEstimator, TransformerMixin\nfrom sklearn.compose import ColumnTransformer\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler, OneHotEncoder\nfrom sklearn.impute import SimpleImputer\nfrom sklearn.ensemble import RandomForestClassifier\nfrom sklearn.model_selection import cross_val_score\n\n# Custom domain transformer: calculates ratios\nclass DebtRatioExtractor(BaseEstimator, TransformerMixin):\n    def fit(self, X, y=None):\n        return self\n    def transform(self, X):\n        # Assumes X[:, 0] is debt, X[:, 1] is income\n        debt = X[:, 0]\n        income = np.maximum(X[:, 1], 1.0)  # avoid division by zero\n        ratio = (debt / income).reshape(-1, 1)\n        return np.hstack([X, ratio])\n\n# Sample data\ndf = pd.DataFrame({\n    'debt': [5000, 15000, 2000, np.nan, 8000, 12000],\n    'income': [50000, 45000, 30000, 80000, 60000, 35000],\n    'state': ['NY', 'CA', 'TX', 'NY', 'CA', 'TX'],\n    'default': [0, 1, 0, 0, 0, 1]\n})\n\nnum_pipe = Pipeline([\n    ('imputer', SimpleImputer(strategy='median')),\n    ('ratio', DebtRatioExtractor()),\n    ('scaler', StandardScaler())\n])\n\npreprocessor = ColumnTransformer([\n    ('num', num_pipe, ['debt', 'income']),\n    ('cat', OneHotEncoder(drop='first', sparse_output=False), ['state'])\n])\n\nfull_pipeline = Pipeline([\n    ('prep', preprocessor),\n    ('model', RandomForestClassifier(n_estimators=10, random_state=42))\n])\n\nfull_pipeline.fit(df.drop('default', axis=1), df['default'])\nprint('Pipeline successfully fitted and verified!')\nprint('Final prediction for row 0:', full_pipeline.predict(df.iloc[[0]].drop('default', axis=1))[0])\n"
+  },
+  "quiz": [
+    {
+      "question": "What is the primary benefit of chaining data preprocessing steps and an estimator into a Scikit-learn `Pipeline`?",
+      "options": [
+        "It makes models train 10x faster",
+        "It prevents data leakage during cross-validation and encapsulates the entire end-to-end workflow into a single callable and serializable object",
+        "It automatically generates synthetic training data",
+        "It eliminates the need for test sets"
+      ],
+      "correct": 1,
+      "explanation": "Pipelines encapsulate preprocessing and modeling, guaranteeing zero leakage and atomic production deployment."
+    },
+    {
+      "question": "In a Scikit-learn `Pipeline`, what methods must all intermediate steps (except the final step) implement?",
+      "options": [
+        "`predict()` and `score()`",
+        "`fit()` and `transform()`",
+        "`fit()` and `predict()`",
+        "`score()` and `evaluate()`"
+      ],
+      "correct": 1,
+      "explanation": "All intermediate pipeline steps must be Transformers implementing `fit()` and `transform()`; only the final step can be an Estimator."
+    },
+    {
+      "question": "What happens when you call `pipeline.fit(X_train, y_train)` on a Pipeline with 2 transformers and 1 classifier?",
+      "options": [
+        "Only the classifier is fitted",
+        "Transformer 1 calls `fit_transform()`, passes output to Transformer 2 which calls `fit_transform()`, and passes output to the classifier which calls `fit()`",
+        "All steps call `predict()`",
+        "Transformers are fitted on test data"
+      ],
+      "correct": 1,
+      "explanation": "Calling fit cascades `fit_transform()` sequentially down all intermediate transformers and calls `fit()` on the final estimator."
+    },
+    {
+      "question": "What happens when you call `pipeline.predict(X_test)` on a fitted Pipeline?",
+      "options": [
+        "All transformers call `fit_transform()` on X_test",
+        "Transformers sequentially execute `transform()` on X_test using parameters learned during training, and the final estimator calls `predict()`",
+        "The model retrains on X_test",
+        "The pipeline throws a syntax error"
+      ],
+      "correct": 1,
+      "explanation": "Inference applies `transform()` using learned training statistics without refitting, feeding output into final `predict()`."
+    },
+    {
+      "question": "What does `ColumnTransformer` do in Scikit-learn?",
+      "options": [
+        "Changes the column names of a dataframe",
+        "Routes specified subsets of columns to different transformers in parallel (e.g. numeric columns to scaling, categorical columns to one-hot encoding) and concatenates outputs",
+        "Deletes empty columns",
+        "Converts columns into rows"
+      ],
+      "correct": 1,
+      "explanation": "ColumnTransformer applies distinct transformation pipelines to designated column subsets and merges results horizontally."
+    },
+    {
+      "question": "What is the difference between `Pipeline` and `FeatureUnion` in Scikit-learn?",
+      "options": [
+        "`Pipeline` is for classification; `FeatureUnion` is for regression",
+        "`Pipeline` executes steps sequentially (serial chain); `FeatureUnion` executes multiple transformers in parallel on the same data and concatenates their extracted features",
+        "They are identical classes with different names",
+        "`FeatureUnion` only works on text data"
+      ],
+      "correct": 1,
+      "explanation": "Pipeline runs sequentially ($A \\rightarrow B \\rightarrow C$); FeatureUnion runs transformers in parallel ($A(X)$ and $B(X)$ merged horizontally)."
+    },
+    {
+      "question": "To create a custom transformer that integrates seamlessly into Scikit-learn Pipelines, what two base classes should it inherit from?",
+      "options": [
+        "`object` and `dict`",
+        "`BaseEstimator` and `TransformerMixin`",
+        "`Sequential` and `Model`",
+        "`DataFrame` and `Series`"
+      ],
+      "correct": 1,
+      "explanation": "Inheriting from `BaseEstimator` provides `get_params()`/`set_params()` for tuning; `TransformerMixin` provides `fit_transform()` automatically."
+    },
+    {
+      "question": "What does `FunctionTransformer` in Scikit-learn do?",
+      "options": [
+        "Plots mathematical functions on graphs",
+        "Wraps any custom Python function (e.g. `np.log1p`) into a Scikit-learn compatible Transformer without writing a custom class",
+        "Computes derivatives of functions",
+        "Converts functions to C++"
+      ],
+      "correct": 1,
+      "explanation": "`FunctionTransformer` wraps stateless Python functions (e.g. $\\log(x)$ or square root) into transformer objects."
+    },
+    {
+      "question": "In `ColumnTransformer`, what does setting `remainder='passthrough'` specify?",
+      "options": [
+        "Drop all unlisted columns",
+        "Keep any columns not explicitly specified in the transformers list untouched and pass them directly into the output matrix",
+        "Raise an exception if unlisted columns exist",
+        "Impute zeros for unlisted columns"
+      ],
+      "correct": 1,
+      "explanation": "Setting `remainder='passthrough'` preserves unlisted features without modification; the default is `'drop'`."
+    },
+    {
+      "question": "Why is `joblib.dump(pipeline, 'model.joblib')` preferred over standard Python `pickle` for serializing Scikit-learn pipelines?",
+      "options": [
+        "Pickle is not open source",
+        "Joblib is highly optimized for serializing large NumPy arrays and matrices efficiently using memory mapping",
+        "Pickle cannot serialize pipelines",
+        "Joblib runs on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Joblib handles large numerical arrays and matrix buffers much more efficiently than standard Python pickle."
+    },
+    {
+      "question": "How do you tune both preprocessing parameters and model hyperparameters simultaneously using `GridSearchCV` on a Pipeline?",
+      "options": [
+        "You cannot tune preprocessing parameters in GridSearchCV",
+        "By prefixing hyperparameter names with the step name followed by double underscores: e.g. `{'prep__num__scaler': [StandardScaler(), RobustScaler()], 'model__C': [0.1, 1.0, 10.0]}`",
+        "By writing two separate GridSearchCV loops",
+        "By passing parameters as a tuple"
+      ],
+      "correct": 1,
+      "explanation": "Scikit-learn uses step name + double underscore (`step__param`) to access nested pipeline hyperparameters in grid search."
+    },
+    {
+      "question": "What happens when you call `pipeline.score(X_test, y_test)`?",
+      "options": [
+        "The pipeline transforms X_test and returns the final estimator's default evaluation metric (accuracy for classifiers, $R^2$ for regressors)",
+        "It prints the execution time of the pipeline",
+        "It counts the number of parameters",
+        "It retrains the pipeline on test data"
+      ],
+      "correct": 0,
+      "explanation": "`pipeline.score()` transforms test features and evaluates them using the terminal estimator's default score method."
+    },
+    {
+      "question": "What is the purpose of the `memory` parameter in `Pipeline(steps, memory='cache_dir')`?",
+      "options": [
+        "Increasing computer RAM",
+        "Caching the output of intermediate transformers on disk to avoid recomputing expensive transformations repeatedly during hyperparameter grid search",
+        "Storing model predictions in memory",
+        "Allocating GPU memory buffers"
+      ],
+      "correct": 1,
+      "explanation": "Passing a cache directory to `memory` caches intermediate transforms, drastically accelerating grid search over model parameters."
+    },
+    {
+      "question": "What is a common cause of pipeline failure when serving a serialized model in production?",
+      "options": [
+        "The production server has a different wallpaper",
+        "Environment mismatch: discrepancies in library versions (e.g. Scikit-learn 1.2 in training vs 1.4 in production) or missing custom transformer class definitions",
+        "Serializing with joblib instead of pickle",
+        "Serving models on Linux"
+      ],
+      "correct": 1,
+      "explanation": "Serialized Python objects require identical package versions and custom class definitions imported into the serving namespace."
+    },
+    {
+      "question": "Can an estimator (like LogisticRegression) appear as an intermediate step in a standard Scikit-learn `Pipeline`?",
+      "options": [
+        "Yes, estimators can appear anywhere in a pipeline",
+        "No, all intermediate steps must be transformers implementing `transform()`; an estimator can only appear as the terminal step",
+        "Only if it is a Decision Tree",
+        "Only on Tuesdays"
+      ],
+      "correct": 1,
+      "explanation": "Intermediate steps must output transformed data matrices for the next step; standard estimators output predictions, not features."
+    },
+    {
+      "question": "How can you use an estimator's predictions as intermediate features in a pipeline?",
+      "options": [
+        "Using `SelectFromModel` or `StackingClassifier` / `VotingClassifier`",
+        "Placing the estimator in step 1 of Pipeline",
+        "Setting `predict=True` in Pipeline",
+        "It is mathematically impossible"
+      ],
+      "correct": 0,
+      "explanation": "Staking, voting ensembles, or meta-transformers like `SelectFromModel` wrap estimators so their outputs act as features."
+    },
+    {
+      "question": "What is the `make_pipeline` convenience function in Scikit-learn?",
+      "options": [
+        "A function that writes pipeline code automatically using AI",
+        "A shorthand helper that constructs a Pipeline without requiring explicit step names, automatically generating step names from lowercase class names",
+        "A function that compiles C code",
+        "A tool for making diagrams"
+      ],
+      "correct": 1,
+      "explanation": "`make_pipeline(StandardScaler(), LogisticRegression())` constructs a Pipeline, automatically naming steps `'standardscaler'` and `'logisticregression'`."
+    },
+    {
+      "question": "What is `make_column_transformer` in Scikit-learn?",
+      "options": [
+        "A tool for renaming columns",
+        "A shorthand helper that constructs a `ColumnTransformer` with auto-generated transformer names",
+        "A database migration script",
+        "A neural network layer"
+      ],
+      "correct": 1,
+      "explanation": "`make_column_transformer((scaler, num_cols), (encoder, cat_cols))` creates a ColumnTransformer with automatic naming."
+    },
+    {
+      "question": "Why is a pipeline's `transform()` method stateless?",
+      "options": [
+        "Because it stores all data in memory",
+        "It does not alter or recompute any learned statistics (means, medians, scales); it strictly applies the fixed parameters computed during `fit()`",
+        "Because it returns boolean values",
+        "Because it runs in parallel"
+      ],
+      "correct": 1,
+      "explanation": "Transform is deterministic and stateless; it applies pre-computed training parameters without modifying internal state."
+    },
+    {
+      "question": "What error occurs if you pass a 1D array to a transformer that expects a 2D matrix?",
+      "options": [
+        "ZeroDivisionError",
+        "`ValueError: Expected 2D array, got 1D array instead. Reshape your data using array.reshape(-1, 1)`",
+        "TypeError: list indices must be integers",
+        "MemoryError"
+      ],
+      "correct": 1,
+      "explanation": "Scikit-learn transformers require 2D arrays of shape `(n_samples, n_features)`; single features must be reshaped to `(-1, 1)`."
+    },
+    {
+      "question": "What does `sparse_output=False` do in `OneHotEncoder` within a pipeline?",
+      "options": [
+        "Deletes all sparse rows",
+        "Forces the encoder to return a dense NumPy array instead of a scipy sparse matrix, ensuring compatibility with transformers that require dense inputs",
+        "Compresses the output",
+        "Produces binary 0 and 1 text strings"
+      ],
+      "correct": 1,
+      "explanation": "Setting `sparse_output=False` returns standard dense arrays, avoiding compatibility issues with scalers or models that expect dense data."
+    },
+    {
+      "question": "How does `SimpleImputer` handle missing values in a production pipeline?",
+      "options": [
+        "It queries the user to type in missing values",
+        "It replaces NaNs with the statistical value (mean, median, or most frequent) computed from the training set during `fit()`",
+        "It deletes the incoming inference request",
+        "It generates random numbers"
+      ],
+      "correct": 1,
+      "explanation": "SimpleImputer imputes missing values at inference time using the exact statistical values determined during training."
+    },
+    {
+      "question": "What is the `set_output(transform='pandas')` API introduced in modern Scikit-learn?",
+      "options": [
+        "It converts models to Excel spreadsheets",
+        "It configures transformers to output Pandas DataFrames with preserved column names instead of raw NumPy arrays",
+        "It prints data to the console",
+        "It exports data to CSV"
+      ],
+      "correct": 1,
+      "explanation": "`set_output(transform='pandas')` instructs pipelines to output native Pandas DataFrames, preserving column headers throughout preprocessing."
+    },
+    {
+      "question": "In a production microservice, what input data format should the Pipeline's `predict()` endpoint expect?",
+      "options": [
+        "Raw feature dictionary or single-row DataFrame formatted identically to the raw un-preprocessed training table schema",
+        "Pre-scaled, pre-encoded float arrays",
+        "SQL database queries",
+        "Uncompressed image bytes"
+      ],
+      "correct": 0,
+      "explanation": "A well-engineered pipeline accepts raw, un-transformed inputs (e.g. JSON matching original schema), handling all scaling/encoding internally."
+    },
+    {
+      "question": "Why should data imputation be placed inside the Pipeline rather than performed beforehand in Pandas?",
+      "options": [
+        "Imputing in Pandas is illegal in production",
+        "Imputing beforehand leaks test/production statistics into training; placing it in the pipeline ensures identical training statistics are applied at inference time",
+        "Pandas imputation runs 100x slower",
+        "Pandas cannot compute medians"
+      ],
+      "correct": 1,
+      "explanation": "Embedding the imputer in the pipeline ensures production requests missing a value are imputed with identical training parameters."
+    },
+    {
+      "question": "What happens if a new, unseen categorical value arrives during production inference when using `OneHotEncoder(handle_unknown='ignore')`?",
+      "options": [
+        "The pipeline crashes with a ValueError",
+        "The encoder outputs all zeros for the one-hot columns corresponding to that feature, gracefully ignoring the unseen category",
+        "The new category is added to the training set",
+        "The model predicts 0.5"
+      ],
+      "correct": 1,
+      "explanation": "`handle_unknown='ignore'` prevents runtime crashes on novel categories by encoding unknown values as all-zero vectors."
+    },
+    {
+      "question": "What happens if a new categorical value arrives during inference when `handle_unknown='error'` (the default in some versions)?",
+      "options": [
+        "The model predicts the majority class",
+        "The pipeline throws a `ValueError: Found unknown categories...`, causing the production API request to fail",
+        "The server reboots",
+        "The encoder deletes the column"
+      ],
+      "correct": 1,
+      "explanation": "Default strict encoding raises a ValueError upon encountering unseen categories, causing API exceptions unless `'ignore'` is set."
+    },
+    {
+      "question": "What is the `TargetEncoder` class introduced in modern Scikit-learn (1.3+)?",
+      "options": [
+        "A model that predicts multiple targets",
+        "A native Scikit-learn transformer implementing cross-validated target encoding with empirical Bayes smoothing for high-cardinality categories",
+        "A tool for encoding target labels into 0 and 1",
+        "An encryption algorithm"
+      ],
+      "correct": 1,
+      "explanation": "Modern Scikit-learn provides native `TargetEncoder` with internal cross-validation smoothing to prevent target leakage."
+    },
+    {
+      "question": "How does a Scikit-learn Pipeline ensure reproducibility across different machines?",
+      "options": [
+        "By saving the developer's username",
+        "By packaging identical code, hyperparameters, and random seeds into a unified serialized artifact that executes deterministically",
+        "By downloading code from GitHub every second",
+        "By running only on Linux"
+      ],
+      "correct": 1,
+      "explanation": "Pipelines eliminate manual code discrepancies, executing identical deterministic transformations across environments."
+    },
+    {
+      "question": "Can you include hyperparameter optimization (e.g. `GridSearchCV`) inside another Pipeline?",
+      "options": [
+        "No, GridSearchCV cannot be used in Python",
+        "Yes, GridSearchCV is itself a Scikit-learn Estimator implementing `fit()` and `predict()`, so it can be nested inside other workflows",
+        "Only if using Decision Trees",
+        "Only on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "GridSearchCV obeys the standard Estimator contract, allowing it to be nested or used as an atomic component."
+    },
+    {
+      "question": "What is the primary sign that an ML pipeline is production-ready?",
+      "options": [
+        "It contains 10,000 lines of spaghetti code",
+        "It accepts raw input records, executes all validation and preprocessing self-contained without external globals, outputs predictions with low latency, and is unit-tested",
+        "It achieves 100% training accuracy",
+        "It requires manual intervention to run"
+      ],
+      "correct": 1,
+      "explanation": "Production readiness requires self-contained encapsulation, zero external state dependencies, robust error handling, and unit test coverage."
+    },
+    {
+      "question": "What is the `TransformedTargetRegressor` in Scikit-learn?",
+      "options": [
+        "A model that transforms features",
+        "A meta-estimator that transforms the target variable $y$ (e.g. using `np.log1p`) before fitting, and automatically inverts predictions back (`np.expm1`) at inference",
+        "A classification algorithm",
+        "A tool for plotting regression targets"
+      ],
+      "correct": 1,
+      "explanation": "`TransformedTargetRegressor` manages target transformations (like log-scaling), automatically mapping predictions back to original units."
+    },
+    {
+      "question": "What is the danger of using custom Python functions in a pipeline that rely on global variables outside the transformer class?",
+      "options": [
+        "Global variables execute too quickly",
+        "When serialized to disk and loaded into a production server or Docker container, the global variables do not exist, causing fatal runtime NameError crashes",
+        "Global variables take up too much GPU memory",
+        "Scikit-learn refuses to serialize global variables"
+      ],
+      "correct": 1,
+      "explanation": "Pipelines must be self-contained; referencing outside global state breaks serialization and causes crashes in isolated serving environments."
+    },
+    {
+      "question": "Why is automated unit testing of ML pipelines critical in CI/CD?",
+      "options": [
+        "To increase lines of code in the repository",
+        "To verify that data preprocessing, transformation shapes, and inference outputs do not break or regress when code changes are pushed",
+        "Because cloud vendors require tests for billing",
+        "Because unit tests eliminate the need for training"
+      ],
+      "correct": 1,
+      "explanation": "Unit tests on sample inputs ensure pipeline changes don't silently introduce dimension mismatches, NaNs, or logic regressions."
+    },
+    {
+      "question": "What does `pipeline.named_steps` allow an engineer to do?",
+      "options": [
+        "Change the names of developers on the project",
+        "Access individual intermediate transformers or estimators by their string name (e.g. `pipeline.named_steps['scaler'].mean_`) to inspect learned parameters",
+        "Delete steps from the pipeline",
+        "Rename output classes"
+      ],
+      "correct": 1,
+      "explanation": "`named_steps` exposes dictionary access to individual pipeline components for inspection and auditing."
+    }
+  ],
+  "level": "intermediate"
+}

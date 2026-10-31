@@ -1,0 +1,466 @@
+{
+  "id": "nlp-pipelines",
+  "title": "Modern NLP Pipelines & Tokenization",
+  "description": "Subword Tokenization (BPE, WordPiece, SentencePiece), Byte-Level BPE, Embedding spaces, and Pretraining Objectives.",
+  "duration": "40 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Modern NLP Pipelines & Subword Tokenization",
+        "subtitle": "From Raw Unicode Text to Discrete Subword Vocabularies and High-Dimensional Embeddings"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Fundamental Tokenization Trade-Off",
+        "text": "Machine learning models process numbers, not strings. Tokenization bridges this gap:\n- **Word-Level Tokenization:** Suffers from massive vocabularies ($> 500,000$ words) and cannot handle Out-Of-Vocabulary (OOV) words or rare morphological variations (e.g., *unfriendliness* $\\to$ `<UNK>`).\n- **Character-Level Tokenization:** Zero OOV issues with a tiny vocabulary (~256 tokens), but sequences become excessively long ($5\\times$ longer), crippling self-attention which scales as $O(N^2)$.\n- **Subword Tokenization (BPE / WordPiece / SentencePiece):** The gold standard. Decomposes rare words into frequent subword units while keeping common words intact, achieving compact vocabularies ($32,000 - 128,000$ tokens) with zero OOV tokens."
+      },
+      {
+        "type": "table",
+        "title": "Subword Tokenization Algorithms Compared",
+        "headers": [
+          "Algorithm",
+          "Merge / Split Criterion",
+          "Whitespace Handling",
+          "Prominent Implementations"
+        ],
+        "rows": [
+          [
+            "Byte-Pair Encoding (BPE)",
+            "Iteratively merges the most frequent adjacent pair of symbols in the training corpus.",
+            "Requires pre-tokenization (e.g., regex splitting on spaces).",
+            "Original BPE (Sennrich, 2016), GPT-2 / GPT-4 (Byte-level BPE)."
+          ],
+          [
+            "WordPiece",
+            "Iteratively merges the symbol pair that maximizes the likelihood of the training corpus under a unigram language model (maximizing $\\frac{\\text{count}(ab)}{\\text{count}(a)\\text{count}(b)}$).",
+            "Uses prefix markers (e.g., `##ing`) for continuation subwords.",
+            "BERT, DistilBERT, Electra."
+          ],
+          [
+            "Unigram Language Model",
+            "Starts with a massive seed vocabulary and iteratively prunes the 20% of subwords whose removal increases corpus perplexity least.",
+            "Treats text as a raw stream; uses `_` to denote spaces.",
+            "SentencePiece (Kudo, 2018), T5, ALBERT, LLaMA."
+          ],
+          [
+            "Byte-Level BPE (BBPE)",
+            "Operates on raw UTF-8 bytes ($256$ base tokens) instead of Unicode characters.",
+            "Can encode any arbitrary character, emoji, or binary byte without `<UNK>`.",
+            "GPT-2, GPT-3, GPT-4, Llama 2/3, Mistral."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "BPE Merge Algorithm Walkthrough",
+        "text": "Given a corpus of words with end-of-word markers:\n`{'l o w </w>': 5, 'l o w e s t </w>': 2, 'n e w e r </w>': 6, 'w i d e r </w>': 3}`\n\n1. Count all adjacent symbol pairs across the corpus.\n2. Most frequent pair: `('e', 'r')` appearing $6 + 3 = 9$ times.\n3. Merge into new token `'er'` $\\to$ vocabulary gains `'er'`.\n4. Repeat for $K$ merge operations until target vocabulary size is reached."
+      },
+      {
+        "type": "text",
+        "title": "Pretraining Objectives: Causal vs Masked vs Span Corruption",
+        "body": "- **Causal Language Modeling (CLM):** Next-token prediction: $\\max_\\theta \\sum_{t=1}^T \\log P(x_t \\mid x_{<t}; \\theta)$. Powers all modern generative autoregressive LLMs.\n- **Masked Language Modeling (MLM):** Predicts randomly masked tokens ($15\\%$) given both left and right context: $\\max_\\theta \\sum_{i \\in \\mathcal{M}} \\log P(x_i \\mid \\tilde{X}; \\theta)$. Powers BERT.\n- **Span Corruption:** Replaces random multi-token spans with sentinel tokens (e.g. `<extra_id_0>`) and decodes only the missing spans. Powers Google T5."
+      }
+    ],
+    "code_example": {
+      "title": "Implementing Byte-Pair Encoding (BPE) Learner from Scratch",
+      "code": "import collections\n\ndef get_stats(vocab):\n    pairs = collections.defaultdict(int)\n    for word, freq in vocab.items():\n        symbols = word.split()\n        for i in range(len(symbols) - 1):\n            pairs[symbols[i], symbols[i + 1]] += freq\n    return pairs\n\ndef merge_vocab(pair, v_in):\n    v_out = {}\n    bigram = ' '.join(pair)\n    replacement = ''.join(pair)\n    for word in v_in:\n        # Replace adjacent pair\n        w_out = word.replace(bigram, replacement)\n        v_out[w_out] = v_in[word]\n    return v_out\n\n# Toy corpus\nvocab = {\n    'l o w </w>': 5,\n    'l o w e s t </w>': 2,\n    'n e w e r </w>': 6,\n    'w i d e r </w>': 3,\n    'n e w </w>': 2\n}\n\nprint('Initial Vocabulary Counts:', vocab)\nnum_merges = 5\n\nfor i in range(num_merges):\n    pairs = get_stats(vocab)\n    if not pairs: break\n    best_pair = max(pairs, key=pairs.get)\n    vocab = merge_vocab(best_pair, vocab)\n    print(f'Merge {i+1}: Best Pair {best_pair} (Freq: {pairs[best_pair]}) -> New Vocab sample: {list(vocab.keys())[0]}')\n\nprint('\\nFinal Learned Representation:', vocab)"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Why is subword tokenization preferred over pure word-level tokenization in modern NLP?",
+      "options": [
+        "It avoids Out-Of-Vocabulary (OOV) errors by decomposing unseen words into known subwords while maintaining a compact vocabulary size",
+        "It guarantees 100% classification accuracy",
+        "It reduces network depth to 1 layer",
+        "It eliminates the need for embeddings"
+      ],
+      "correct": 0,
+      "explanation": "Subword tokenizers decompose unknown or rare words (e.g. 'unprecedentedly' -> 'un', 'precedent', 'ed', 'ly') into recognized sub-units without `<UNK>`."
+    },
+    {
+      "question": "Why is subword tokenization preferred over pure character-level tokenization?",
+      "options": [
+        "Character-level tokenization results in 4x-6x longer sequences, which quadruples or octuples computational memory due to O(N^2) attention complexity",
+        "Characters cannot be represented in UTF-8",
+        "Characters have no mathematical embeddings",
+        "Character models cannot generate punctuation"
+      ],
+      "correct": 0,
+      "explanation": "Attention scales quadratically with sequence length; character tokenization makes sequences so long that training becomes computationally prohibitive."
+    },
+    {
+      "question": "How does Byte-Pair Encoding (BPE) build its vocabulary during the training phase?",
+      "options": [
+        "By iteratively counting adjacent symbol pairs in the corpus and merging the single most frequent pair into a new subword token",
+        "By randomly picking words from a dictionary",
+        "By splitting words alphabetically",
+        "By training a decision tree on text"
+      ],
+      "correct": 0,
+      "explanation": "BPE starts with all individual characters and iteratively merges the most frequent co-occurring adjacent symbol pairs until reaching the target vocabulary size."
+    },
+    {
+      "question": "What is Byte-Level BPE (BBPE), used in GPT-2, GPT-4, and LLaMA?",
+      "options": [
+        "Running BPE over the 256 possible base bytes of raw UTF-8 rather than Unicode characters, allowing any text, code, or emoji to be tokenized without <UNK>",
+        "A tokenizer that only handles numbers",
+        "A tokenizer that compresses text with gzip",
+        "A tokenizer with only 8 tokens"
+      ],
+      "correct": 0,
+      "explanation": "By treating raw bytes as the base alphabet, Byte-Level BPE can represent any arbitrary Unicode character, symbol, or binary file without out-of-vocabulary tokens."
+    },
+    {
+      "question": "How does WordPiece tokenization differ from BPE in its merge selection criterion?",
+      "options": [
+        "WordPiece merges the symbol pair that maximizes the likelihood of the training data under a language model, rather than purely picking the most frequent pair",
+        "WordPiece splits words by length",
+        "WordPiece only works on Chinese text",
+        "WordPiece uses negative frequencies"
+      ],
+      "correct": 0,
+      "explanation": "WordPiece scores candidates by how much adding the pair increases the corpus likelihood relative to the individual symbol probabilities."
+    },
+    {
+      "question": "What does the `##` prefix indicate in BERT's WordPiece tokenizer (e.g. `affable` -> `aff`, `##able`)?",
+      "options": [
+        "It indicates that `##able` is a continuation subword attached to the previous token, not a standalone word",
+        "It indicates a comment in code",
+        "It indicates a hashtag",
+        "It indicates an invalid character"
+      ],
+      "correct": 0,
+      "explanation": "WordPiece prepends `##` to continuation fragments so the model knows the subword does not start a new word."
+    },
+    {
+      "question": "What is SentencePiece (Kudo, 2018)?",
+      "options": [
+        "An unsupervised text tokenizer that treats raw text as a sequence of Unicode characters without requiring language-dependent whitespace pre-tokenization",
+        "A tool for counting grammatical sentences",
+        "A parser for sentence syntax trees",
+        "A spell-checker for English"
+      ],
+      "correct": 0,
+      "explanation": "SentencePiece treats whitespace as a regular character (`_`), allowing completely lossless tokenization across languages that do not use whitespace (e.g. Japanese, Chinese)."
+    },
+    {
+      "question": "What is the Unigram Language Model tokenization algorithm (Kudo, 2018)?",
+      "options": [
+        "Starting with a large seed vocabulary and iteratively pruning subwords that cause the smallest increase in corpus perplexity until reaching target vocabulary size",
+        "An algorithm that only uses single-letter words",
+        "A model that never merges tokens",
+        "A method for training n-gram grammars"
+      ],
+      "correct": 0,
+      "explanation": "Unigram tokenization starts with a huge dictionary and prunes subwords that contribute least to corpus likelihood, offering probabilistic subword segmentations."
+    },
+    {
+      "question": "What is Tokenizer 'Vocabulary Size' (Vocab Size)?",
+      "options": [
+        "The total number of unique discrete token IDs that the model recognizes and maps to embedding vectors",
+        "The number of words in the user's prompt",
+        "The file size of the tokenizer in megabytes",
+        "The number of layers in the model"
+      ],
+      "correct": 0,
+      "explanation": "Vocab size represents the total entries in the embedding table (e.g. 32,000 in LLaMA, 50,257 in GPT-2, 100,000 in GPT-4, 256,000 in Gemma)."
+    },
+    {
+      "question": "What is the trade-off of having a very large vocabulary size (e.g. 256,000 vs 32,000)?",
+      "options": [
+        "A larger vocabulary produces shorter sequence lengths (fewer tokens per sentence) but consumes significantly more parameter memory in the input/output embedding matrices",
+        "A large vocabulary eliminates the need for attention",
+        "A large vocabulary slows down token generation to 1 token/min",
+        "A large vocabulary cannot handle punctuation"
+      ],
+      "correct": 0,
+      "explanation": "Larger vocabularies compress text into fewer tokens, speeding up self-attention, but require massive embedding tables (e.g. 256k * 4096 params = 1B params just for embeddings)."
+    },
+    {
+      "question": "What is 'Tokenization Glitch' or 'SolidGoldMagikarp' phenomenon in LLMs?",
+      "options": [
+        "Anomalous tokens in the vocabulary that appeared frequently in pretraining web crawls but were never exposed to gradient updates during instruction tuning, causing bizarre model behaviors",
+        "A bug in the Pokemon video game",
+        "A memory leak in CUDA",
+        "A corrupted GPU cache"
+      ],
+      "correct": 0,
+      "explanation": "Certain tokens (like Reddit usernames) had dedicated vocabulary IDs with uncalibrated embedding vectors, causing erratic outputs when prompted."
+    },
+    {
+      "question": "What is Causal Language Modeling (CLM) pretraining objective?",
+      "options": [
+        "Predicting the next token given all prior tokens in the sequence: P(x_t | x_1, ..., x_{t-1})",
+        "Predicting whether text is true or false",
+        "Predicting the middle token given left and right context",
+        "Classifying the sentiment of a sentence"
+      ],
+      "correct": 0,
+      "explanation": "CLM trains models to minimize cross-entropy loss on predicting token t given tokens 1 through t-1, powering all autoregressive LLMs."
+    },
+    {
+      "question": "What is Masked Language Modeling (MLM) pretraining objective?",
+      "options": [
+        "Randomly masking out a portion of tokens (typically 15%) and training the model to predict the masked tokens using bidirectional context",
+        "Masking the entire output sentence",
+        "Predicting future stock prices",
+        "Removing consonants from words"
+      ],
+      "correct": 0,
+      "explanation": "MLM allows deep bidirectional feature representations by predicting masked tokens from both preceding and succeeding context."
+    },
+    {
+      "question": "What was the Next Sentence Prediction (NSP) objective in the original BERT model?",
+      "options": [
+        "A binary classification task predicting whether sentence B immediately follows sentence A in the original text",
+        "Predicting the word count of the next sentence",
+        "Translating the next sentence to French",
+        "Summarizing the next paragraph"
+      ],
+      "correct": 0,
+      "explanation": "BERT used NSP to help the model learn inter-sentence relationships, though subsequent models (RoBERTa) proved NSP was largely unnecessary."
+    },
+    {
+      "question": "Why did RoBERTa (Liu et al., 2019) outperform original BERT?",
+      "options": [
+        "It removed the Next Sentence Prediction task, trained on 10x more data with dynamic masking, larger mini-batches, and longer sequences",
+        "It switched to an RNN architecture",
+        "It used half the parameters",
+        "It used a 4-bit integer tokenizer"
+      ],
+      "correct": 0,
+      "explanation": "RoBERTa demonstrated that BERT was severely undertrained, and removing NSP while scaling data and batch size yielded substantial gains."
+    },
+    {
+      "question": "What is Span Corruption pretraining (used in T5)?",
+      "options": [
+        "Replacing variable-length continuous spans of text with sentinel tokens (<extra_id_0>) and training the decoder to reconstruct only the deleted spans",
+        "Corrupting memory spans in GPU VRAM",
+        "Deleting random files from disk",
+        "Scrambling the order of sentences"
+      ],
+      "correct": 0,
+      "explanation": "T5's span corruption masks consecutive spans of ~3 tokens and trains an encoder-decoder to generate the missing masked spans."
+    },
+    {
+      "question": "What is Word2Vec (Mikolov et al., 2013)?",
+      "options": [
+        "A shallow 2-layer neural model that learns dense distributed vector representations of words based on local context windows via CBOW or Skip-Gram",
+        "A dictionary lookup algorithm",
+        "A rule-based linguistic parser",
+        "A document translation tool"
+      ],
+      "correct": 0,
+      "explanation": "Word2Vec revolutionized NLP by producing dense vectors where geometric proximity and vector arithmetic (King - Man + Woman = Queen) captured semantic relationships."
+    },
+    {
+      "question": "How does the Continuous Bag of Words (CBOW) architecture differ from Skip-Gram in Word2Vec?",
+      "options": [
+        "CBOW predicts the target word from surrounding context words; Skip-Gram predicts the surrounding context words given the target word",
+        "CBOW is bidirectional; Skip-Gram is unidirectional",
+        "CBOW only works on verbs",
+        "Skip-Gram uses convolutional filters"
+      ],
+      "correct": 0,
+      "explanation": "CBOW averages context words to predict the center word; Skip-Gram uses the center word to predict its neighborhood context words."
+    },
+    {
+      "question": "What was the fundamental limitation of static word embeddings like Word2Vec and GloVe?",
+      "options": [
+        "They assigned a single fixed vector to each word regardless of context, unable to handle polysemy (e.g. 'bank' of a river vs financial 'bank')",
+        "They required 100 GPUs to train",
+        "They only worked on binary numbers",
+        "They could not calculate cosine similarity"
+      ],
+      "correct": 0,
+      "explanation": "Static embeddings cannot disambiguate polysemous words; contextual models (ELMo, BERT) dynamically alter embeddings based on surrounding syntax and semantics."
+    },
+    {
+      "question": "What is an Embedding Lookup Table mathematically in a neural network?",
+      "options": [
+        "A matrix multiplication with a one-hot encoded vector: x_embed = one_hot(token_id) * E",
+        "A hash table stored on disk",
+        "A binary search tree",
+        "A random number generator"
+      ],
+      "correct": 0,
+      "explanation": "Retrieving row i from an embedding table E is mathematically equivalent to multiplying the one-hot representation of token i by the weight matrix E."
+    },
+    {
+      "question": "What is Weight Tying (Press & Wolf, 2017) between input and output embeddings?",
+      "options": [
+        "Sharing the exact same weight matrix for the input token embedding layer and the final pre-softmax output projection layer",
+        "Tying weights with an elastic regularization rope",
+        "Tying the weights of layer 1 to layer 10",
+        "Freezing all weights to 1.0"
+      ],
+      "correct": 0,
+      "explanation": "Weight tying reuses the input embedding matrix as the final linear projection matrix, slashing model parameter counts by tens of millions of weights with zero loss in accuracy."
+    },
+    {
+      "question": "What is 'Lossless Tokenization' in modern tokenizers?",
+      "options": [
+        "The ability to perfectly reconstruct the exact original input string (including whitespaces and capitalization) from its token IDs: decode(encode(text)) == text",
+        "A tokenizer that uses zero bytes of memory",
+        "A tokenizer that never drops tokens",
+        "A tokenizer that does not use loss functions"
+      ],
+      "correct": 0,
+      "explanation": "Lossless tokenization ensures that formatting, whitespace, indentation in code, and punctuation are preserved with 100% fidelity across encode/decode roundtrips."
+    },
+    {
+      "question": "What is Out-Of-Vocabulary (OOV) rate?",
+      "options": [
+        "The percentage of tokens in a dataset that do not exist in the tokenizer's vocabulary and must be mapped to the unknown <UNK> token",
+        "The rate at which vocabulary files are downloaded",
+        "The number of misspelled words in a dictionary",
+        "The loss of the tokenizer"
+      ],
+      "correct": 0,
+      "explanation": "A high OOV rate indicates poor tokenizer coverage; modern subword/byte-level tokenizers achieve an OOV rate of 0%."
+    },
+    {
+      "question": "What is the effect of tokenizing code with a tokenizer trained only on English prose?",
+      "options": [
+        "Code becomes severely fragmented into many tiny tokens (individual characters or 2-letter fragments), inflating sequence length and hurting model comprehension",
+        "The model converts code to English",
+        "The code runs 10x faster",
+        "The compiler throws a syntax error"
+      ],
+      "correct": 0,
+      "explanation": "Without specialized programming tokens (like indentation spaces, operators, syntax keywords), sequence lengths blow up, consuming massive context budgets."
+    },
+    {
+      "question": "Why do modern LLM tokenizers (like GPT-4's cl100k_base or LLaMA 3's 128k tokenizer) include dedicated tokens for runs of spaces (e.g. '    ' 4 spaces)?",
+      "options": [
+        "To compress code indentation into single tokens, significantly reducing sequence length and boosting coding performance",
+        "To save hard drive space",
+        "To remove blank lines",
+        "To make text look aligned"
+      ],
+      "correct": 0,
+      "explanation": "In Python and codebases, 4-space indentations occur millions of times; dedicating single token IDs to repeated whitespace drastically cuts sequence lengths."
+    },
+    {
+      "question": "What is a 'Special Token' in NLP vocabularies (e.g. `[CLS]`, `[SEP]`, `<|endoftext|>`)?",
+      "options": [
+        "Reserved tokens with dedicated IDs that designate structural signals like sentence boundaries, sequence starts, or document termination",
+        "A token with a higher learning rate",
+        "A token encrypted for security",
+        "A token that prints emojis"
+      ],
+      "correct": 0,
+      "explanation": "Special tokens act as architectural control markers: `[CLS]` aggregates sequence representations, and `<|endoftext|>` signals generation completion."
+    },
+    {
+      "question": "What is Truncation and Padding in batch text processing?",
+      "options": [
+        "Padding adds pad tokens to shorter sequences to equalize lengths in a batch; truncation cuts sequences that exceed the maximum length limit",
+        "Compressing files with zip",
+        "Deleting negative numbers",
+        "Rotating text tensors"
+      ],
+      "correct": 0,
+      "explanation": "Batches require uniform tensor dimensions (Batch_Size, Max_Length); padding fills vacant slots, and truncation bounds excessive lengths."
+    },
+    {
+      "question": "What is an Attention Mask in Transformer text processing?",
+      "options": [
+        "A binary tensor indicating which tokens are real content (1) and should be attended to, versus which tokens are padding (0) and must be ignored",
+        "A mask worn by researchers",
+        "A mask that filters sensitive data",
+        "A tool for image segmentation"
+      ],
+      "correct": 0,
+      "explanation": "The attention mask prevents self-attention heads from wasting computational score mass or contaminating representations with meaningless padding tokens."
+    },
+    {
+      "question": "What is the difference between extractive summarization and abstractive summarization?",
+      "options": [
+        "Extractive summarization selects and concatenates verbatim sentences directly from the source; abstractive summarization generates original paraphrased text",
+        "Extractive uses deep learning; abstractive uses regex",
+        "Abstractive only works on bullet points",
+        "They produce identical outputs"
+      ],
+      "correct": 0,
+      "explanation": "Extractive methods rank and copy source sentences; abstractive methods read the source into latent representations and compose new summary sentences."
+    },
+    {
+      "question": "What is Named Entity Recognition (NER)?",
+      "options": [
+        "An information extraction task that classifies token spans into predefined categories such as Person, Organization, Location, or Date",
+        "Naming Python variables automatically",
+        "Recognizing usernames on a network",
+        "A classification of GPU hardware models"
+      ],
+      "correct": 0,
+      "explanation": "NER identifies real-world entities in text sequences, typically formulated as a token-level classification task using BIO (Beginning, Inside, Outside) tagging."
+    },
+    {
+      "question": "What is Part-of-Speech (POS) Tagging?",
+      "options": [
+        "Assigning grammatical categories (such as noun, verb, adjective, preposition) to each individual token in a sentence",
+        "Tagging posts on social media",
+        "Position encoding of tokens",
+        "Sorting tokens alphabetically"
+      ],
+      "correct": 0,
+      "explanation": "POS tagging labels words according to syntactic function within sentence context."
+    },
+    {
+      "question": "What is Coreference Resolution in NLP?",
+      "options": [
+        "Identifying all expressions in a text that refer to the exact same real-world entity (e.g. linking 'Elon Musk', 'he', and 'the CEO')",
+        "Resolving git merge conflicts in NLP code",
+        "Correcting spelling errors",
+        "Translating pronouns across languages"
+      ],
+      "correct": 0,
+      "explanation": "Coreference resolution connects pronoun and entity mentions to their corresponding antecedent referents across long documents."
+    },
+    {
+      "question": "What is Cosine Similarity between two embedding vectors u and v?",
+      "options": [
+        "The cosine of the angle between them: (u . v) / (||u||_2 * ||v||_2), measuring semantic directional alignment independent of magnitude",
+        "The Euclidean distance between their endpoints",
+        "The sum of their absolute values",
+        "The difference between their norms"
+      ],
+      "correct": 0,
+      "explanation": "Cosine similarity bounds similarity to [-1, 1], quantifying directional orientation regardless of vector scale."
+    },
+    {
+      "question": "What is Cross-Entropy Loss with Per-Token Averaging in language modeling?",
+      "options": [
+        "Loss = - (1/N) * sum_{t=1}^N log P(x_t | x_{<t})",
+        "Loss = sum (y - y_hat)^2",
+        "Loss = max(0, 1 - y * y_hat)",
+        "Loss = (1/N) * sum |y - y_hat|"
+      ],
+      "correct": 0,
+      "explanation": "Language models optimize the negative log-likelihood averaged across all target tokens in the batch."
+    },
+    {
+      "question": "What is the relationship between Cross-Entropy Loss (in nats) and Perplexity?",
+      "options": [
+        "Perplexity = exp(Cross_Entropy_Loss)",
+        "Perplexity = 1 / Cross_Entropy_Loss",
+        "Perplexity = Cross_Entropy_Loss^2",
+        "Perplexity = log(Cross_Entropy_Loss)"
+      ],
+      "correct": 0,
+      "explanation": "Perplexity is the base-e exponential of the cross-entropy loss, representing the geometric mean of inverse conditional probabilities."
+    }
+  ],
+  "level": "professional"
+}

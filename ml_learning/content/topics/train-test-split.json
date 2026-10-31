@@ -1,0 +1,471 @@
+{
+  "id": "train-test-split",
+  "title": "Overfitting, Underfitting & Cross-Validation",
+  "description": "The Bias-Variance tradeoff, K-Fold cross validation, Stratified K-Fold, Time-Series splits, nested cross-validation, and preventing data leakage.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Validation Strategies & Generalization",
+        "subtitle": "Mastering the Bias-Variance Dilemma, K-Fold Splitting, and Data Leakage Prevention"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Bias-Variance Tradeoff",
+        "content": "The expected generalization test error of any machine learning model decomposes into three mathematically distinct components:\n\n$$\\text{Expected Test Error} = \\text{Bias}^2 + \\text{Variance} + \\text{Irreducible Error} (\\sigma^2)$$\n\n- **Bias (Underfitting):** Error stemming from overly simplistic assumptions (e.g. fitting a straight line to quadratic data). High train error AND high test error.\n- **Variance (Overfitting):** Error stemming from excessive model sensitivity to training noise (e.g. unconstrained decision tree). Low train error BUT high test error.\n- **Irreducible Error ($\\sigma^2$):** Inherent stochastic noise in the real-world data generation process that cannot be eliminated by any model."
+      },
+      {
+        "type": "text",
+        "title": "Cross-Validation Architectures",
+        "content": "A simple train/test split can be noisy if the test set is small. **K-Fold Cross-Validation** provides a robust statistical estimate of performance across the entire dataset:\n\n1. Partition the dataset into $K$ equal-sized folds.\n2. For each fold $k \\in \\{1, \\dots, K\\}$:\n   - Train on the remaining $K-1$ folds.\n   - Evaluate performance on fold $k$.\n3. Average the evaluation scores across all $K$ iterations."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Cross-Validation Strategies Comparison",
+        "content": "| Strategy | Mechanism | When to Use |\n|---|---|---|\n| **Standard K-Fold** | Randomly partitions data into $K$ disjoint folds | Balanced regression or balanced classification datasets |\n| **Stratified K-Fold** | Preserves identical class percentage distribution in every fold | **Mandatory for imbalanced classification** (e.g. fraud detection) |\n| **Time-Series Split** | Forward chaining (train on past, test on future; never shuffle) | **Mandatory for temporal / time-series data** to prevent lookahead leakage |\n| **Group K-Fold** | Ensures samples from the same group/patient stay in the same fold | Grouped data (e.g., multiple X-rays from the same medical patient) |\n| **Leave-One-Out (LOO)** | $K = N$ (train on $N-1$, test on 1 sample) | Extremely small datasets ($N < 50$), computationally heavy |"
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "The #1 Pipeline Rule to Prevent Data Leakage",
+        "content": "**Never fit any preprocessor on the whole dataset!**\nAll scalers, encoders, and imputers must be fitted **exclusively on the training folds (`fit_transform`)**, and only applied to test folds via **`transform`**. Use Scikit-learn `Pipeline` objects to guarantee this programmatically!"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Key Validation Rule",
+        "content": "Your validation setup must faithfully mimic how the model will be deployed in the real world. If data arrives sequentially over time, use a temporal walk-forward split, never random shuffling!"
+      }
+    ]
+  },
+  "interactive": {
+    "type": "sorting-exercise",
+    "title": "Split Strategy Matcher",
+    "description": "Pair each real-world problem with its mathematically correct validation split strategy.",
+    "items": [
+      {
+        "text": "Predicting daily stock market prices over the next month",
+        "category": "Time-Series Split"
+      },
+      {
+        "text": "Detecting rare fraud transactions (0.5% fraud rate)",
+        "category": "Stratified K-Fold"
+      },
+      {
+        "text": "Predicting skin cancer where patients have 5 biopsy images each",
+        "category": "Group K-Fold"
+      },
+      {
+        "text": "Standard house price regression with independent sales records",
+        "category": "Standard K-Fold"
+      }
+    ],
+    "categories": [
+      "Time-Series Split",
+      "Stratified K-Fold",
+      "Group K-Fold",
+      "Standard K-Fold"
+    ]
+  },
+  "code": {
+    "description": "Implement Stratified K-Fold cross-validation with an encapsulated Scikit-learn Pipeline to guarantee zero leakage.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.model_selection import StratifiedKFold, cross_val_score\nfrom sklearn.pipeline import Pipeline\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.linear_model import LogisticRegression\n\n# Load dataset\ndata = load_breast_cancer()\nX, y = data.data, data.target\n\n# Construct Pipeline: Scaler is fitted ONLY inside training folds\npipeline = Pipeline([\n    ('scaler', StandardScaler()),\n    ('model', LogisticRegression(random_state=42, max_iter=1000))\n])\n\n# Configure 5-Fold Stratified Cross-Validation\nskf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)\n\nscores = cross_val_score(pipeline, X, y, cv=skf, scoring='roc_auc')\n\nprint('=== 5-Fold Stratified Cross-Validation Results ===')\nfor fold, score in enumerate(scores, 1):\n    print(f'Fold {fold}: ROC-AUC = {score:.4f}')\nprint(f'\\nMean ROC-AUC: {np.mean(scores):.4f} (+/- {np.std(scores):.4f})')\n"
+  },
+  "quiz": [
+    {
+      "question": "What does High Bias in a machine learning model indicate?",
+      "options": [
+        "The model has memorized training noise",
+        "Underfitting: the model is overly simplistic and fails to capture the true underlying patterns (high training and test error)",
+        "The model has 100% accuracy",
+        "The learning rate is too large"
+      ],
+      "correct": 1,
+      "explanation": "High bias occurs when strong incorrect model assumptions cause the algorithm to underfit both training and test data."
+    },
+    {
+      "question": "What does High Variance in a machine learning model indicate?",
+      "options": [
+        "Underfitting",
+        "Overfitting: the model is overly complex and fits random noise in the training set, failing to generalize to unseen test data",
+        "The model has zero parameters",
+        "The model has no variance in predictions"
+      ],
+      "correct": 1,
+      "explanation": "High variance means the model changes radically with different training sets, fitting noise and failing on new test samples."
+    },
+    {
+      "question": "What is the Irreducible Error component in the bias-variance decomposition?",
+      "options": [
+        "An error caused by a bug in the code",
+        "The inherent stochastic noise in the data generation process that cannot be eliminated by any machine learning model",
+        "The error that occurs on epoch 0",
+        "The difference between floating point representations"
+      ],
+      "correct": 1,
+      "explanation": "Irreducible error $\\sigma^2$ stems from unmeasured variables and natural randomness; it represents the theoretical lower bound of error."
+    },
+    {
+      "question": "How does increasing model complexity (e.g. increasing tree depth or polynomial degree) affect bias and variance?",
+      "options": [
+        "Increases bias and increases variance",
+        "Decreases bias but increases variance",
+        "Increases bias and decreases variance",
+        "Has zero effect on either"
+      ],
+      "correct": 1,
+      "explanation": "Increasing model capacity allows it to fit more complex patterns (reducing bias), but increases sensitivity to training noise (increasing variance)."
+    },
+    {
+      "question": "What is K-Fold Cross-Validation?",
+      "options": [
+        "Training 1 model on K GPUs",
+        "Splitting data into K disjoint folds, training K times on K-1 folds and testing on the held-out fold, then averaging the scores",
+        "Multiplying features by K",
+        "Deleting K samples from memory"
+      ],
+      "correct": 1,
+      "explanation": "K-Fold cross-validation provides an unbiased estimate of generalization by ensuring every sample is used for testing exactly once."
+    },
+    {
+      "question": "Why is Stratified K-Fold cross-validation mandatory for imbalanced classification datasets?",
+      "options": [
+        "It makes models train 10x faster",
+        "It guarantees that the percentage ratio of positive to negative classes is preserved identically in every single fold",
+        "It converts binary classes to multiclass",
+        "It removes missing values"
+      ],
+      "correct": 1,
+      "explanation": "Random splitting on imbalanced data can produce folds with zero positive samples; stratification guarantees identical class distributions."
+    },
+    {
+      "question": "Why should standard random K-Fold cross-validation NEVER be used on time-series or financial stock market data?",
+      "options": [
+        "Time-series data has no rows",
+        "Random shuffling leaks future information into past training folds (lookahead bias), producing falsely optimistic performance",
+        "Time-series data can only be evaluated with linear regression",
+        "Because time-series data cannot be scaled"
+      ],
+      "correct": 1,
+      "explanation": "Randomly shuffling time-series data uses future records to predict the past, causing temporal leakage that collapses in production."
+    },
+    {
+      "question": "What cross-validation strategy is required for sequential, time-series data?",
+      "options": [
+        "Standard K-Fold with shuffle=True",
+        "Time-Series Split (Forward Chaining / Walk-Forward Validation)",
+        "Leave-One-Out cross validation",
+        "Bootstrap aggregation"
+      ],
+      "correct": 1,
+      "explanation": "Time-Series Split trains on past data $[0 \\dots t]$ and tests on the immediate future $[t+1]$, respecting temporal chronology."
+    },
+    {
+      "question": "When is Group K-Fold cross-validation necessary?",
+      "options": [
+        "When features have similar names",
+        "When multiple observations belong to the same group (e.g. multiple MRI scans from the same medical patient) and must not be split across train and test sets",
+        "When data contains text columns",
+        "When the dataset has more than 100 features"
+      ],
+      "correct": 1,
+      "explanation": "Group K-Fold ensures no patient or group appears in both train and test folds, preventing memorization of patient-specific identity features."
+    },
+    {
+      "question": "What is Leave-One-Out Cross-Validation (LOOCV)?",
+      "options": [
+        "A model that skips 1 feature",
+        "K-Fold cross-validation where $K = N$ (each sample serves as a test set of size 1 while the model trains on $N-1$ samples)",
+        "A method that deletes 1 row per epoch",
+        "An algorithm with 1 parameter"
+      ],
+      "correct": 1,
+      "explanation": "LOOCV is the extreme case of K-Fold where $K=N$, useful for tiny datasets ($N < 50$) but computationally expensive for large $N$."
+    },
+    {
+      "question": "What is the primary computational disadvantage of Leave-One-Out Cross-Validation (LOOCV)?",
+      "options": [
+        "It has negative variance",
+        "It requires training the model $N$ separate times, which becomes computationally prohibitive for datasets with thousands of samples",
+        "It only works on binary classification",
+        "It cannot calculate accuracy"
+      ],
+      "correct": 1,
+      "explanation": "Training a model $N$ times on large datasets requires immense computational time: $O(N \\times \\text{training time})$."
+    },
+    {
+      "question": "What is Nested Cross-Validation used for?",
+      "options": [
+        "Training models inside Docker containers",
+        "Simultaneously performing hyperparameter tuning (inner loop) and unbiased generalization model evaluation (outer loop)",
+        "Comparing 10 models at once",
+        "Speeding up training on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "Nested CV uses an inner loop to tune hyperparameters and an outer loop to measure unbiased model generalization without selection bias."
+    },
+    {
+      "question": "What is data leakage caused by preprocessing before cross-validation?",
+      "options": [
+        "When a hacker reads the CSV file",
+        "Fitting transformers (imputers, scalers, encoders) on the entire dataset before splitting, allowing test set distribution statistics to leak into training",
+        "A memory leak in the Python interpreter",
+        "A dataset with duplicate rows"
+      ],
+      "correct": 1,
+      "explanation": "Fitting scalers or encoders on the whole dataset leaks test distribution parameters (mean, max) into training, falsifying metrics."
+    },
+    {
+      "question": "How does using a Scikit-Learn `Pipeline` completely prevent data leakage during cross-validation?",
+      "options": [
+        "Pipelines run in C++",
+        "The Pipeline guarantees that all transformers call `fit_transform` strictly on the training fold, and call only `transform` on the validation fold",
+        "Pipelines delete the test set",
+        "Pipelines automatically remove all outliers"
+      ],
+      "correct": 1,
+      "explanation": "Pipelines encapsulate preprocessing and modeling, ensuring transformers are fitted strictly on training folds inside each cross-validation loop."
+    },
+    {
+      "question": "What is the standard recommended train/validation/test split ratio for moderate datasets in industry?",
+      "options": [
+        "50 / 25 / 25",
+        "70 / 15 / 15 or 80 / 10 / 10",
+        "99 / 1 / 0",
+        "33 / 33 / 33"
+      ],
+      "correct": 1,
+      "explanation": "An 70/15/15 or 80/10/10 split balances sufficient training volume with statistically reliable validation and test sets."
+    },
+    {
+      "question": "What is the role of the validation set compared to the test set?",
+      "options": [
+        "The validation set is used for final deployment; the test set is for training",
+        "The validation set is used iteratively to tune hyperparameters and select models; the test set is held out untouched until the very end for final unbiased evaluation",
+        "They are identical and interchangeable",
+        "The validation set has no labels"
+      ],
+      "correct": 1,
+      "explanation": "The validation set guides model selection and tuning; the test set is touched only once to evaluate final real-world performance."
+    },
+    {
+      "question": "What happens when an engineer repeatedly evaluates many models on the test set and tunes parameters to improve test score?",
+      "options": [
+        "The model becomes globally optimal",
+        "The test set becomes contaminated: the engineer is manually overfitting to the test set, invalidating its unbiased nature",
+        "The test set expands automatically",
+        "The model training time drops to zero"
+      ],
+      "correct": 1,
+      "explanation": "Iteratively tuning on the test set causes 'data snooping' or test set overfitting; the test score ceases to be an unbiased estimate."
+    },
+    {
+      "question": "What is a learning curve in machine learning diagnostics?",
+      "options": [
+        "A graph showing how fast an employee learns Python",
+        "A plot of training score and validation score as a function of the number of training samples",
+        "A plot of learning rate vs epoch",
+        "A plot of GPU utilization over time"
+      ],
+      "correct": 1,
+      "explanation": "Learning curves diagnose bias vs variance by showing how training and validation metrics converge as dataset size increases."
+    },
+    {
+      "question": "If a learning curve shows both training score and validation score plateauing at a very low accuracy as sample size increases, what is the problem?",
+      "options": [
+        "High Variance (Overfitting)",
+        "High Bias (Underfitting)",
+        "Data Leakage",
+        "The dataset is too large"
+      ],
+      "correct": 1,
+      "explanation": "When both train and validation curves converge at poor performance, the model lacks capacity to capture patterns (high bias)."
+    },
+    {
+      "question": "If a learning curve shows a massive gap between a near-perfect training score (99%) and a mediocre validation score (65%), what is the problem?",
+      "options": [
+        "High Bias (Underfitting)",
+        "High Variance (Overfitting)",
+        "The learning rate is zero",
+        "The model has no parameters"
+      ],
+      "correct": 1,
+      "explanation": "A large generalization gap between high training score and poor validation score is the classic signature of overfitting (high variance)."
+    },
+    {
+      "question": "How can you mitigate High Variance (Overfitting)?",
+      "options": [
+        "Remove regularization",
+        "Collect more training data, simplify model complexity, apply regularization ($L_1, L_2$, dropout), or use ensemble methods",
+        "Add 50 polynomial interaction features",
+        "Increase tree max_depth to infinity"
+      ],
+      "correct": 1,
+      "explanation": "Overfitting is cured by adding more data, constraining model capacity, and applying regularization penalties."
+    },
+    {
+      "question": "How can you mitigate High Bias (Underfitting)?",
+      "options": [
+        "Add more regularization",
+        "Increase model capacity, engineer richer features, reduce regularization penalties, or switch to a more expressive algorithm",
+        "Delete half the training data",
+        "Decrease tree depth to 1"
+      ],
+      "correct": 1,
+      "explanation": "Underfitting is resolved by increasing model expressiveness, adding features, and relaxing regularization."
+    },
+    {
+      "question": "Why is 5-Fold or 10-Fold cross-validation standard rather than 100-Fold?",
+      "options": [
+        "Because numbers above 10 are unsupported in scikit-learn",
+        "5-fold and 10-fold provide an empirically optimal balance between computational training time and statistical variance of the estimate",
+        "Because 10-fold only works on balanced data",
+        "Because 100-fold causes memory corruption"
+      ],
+      "correct": 1,
+      "explanation": "Empirical research (Kohavi 1995) showed 10-fold CV provides an optimal tradeoff between bias and variance of performance estimation."
+    },
+    {
+      "question": "What is the purpose of setting `shuffle=True` in `KFold(n_splits=5, shuffle=True, random_state=42)`?",
+      "options": [
+        "To delete random rows",
+        "To randomize the order of samples before partitioning into folds, preventing non-random sorting in the original dataset from biasing folds",
+        "To encrypt the data",
+        "To convert data to integers"
+      ],
+      "correct": 1,
+      "explanation": "Datasets in CSVs are frequently sorted by date or target label; shuffling before partitioning ensures balanced folds."
+    },
+    {
+      "question": "What is the purpose of fixing `random_state=42` in data splitting?",
+      "options": [
+        "It makes models achieve 42% higher accuracy",
+        "It sets a fixed pseudorandom seed, ensuring cross-validation splits and experiments are 100% reproducible across runs",
+        "It tells Python to use 42 CPU threads",
+        "It is required by the Linux kernel"
+      ],
+      "correct": 1,
+      "explanation": "Fixing the random seed guarantees that identical splits are produced every time the script executes, enabling reproducible science."
+    },
+    {
+      "question": "What is target leakage in tabular data?",
+      "options": [
+        "A hacker stealing target labels",
+        "A feature that directly encodes or is a mathematical proxy for the target variable that would not exist in production inference",
+        "A model predicting continuous numbers",
+        "Target labels being missing"
+      ],
+      "correct": 1,
+      "explanation": "Target leakage occurs when an input feature inadvertently reveals the answer (e.g. `Payment_Confirmed = True` when predicting loan default)."
+    },
+    {
+      "question": "What is the validation curve used for in Scikit-learn (`validation_curve`)?",
+      "options": [
+        "Plotting accuracy over training epochs",
+        "Plotting training and validation scores as a function of a single hyperparameter (e.g. `max_depth` or `C`) to find the optimal tuning point",
+        "Validating whether database connections work",
+        "Plotting ROC curves"
+      ],
+      "correct": 1,
+      "explanation": "A validation curve visualizes the bias-variance tradeoff across a single hyperparameter range (e.g. tree depth from 1 to 20)."
+    },
+    {
+      "question": "In a Time-Series split with 5 splits, how does the training set size evolve across consecutive folds?",
+      "options": [
+        "It remains identical in size",
+        "It expands progressively forward in time (Fold 1 trains on 20%, Fold 2 trains on 40%, Fold 3 trains on 60%, etc.)",
+        "It shrinks each fold",
+        "It alternates between 10 and 20 samples"
+      ],
+      "correct": 1,
+      "explanation": "Forward-chaining time-series splits progressively expand the historical training window, testing on the next consecutive temporal block."
+    },
+    {
+      "question": "What does repeated K-Fold cross validation (`RepeatedKFold`) accomplish?",
+      "options": [
+        "It trains the model on duplicate rows",
+        "It repeats K-Fold cross validation $N$ times with different random shuffles, yielding a tighter statistical confidence interval on model performance",
+        "It multiplies accuracy by N",
+        "It eliminates the need for test sets"
+      ],
+      "correct": 1,
+      "explanation": "Repeating K-Fold (e.g. 10 splits $\\times$ 5 repeats = 50 folds) reduces the variance of the performance estimator."
+    },
+    {
+      "question": "Can cross-validation score replace the need for a final held-out test set?",
+      "options": [
+        "Yes, cross-validation eliminates the need for test sets",
+        "No, because cross-validation is often used to choose hyperparameters; a completely untouched test set is still needed to assess final deployment risk",
+        "Only on datasets with more than 100,000 rows",
+        "Only in deep learning"
+      ],
+      "correct": 1,
+      "explanation": "Because cross-validation results guide model and hyperparameter selection, an untouched final test set provides the only unbiased benchmark."
+    },
+    {
+      "question": "What is bootstrap resampling in statistical validation?",
+      "options": [
+        "Booting up the computer from a USB drive",
+        "Drawing $N$ samples from a dataset with replacement, meaning some samples are selected multiple times while approximately 36.8% are left out (Out-Of-Bag)",
+        "Deleting random rows",
+        "Normalizing features"
+      ],
+      "correct": 1,
+      "explanation": "Bootstrap sampling with replacement draws pseudo-datasets; on average, ~63.2% of unique samples are picked and 36.8% remain out-of-bag."
+    },
+    {
+      "question": "What is an Out-Of-Bag (OOB) sample in bootstrap evaluation?",
+      "options": [
+        "A sample that fell out of memory",
+        "A training sample that was not selected in a particular bootstrap draw, used as a natural test sample for evaluating that model",
+        "A sample containing missing values",
+        "An outlier point"
+      ],
+      "correct": 1,
+      "explanation": "OOB samples serve as a built-in cross-validation set for models trained on bootstrap draws (like Random Forests)."
+    },
+    {
+      "question": "If your training loss is 0.05 and your cross-validation loss is 0.06, what state is the model in?",
+      "options": [
+        "Severe Overfitting",
+        "Well-generalized and balanced (low bias, low variance)",
+        "Severe Underfitting",
+        "Data Leakage"
+      ],
+      "correct": 1,
+      "explanation": "A tiny gap between low training loss and low validation loss signifies excellent generalization with neither bias nor variance issues."
+    },
+    {
+      "question": "If your training loss is 0.01 and your cross-validation loss is 1.85, what state is the model in?",
+      "options": [
+        "Severe Overfitting (High Variance)",
+        "Severe Underfitting (High Bias)",
+        "Optimal Model",
+        "Convex Equilibrium"
+      ],
+      "correct": 0,
+      "explanation": "A huge chasm between near-zero training loss and high validation loss is the textbook symptom of severe overfitting."
+    },
+    {
+      "question": "If both your training loss is 1.95 and your cross-validation loss is 1.98, what state is the model in?",
+      "options": [
+        "Optimal Model",
+        "Severe Underfitting (High Bias)",
+        "Severe Overfitting (High Variance)",
+        "Data Leakage"
+      ],
+      "correct": 1,
+      "explanation": "When both losses are high and close together, the model is failing to learn the data patterns (underfitting / high bias)."
+    }
+  ],
+  "level": "beginner"
+}

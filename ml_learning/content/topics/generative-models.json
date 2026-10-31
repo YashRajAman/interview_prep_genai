@@ -1,0 +1,471 @@
+{
+  "id": "generative-models",
+  "title": "Generative Modeling: VAEs, GANs & Diffusion",
+  "description": "Autoregressive models, Variational Autoencoders (ELBO, Reparameterization Trick), GANs (Minimax, WGAN), and Latent Diffusion (DDPM).",
+  "duration": "45 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Generative Modeling Foundations",
+        "subtitle": "Learning the Underlying Data Distribution $p(x)$ to Synthesize High-Fidelity Novel Artifacts"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Discriminative vs Generative Modeling",
+        "text": "- **Discriminative Models:** Model the conditional probability $P(Y \\mid X)$, learning a decision boundary to separate classes.\n- **Generative Models:** Model the joint distribution $P(X, Y)$ or data distribution $P(X)$. They must understand the entire underlying structure of the data manifold to generate realistic new samples $x_{new} \\sim P_{model}(X)$."
+      },
+      {
+        "type": "table",
+        "title": "The Four Modern Generative Paradigms",
+        "headers": [
+          "Paradigm",
+          "Core Formulation",
+          "Sampling Speed",
+          "Sample Quality / Mode Coverage",
+          "Dominant Applications"
+        ],
+        "rows": [
+          [
+            "Autoregressive Models",
+            "Factorizes joint distribution into product of conditionals: $P(X) = \\prod_{t=1}^T P(x_t \\mid x_{<t})$.",
+            "Slow (sequential $O(T)$ steps).",
+            "Exceptional density estimation; no mode collapse.",
+            "Large Language Models (GPT-4), Audio generation."
+          ],
+          [
+            "Variational Autoencoders (VAEs)",
+            "Maximizes Evidence Lower Bound (ELBO) via encoder $q_\\phi(z|x)$ and decoder $p_\\theta(x|z)$.",
+            "Instant ($1$ forward pass).",
+            "Smooth latent space; tends to produce blurry images due to MSE/Gaussian assumptions.",
+            "Latent space representation, compression, drug molecule design."
+          ],
+          [
+            "Generative Adversarial Networks (GANs)",
+            "Two-player minimax game between Generator $G(z)$ and Discriminator $D(x)$: $\\min_G \\max_D V(D, G)$.",
+            "Instant ($1$ forward pass).",
+            "Sharp, photo-realistic details; highly vulnerable to training instability and **Mode Collapse**.",
+            "Real-time face generation (StyleGAN), image editing."
+          ],
+          [
+            "Diffusion Models (DDPM / Score-Based)",
+            "Gradually corrupts data with Gaussian noise (Forward), then trains a network to invert the noise step-by-step (Reverse).",
+            "Historically slow (requires 20-50 denoising steps), but fast with modern ODE solvers.",
+            "State-of-the-art fidelity, zero mode collapse, stable training objective.",
+            "Image synthesis (Stable Diffusion, Midjourney, DALL-E 3), video generation (Sora)."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "VAE: The Evidence Lower Bound (ELBO) & Reparameterization Trick",
+        "text": "True marginal likelihood $\\log p_\\theta(x)$ is intractable. VAE maximizes the **ELBO**:\n\n$$\\log p_\\theta(x) \\ge \\mathbb{E}_{q_\\phi(z|x)}[\\log p_\\theta(x|z)] - D_{KL}(q_\\phi(z|x) \\parallel p(z))$$\n\n- **Reconstruction Term:** $\\mathbb{E}[\\log p_\\theta(x|z)]$ forces decoder to accurately reconstruct inputs.\n- **Regularization Term:** $D_{KL}$ pulls the posterior $q_\\phi(z|x)$ toward a standard Gaussian prior $\\mathcal{N}(0, I)$, ensuring a continuous, interpolatable latent manifold.\n\n> **The Reparameterization Trick:** Sampling $z \\sim \\mathcal{N}(\\mu, \\sigma^2)$ is stochastic and non-differentiable. By setting $z = \\mu + \\sigma \\odot \\epsilon$ where $\\epsilon \\sim \\mathcal{N}(0, I)$, gradients flow smoothly into $\\mu$ and $\\sigma$ via standard backpropagation!"
+      },
+      {
+        "type": "text",
+        "title": "Latent Diffusion & Classifier-Free Guidance (CFG)",
+        "body": "Running diffusion directly on high-resolution pixels ($1024 \\times 1024$) is computationally ruinous. **Latent Diffusion Models (LDM / Stable Diffusion)** solve this by compressing images into a lower-dimensional latent space using a pretrained VAE, performing the iterative denoising diffusion process entirely in latent space.\n\n**Classifier-Free Guidance (CFG, Ho & Salimans, 2022):** Balances sample quality and prompt adherence without an auxiliary classifier:\n\n$$\\tilde{\\epsilon}_\\theta(z_t, c) = \\epsilon_\\theta(z_t, \\emptyset) + s \\cdot (\\epsilon_\\theta(z_t, c) - \\epsilon_\\theta(z_t, \\emptyset))$$\n\nWhere $s > 1$ (typically $7.0 - 9.0$) boosts conditioning signal $c$, creating sharp images aligned with the prompt."
+      }
+    ],
+    "code_example": {
+      "title": "Variational Autoencoder (VAE) Latent Space & Reparameterization in NumPy",
+      "code": "import numpy as np\nimport matplotlib.pyplot as plt\n\n# Simulated VAE Encoder and Reparameterization Trick\ndef reparameterize(mu, logvar):\n    std = np.exp(0.5 * logvar)\n    eps = np.random.randn(*mu.shape) # Gaussian noise epsilon ~ N(0, I)\n    return mu + std * eps\n\ndef kl_divergence(mu, logvar):\n    # KL divergence between N(mu, var) and standard normal N(0, I)\n    return -0.5 * np.sum(1 + logvar - np.square(mu) - np.exp(logvar), axis=-1)\n\n# 4 samples with simulated mu and logvar in 2D latent space\nnp.random.seed(42)\nmu = np.array([[2.0, 1.0], [-1.5, 0.5], [0.1, -2.0], [1.2, -1.0]])\nlogvar = np.array([[-0.2, 0.1], [0.0, -0.5], [0.2, 0.2], [-0.1, -0.1]])\n\nz_samples = reparameterize(mu, logvar)\nkl_losses = kl_divergence(mu, logvar)\n\nprint('Mean vector mu:\\n', mu)\nprint('Sampled Latent Vectors z (differentiable):\\n', np.round(z_samples, 3))\nprint('KL Divergence per sample:', np.round(kl_losses, 4))\n\n# Visualize latent points\nplt.figure(figsize=(6, 4))\nplt.scatter(mu[:, 0], mu[:, 1], color='red', s=100, label='Mean Centers (mu)')\nplt.scatter(z_samples[:, 0], z_samples[:, 1], color='blue', s=80, marker='x', label='Stochastic z Samples')\nplt.title('VAE Reparameterization: Latent Embedding Manifold')\nplt.xlabel('z_1'); plt.ylabel('z_2'); plt.grid(True); plt.legend()\nplt.show()"
+    }
+  },
+  "quiz": [
+    {
+      "question": "What is the fundamental objective difference between discriminative and generative models?",
+      "options": [
+        "Discriminative models estimate P(Y | X) to separate classes; generative models estimate the underlying distribution P(X) to generate new samples",
+        "Discriminative models run faster",
+        "Generative models can only output binary values",
+        "They are identical mathematically"
+      ],
+      "correct": 0,
+      "explanation": "Discriminative algorithms learn class boundaries; generative models capture the full distribution to generate novel realistic data."
+    },
+    {
+      "question": "What are the two components of the Evidence Lower Bound (ELBO) in Variational Autoencoders?",
+      "options": [
+        "Reconstruction Likelihood and the KL Divergence from the approximate posterior to the prior",
+        "Cross-entropy loss and L1 regularization",
+        "Generator loss and Discriminator loss",
+        "Mean squared error and learning rate"
+      ],
+      "correct": 0,
+      "explanation": "ELBO balances reconstruction quality (how well the decoder recreates input x) with KL divergence (pulling the latent distribution toward a standard normal Gaussian)."
+    },
+    {
+      "question": "What is the Reparameterization Trick in VAEs (Kingma & Welling, 2013)?",
+      "options": [
+        "Expressing latent vector z as z = mu + sigma * epsilon where epsilon ~ N(0, I), allowing backpropagation through mu and sigma",
+        "Using a lookup table for random numbers",
+        "Replacing gradients with integers",
+        "Quantizing the latent vector to 8 bits"
+      ],
+      "correct": 0,
+      "explanation": "Direct sampling z ~ N(mu, sigma) has no derivative; expressing z deterministically in terms of mu and sigma with an external random variable epsilon allows backprop."
+    },
+    {
+      "question": "Why do standard VAEs often generate slightly blurry images compared to GANs?",
+      "options": [
+        "Because standard VAEs optimize pixel-wise Mean Squared Error (MSE), which represents an average of plausible high-frequency textures rather than sharp edges",
+        "Because VAEs cannot use convolutional layers",
+        "Because VAEs have too many parameters",
+        "Because latent space has negative dimensions"
+      ],
+      "correct": 0,
+      "explanation": "Pixel-level L2 reconstruction loss penalizes high-frequency mismatches heavily, encouraging the model to hedge bets by predicting blurry pixel averages."
+    },
+    {
+      "question": "What is the two-player minimax objective of a Generative Adversarial Network (GAN, Goodfellow et al., 2014)?",
+      "options": [
+        "min_G max_D [ E_{x}[log D(x)] + E_{z}[log(1 - D(G(z)))] ]",
+        "min_G min_D [ (G(z) - x)^2 ]",
+        "max_G max_D [ log D(x) + log G(z) ]",
+        "min_G [ D(x) + G(z) ]"
+      ],
+      "correct": 0,
+      "explanation": "The discriminator D maximizes its accuracy in classifying real vs fake samples; the generator G minimizes the probability that D detects its generated fakes."
+    },
+    {
+      "question": "What is 'Mode Collapse' in Generative Adversarial Networks?",
+      "options": [
+        "When the generator discovers a small handful of realistic samples that successfully fool the discriminator and produces only those few outputs, losing all dataset diversity",
+        "When the GPU runs out of VRAM",
+        "When the loss evaluates to negative infinity",
+        "When the generator produces black images only"
+      ],
+      "correct": 0,
+      "explanation": "Mode collapse occurs when the generator collapses onto a single narrow mode of the distribution (e.g. generating only one specific dog face repeatedly)."
+    },
+    {
+      "question": "What is the 'Vanishing Gradient' pathology in standard minimax GAN training?",
+      "options": [
+        "When the discriminator becomes too strong early on, causing D(G(z)) -> 0, which makes the gradient log(1 - D(G(z))) with respect to G saturate to zero",
+        "When the discriminator weights decay to zero",
+        "When the learning rate becomes zero",
+        "When images are too bright"
+      ],
+      "correct": 0,
+      "explanation": "If the discriminator learns too quickly, its classification is virtually perfect, leaving the generator with zero gradient to learn from."
+    },
+    {
+      "question": "What is the Non-Saturating GAN heuristic proposed by Goodfellow to fix vanishing gradients?",
+      "options": [
+        "Training G to maximize log(D(G(z))) instead of minimizing log(1 - D(G(z)))",
+        "Setting discriminator learning rate to zero",
+        "Inverting the discriminator weights",
+        "Normalizing pixel values between -1 and 1"
+      ],
+      "correct": 0,
+      "explanation": "Maximizing log(D(G(z))) provides large gradients early when D easily rejects fakes, preventing generator training stagnation."
+    },
+    {
+      "question": "What is the Wasserstein GAN (WGAN, Arjovsky et al., 2017)?",
+      "options": [
+        "A GAN variant that optimizes the Earth Mover's (Wasserstein-1) Distance, providing smooth, continuous gradients everywhere even with disjoint support distributions",
+        "A GAN developed in Germany",
+        "A GAN for generating water images",
+        "A model using quadratic programming"
+      ],
+      "correct": 0,
+      "explanation": "WGAN replaces the Jensen-Shannon divergence with the Wasserstein distance, eliminating mode collapse and providing an interpretable loss curve."
+    },
+    {
+      "question": "What theoretical condition must the Critic function satisfy in Wasserstein GAN?",
+      "options": [
+        "It must be a 1-Lipschitz continuous function: ||f(x) - f(y)|| <= ||x - y||",
+        "It must output probabilities between 0 and 1",
+        "It must have zero bias",
+        "It must be an orthogonal matrix"
+      ],
+      "correct": 0,
+      "explanation": "By the Kantorovich-Rubinstein duality, the Wasserstein distance formulation requires the critic to be a 1-Lipschitz continuous function."
+    },
+    {
+      "question": "How did the original WGAN enforce the Lipschitz condition, and why was it flawed?",
+      "options": [
+        "By weight clipping to [-c, c], which caused parameters to concentrate at extremes and led to capacity underutilization and gradient vanishing/exploding",
+        "By using ReLU",
+        "By dividing weights by 10",
+        "By using L1 regularization"
+      ],
+      "correct": 0,
+      "explanation": "Weight clipping naively bounds gradients, forcing weights to polarize at the thresholds [-c, c] and severely impairing representational capacity."
+    },
+    {
+      "question": "How does WGAN with Gradient Penalty (WGAN-GP, Gulrajani et al., 2017) enforce the Lipschitz condition?",
+      "options": [
+        "By penalizing the norm of the critic's gradient with respect to interpolated inputs: (||grad_{x_hat} D(x_hat)||_2 - 1)^2",
+        "By clipping gradients to 1.0",
+        "By setting learning rate to 0.0001",
+        "By using batch normalization"
+      ],
+      "correct": 0,
+      "explanation": "WGAN-GP penalizes deviations of the critic's gradient norm from 1 along straight lines between real and generated samples."
+    },
+    {
+      "question": "What architectural innovation did StyleGAN (Karras et al., NVIDIA 2019) introduce?",
+      "options": [
+        "Mapping noise z through a mapping network into an intermediate style space w, which modulates convolutional feature maps via Adaptive Instance Normalization (AdaIN)",
+        "Using 100 discriminator networks",
+        "Replacing convolutions with fully connected layers",
+        "Using transformers exclusively"
+      ],
+      "correct": 0,
+      "explanation": "StyleGAN maps z to disentangled style space w and injects styles at each convolution resolution via AdaIN, enabling fine-grained scale-specific attribute control."
+    },
+    {
+      "question": "What are Diffusion Probabilistic Models (DDPM, Sohl-Dickstein 2015, Ho et al. 2020)?",
+      "options": [
+        "Generative models that systematically add Gaussian noise in a forward process, and train a neural network to predict and remove noise step-by-step in a reverse process",
+        "Models that simulate chemical gas diffusion",
+        "Random walk models for stock prices",
+        "Networks that diffuse heat across GPUs"
+      ],
+      "correct": 0,
+      "explanation": "DDPMs formulate generation as a reverse Markov chain that iteratively denoises pure Gaussian noise into realistic data samples."
+    },
+    {
+      "question": "What does the neural network (typically a U-Net or DiT) predict in a standard DDPM?",
+      "options": [
+        "The added Gaussian noise vector epsilon_t present in the noisy image x_t at time step t",
+        "The final clean image directly in 1 step",
+        "The class label of the noise",
+        "The total number of time steps"
+      ],
+      "correct": 0,
+      "explanation": "Predicting the noise vector epsilon_t proves mathematically and empirically superior to predicting the clean image x_0 directly."
+    },
+    {
+      "question": "What is the forward (noising) process in DDPM?",
+      "options": [
+        "A fixed, non-learned Markov chain that adds Gaussian noise with variance schedule beta_t at each step: q(x_t | x_{t-1}) = N(x_t; sqrt(1 - beta_t) * x_{t-1}, beta_t * I)",
+        "A network trained with backpropagation",
+        "A method for blurring images with Photoshop",
+        "A downsampling operation"
+      ],
+      "correct": 0,
+      "explanation": "The forward process is an analytical diffusion process that steadily destroys data structure until x_T becomes isotropic Gaussian noise."
+    },
+    {
+      "question": "Can you sample noisy image x_t at arbitrary time step t directly in closed form without iterating through all previous steps?",
+      "options": [
+        "Yes, using the formula x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * epsilon where alpha_bar_t is the cumulative product of (1 - beta_i)",
+        "No, you must step through every step sequentially",
+        "Only if t is an even number",
+        "Only on GPUs"
+      ],
+      "correct": 0,
+      "explanation": "The Gaussian property allows closed-form sampling of x_t directly from x_0 at any arbitrary time step t in O(1) time."
+    },
+    {
+      "question": "What is the loss function used to train DDPM models?",
+      "options": [
+        "Simple Mean Squared Error between the actual injected Gaussian noise and the noise predicted by the U-Net: ||epsilon - epsilon_theta(x_t, t)||^2",
+        "Adversarial minimax loss",
+        "Binary Cross-Entropy",
+        "Contrastive InfoNCE loss"
+      ],
+      "correct": 0,
+      "explanation": "Ho et al. showed that unweighted MSE between true noise and predicted noise yields state-of-the-art sample quality."
+    },
+    {
+      "question": "Why is the standard DDPM sampling process slow at inference time?",
+      "options": [
+        "Because generating an image requires evaluating the heavy neural network sequentially across hundreds or thousands of iterative denoising steps (e.g. 1000 steps)",
+        "Because GPUs cannot run diffusion",
+        "Because images must be uploaded to the cloud",
+        "Because noise cannot be calculated in parallel"
+      ],
+      "correct": 0,
+      "explanation": "Generating a sample requires rolling back the reverse Markov chain step-by-step, taking 500-1000 sequential forward passes per image."
+    },
+    {
+      "question": "What is DDIM (Denoising Diffusion Implicit Models, Song et al., 2020)?",
+      "options": [
+        "A non-Markovian deterministic sampling formulation that allows generating high-quality samples in 20-50 steps instead of 1000 steps",
+        "A 1-bit diffusion model",
+        "A model that diffuses audio",
+        "A method for training without GPUs"
+      ],
+      "correct": 0,
+      "explanation": "DDIM formulates the reverse process as a deterministic ordinary differential equation (ODE), dramatically accelerating sampling by 20x-50x."
+    },
+    {
+      "question": "What is Classifier-Free Guidance (CFG, Ho & Salimans, 2022)?",
+      "options": [
+        "A technique that conditions generation on text prompts while periodically dropping the prompt during training (e.g. 10%), interpolating between conditional and unconditional predictions",
+        "Using an external ResNet classifier to filter bad images",
+        "A method for generating text without an LLM",
+        "A model that runs without a loss function"
+      ],
+      "correct": 0,
+      "explanation": "CFG trains a single model for both conditional and unconditional generation, amplifying the conditioning vector to significantly improve prompt alignment."
+    },
+    {
+      "question": "What is the effect of setting the Classifier-Free Guidance (CFG) scale too high (e.g. s = 25)?",
+      "options": [
+        "The generated image suffers from oversaturation, unnatural contrast, high-frequency artifacts, and burnt color degradation",
+        "The image becomes completely black",
+        "The image resolution doubles",
+        "The generation finishes in 1 second"
+      ],
+      "correct": 0,
+      "explanation": "Excessive guidance pushes latent vectors outside the training manifold, resulting in over-saturated, hyper-contrasted, distorted artifacts."
+    },
+    {
+      "question": "What is Latent Diffusion (Rombach et al., CVPR 2022 / Stable Diffusion)?",
+      "options": [
+        "Training diffusion models in the compressed latent space of a pretrained autoencoder (VAE) rather than raw pixel space, reducing computational cost by 95%",
+        "Diffusing images across multiple servers",
+        "A model that generates hidden text",
+        "A diffusion model that runs on CPUs only"
+      ],
+      "correct": 0,
+      "explanation": "By operating in a perceptually equivalent 8x-downscaled latent space (e.g. 64x64 latent for a 512x512 image), Latent Diffusion drastically slashes training and inference FLOPs."
+    },
+    {
+      "question": "What is the U-Net architecture in diffusion models?",
+      "options": [
+        "An encoder-decoder network with skip connections that downsamples feature maps and then upsamples them, preserving fine spatial details across scales",
+        "A network shaped like the letter V",
+        "A single-layer recurrent network",
+        "A network without any convolutions"
+      ],
+      "correct": 0,
+      "explanation": "The U-Net architecture uses contraction, bottleneck, and expansion paths with lateral skip connections, ideal for predicting spatial noise residuals."
+    },
+    {
+      "question": "What is a Diffusion Transformer (DiT, Peebles & Xie, 2023)?",
+      "options": [
+        "Replacing the standard U-Net backbone in diffusion models with a pure Vision Transformer operating on latent patches, powering modern models like Sora and Flux",
+        "A model that translates text into French",
+        "A transformer that diffuses memory across GPUs",
+        "A recurrent model for audio"
+      ],
+      "correct": 0,
+      "explanation": "DiT demonstrated that Transformers scale predictably with compute in diffusion tasks, outperforming U-Nets as model capacity increases."
+    },
+    {
+      "question": "What is Flow Matching (Lipman et al., 2023)?",
+      "options": [
+        "A generative modeling framework based on Continuous Normalizing Flows that regresses straight-line vector fields between noise and data, enabling faster sampling",
+        "Matching flow rates in computer cooling systems",
+        "A sorting algorithm for graphs",
+        "A method for packet inspection"
+      ],
+      "correct": 0,
+      "explanation": "Flow Matching provides a simulation-free training objective that learns straight probability flow trajectories, achieving high-fidelity generation in very few steps (Stable Diffusion 3, Flux)."
+    },
+    {
+      "question": "What is Score-Based Generative Modeling (Song & Ermon, 2019)?",
+      "options": [
+        "Estimating the score function (the gradient of the log data density with respect to input: grad_x log p(x)) and sampling via Langevin dynamics",
+        "Grading models with an exam score",
+        "A model that predicts sports scores",
+        "A benchmark for image classifiers"
+      ],
+      "correct": 0,
+      "explanation": "Score-based modeling learns vector fields pointing toward regions of high probability density, integrating seamlessly with continuous stochastic differential equations (SDEs)."
+    },
+    {
+      "question": "What is Fréchet Inception Distance (FID)?",
+      "options": [
+        "The gold-standard metric for evaluating generative image quality and diversity by comparing feature statistics of real and fake images from an Inception-v3 network",
+        "The physical distance between GPUs in meters",
+        "The training time of a GAN",
+        "The percentage of duplicate images"
+      ],
+      "correct": 0,
+      "explanation": "FID measures the Wasserstein-2 distance between multivariate Gaussian approximations of Inception features: lower FID indicates superior fidelity and realism."
+    },
+    {
+      "question": "What does Inception Score (IS) measure in generative models?",
+      "options": [
+        "Both the sharpness/clarity of generated images (low entropy conditional distribution P(y|x)) and diversity across classes (high entropy marginal distribution P(y))",
+        "The speed of the Inception network",
+        "The number of layers in Inception-v3",
+        "The GPU clock frequency"
+      ],
+      "correct": 0,
+      "explanation": "Inception score evaluates whether individual samples clearly belong to specific classes while ensuring the overall generated set covers all classes diversely."
+    },
+    {
+      "question": "What is Image-to-Image (img2img) translation in diffusion models?",
+      "options": [
+        "Adding partial noise to an existing input image (e.g. to step t=500 of 1000) and running reverse diffusion from that midpoint conditioned on a new text prompt",
+        "Converting PNG files to JPEG",
+        "Upscaling images with bilinear interpolation",
+        "Inverting colors of an image"
+      ],
+      "correct": 0,
+      "explanation": "Img2img preserves the high-level structural composition of the input image while regenerating stylistic textures guided by the conditioning prompt."
+    },
+    {
+      "question": "What is Inpainting in generative computer vision?",
+      "options": [
+        "Synthesizing realistic image content to seamlessly fill in a user-masked missing or erased region of an image conditioned on surrounding context",
+        "Painting physical canvases with robots",
+        "Colorizing black and white photos only",
+        "Removing all background pixels"
+      ],
+      "correct": 0,
+      "explanation": "Inpainting replaces masked areas with contextually coherent content while holding the unmasked boundaries fixed."
+    },
+    {
+      "question": "What is ControlNet (Zhang et al., 2023)?",
+      "options": [
+        "An architectural adapter that locks a pretrained diffusion model and adds trainable task-specific conditioning (edges, poses, depth maps) via zero-convolutions",
+        "A controller for smart home devices",
+        "An internet networking protocol",
+        "A tool for controlling GPU temperatures"
+      ],
+      "correct": 0,
+      "explanation": "ControlNet adds spatial conditioning controls (such as Canny edge maps, OpenPose human skeletons, or depth maps) to text-to-image models with remarkable spatial precision."
+    },
+    {
+      "question": "What is DreamBooth (Ruiz et al., Google 2022)?",
+      "options": [
+        "Fine-tuning a diffusion model on 3-5 images of a specific subject bound to a unique rare token identifier (e.g. 'a [V] dog') with class-specific prior preservation loss",
+        "A photobooth app for smartphones",
+        "A tool for generating lucid dreams",
+        "A video conferencing background tool"
+      ],
+      "correct": 0,
+      "explanation": "DreamBooth personalizes text-to-image models to synthesize novel scenes containing a specific person, pet, or custom object while maintaining identity consistency."
+    },
+    {
+      "question": "What is Textual Inversion (Gal et al., 2022)?",
+      "options": [
+        "Learning a single new pseudo-word embedding vector in a frozen text encoder's vocabulary to represent a custom concept without modifying any model weights",
+        "Inverting text strings backwards",
+        "Translating text into binary code",
+        "Inverting attention weights"
+      ],
+      "correct": 0,
+      "explanation": "Textual Inversion freezes the entire diffusion model and optimizes only a single 768-dim token embedding that captures the visual concept."
+    },
+    {
+      "question": "What is Consistency Model (Song et al., OpenAI 2023)?",
+      "options": [
+        "A generative model that maps any point along a diffusion trajectory directly to the origin data point, enabling high-quality generation in a single sampling step",
+        "A model that never contradicts itself",
+        "A database consistency check",
+        "A rule-based reasoning engine"
+      ],
+      "correct": 0,
+      "explanation": "Consistency models enforce self-consistency along probability flow trajectories, allowing 1-step or 2-step image generation without iterative ODE integration."
+    }
+  ],
+  "level": "professional"
+}

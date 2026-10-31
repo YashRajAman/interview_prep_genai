@@ -1,0 +1,473 @@
+{
+  "id": "cnn",
+  "title": "Convolutional Neural Networks (CNNs)",
+  "description": "Kernels, Strides, Padding, Feature Maps, Pooling, Receptive Fields, and Classic Architectures from LeNet to ResNet.",
+  "duration": "40 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Convolutional Neural Networks (CNNs)",
+        "subtitle": "Exploiting Spatial Locality, Translation Invariance, and Hierarchical Representations"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Why Fully Connected (Dense) Layers Fail on Images",
+        "text": "A standard $1024 \\times 1024 \\times 3$ RGB color image has $3,145,728$ input values. Connecting this to a single hidden layer of just $1,000$ neurons requires over **$3.14$ billion parameters**! Furthermore, dense layers flatten images into 1D vectors, completely discarding 2D spatial relationships. **CNNs solve this** via two inductive biases:\n1. **Local Connectivity:** Each neuron connects only to a small local patch (receptive field) of the input.\n2. **Weight Sharing (Parameter Sharing):** The same kernel (filter) sweeps across the entire image, detecting features invariant to their spatial position."
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "The 2D Convolution Dimension Formula",
+        "text": "Given an input feature map of height $H_{in}$ and width $W_{in}$, filter/kernel size $K$, padding $P$, and stride $S$, the output dimensions are:\n\n$$H_{out} = \\left\\lfloor \\frac{H_{in} - K + 2P}{S} \\right\\rfloor + 1$$\n$$W_{out} = \\left\\lfloor \\frac{W_{in} - K + 2P}{S} \\right\\rfloor + 1$$\n\n- **Valid Padding ($P = 0$):** Output shrinks: $H_{out} = H_{in} - K + 1$.\n- **Same Padding:** Preserves spatial dimensions ($H_{out} = H_{in}$ when $S=1$) by setting $P = \\frac{K - 1}{2}$ for odd kernel sizes."
+      },
+      {
+        "type": "table",
+        "title": "Milestone CNN Architectures Through Time",
+        "headers": [
+          "Architecture",
+          "Year & Authors",
+          "Key Architectural Innovations",
+          "Significance"
+        ],
+        "rows": [
+          [
+            "LeNet-5",
+            "1998 (LeCun et al.)",
+            "5x5 convs, average pooling, tanh activations.",
+            "Pioneered handwritten digit recognition (MNIST) for bank checks."
+          ],
+          [
+            "AlexNet",
+            "2012 (Krizhevsky et al.)",
+            "ReLU activations, Dropout (0.5), GPU training (2x GTX 580), 11x11 & 5x5 filters.",
+            "Ignited the modern Deep Learning revolution by winning ImageNet 2012 with a 15.3% top-5 error rate."
+          ],
+          [
+            "VGGNet (VGG-16/19)",
+            "2014 (Simonyan & Zisserman)",
+            "Stacked homogeneous $3\\times 3$ convolutions with stride 1 instead of larger $5\\times 5$ or $7\\times 7$ filters.",
+            "Proved two stacked $3\\times 3$ convs have the same receptive field as a $5\\times 5$ conv but with 28% fewer parameters and extra non-linearities."
+          ],
+          [
+            "GoogLeNet (Inception v1)",
+            "2014 (Szegedy et al.)",
+            "Multi-scale Inception modules (parallel $1\\times 1, 3\\times 3, 5\\times 5$ convs + pooling), $1\\times 1$ conv dimensionality reduction.",
+            "Achieved 22 layers with 12x fewer parameters than AlexNet (4M vs 60M)."
+          ],
+          [
+            "ResNet (ResNet-50/152)",
+            "2015 (He et al., Microsoft)",
+            "Residual skip connections ($y = \\mathcal{F}(x) + x$), Bottleneck blocks ($1\\times 1 \\to 3\\times 3 \\to 1\\times 1$), Batch Normalization.",
+            "Solved the gradient degradation problem, enabling ultra-deep networks (152+ layers) and surpassing human-level ImageNet accuracy (3.57% top-5)."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "Why $1 \\times 1$ Convolutions (Pointwise Convolutions) are Powerful",
+        "text": "A $1 \\times 1$ convolution computes a linear combination across channels at each spatial coordinate $(h, w)$. It enables:\n1. **Dimensionality Reduction:** Compressing 256 input channels down to 64 channels before expensive $3 \\times 3$ convolutions, slashing FLOPs by 75%.\n2. **Added Non-Linearity:** Introducing an extra ReLU activation without changing spatial height/width."
+      }
+    ],
+    "code_example": {
+      "title": "2D Convolution from Scratch with NumPy (Forward Pass)",
+      "code": "import numpy as np\nimport matplotlib.pyplot as plt\n\ndef conv2d_forward(X, W, b, stride=1, padding=1):\n    # X shape: (N, C_in, H_in, W_in)\n    # W shape: (C_out, C_in, K_h, K_w)\n    N, C_in, H_in, W_in = X.shape\n    C_out, _, K_h, K_w = W.shape\n    \n    # Pad input\n    X_pad = np.pad(X, ((0, 0), (0, 0), (padding, padding), (padding, padding)), mode='constant')\n    H_out = int((H_in - K_h + 2 * padding) / stride) + 1\n    W_out = int((W_in - K_w + 2 * padding) / stride) + 1\n    \n    out = np.zeros((N, C_out, H_out, W_out))\n    for n in range(N):\n        for c in range(C_out):\n            for h in range(H_out):\n                for w in range(W_out):\n                    h_start = h * stride\n                    h_end = h_start + K_h\n                    w_start = w * stride\n                    w_end = w_start + K_w\n                    \n                    patch = X_pad[n, :, h_start:h_end, w_start:w_end]\n                    out[n, c, h, w] = np.sum(patch * W[c, :, :, :]) + b[c]\n    return out\n\n# Create a 16x16 synthetic image with a vertical edge\nimg = np.zeros((1, 1, 16, 16))\nimg[0, 0, :, 8:] = 1.0 # Left side dark, right side bright\n\n# Sobel vertical edge filter (1, 1, 3, 3)\nsobel_filter = np.array([\n    [-1, 0, 1],\n    [-2, 0, 2],\n    [-1, 0, 1]\n]).reshape(1, 1, 3, 3)\nb = np.array([0.0])\n\nfeature_map = conv2d_forward(img, sobel_filter, b, stride=1, padding=1)\nprint('Output Feature Map Shape:', feature_map.shape)\nprint('Max Edge Intensity:', np.max(feature_map))\n\nplt.figure(figsize=(7, 3))\nplt.subplot(1, 2, 1); plt.imshow(img[0, 0], cmap='gray'); plt.title('Original Image (Edge)')\nplt.subplot(1, 2, 2); plt.imshow(feature_map[0, 0], cmap='magma'); plt.title('Detected Vertical Boundary')\nplt.tight_layout(); plt.show()"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Why are Convolutional Neural Networks preferred over standard Multi-Layer Perceptrons for computer vision tasks?",
+      "options": [
+        "They require millions of times fewer parameters via weight sharing and preserve 2D spatial locality",
+        "They do not use activation functions",
+        "They can only process grayscale images",
+        "They do not require GPUs"
+      ],
+      "correct": 0,
+      "explanation": "CNNs leverage weight sharing and local receptive fields to dramatically decrease parameter counts while preserving spatial hierarchies."
+    },
+    {
+      "question": "What are the two core inductive biases built into convolutional layers?",
+      "options": [
+        "Local connectivity and spatial parameter (weight) sharing",
+        "Global connectivity and random initialization",
+        "Recurrence and attention",
+        "Tree branching and entropy reduction"
+      ],
+      "correct": 0,
+      "explanation": "Local connectivity means neurons respond to small spatial windows; parameter sharing ensures the same kernel searches for the feature everywhere."
+    },
+    {
+      "question": "Given an input image of size 32x32, a kernel size of 5x5, padding of 2, and stride of 1, what is the output spatial dimension?",
+      "options": [
+        "28x28",
+        "30x30",
+        "32x32",
+        "36x36"
+      ],
+      "correct": 2,
+      "explanation": "H_out = (32 - 5 + 2*2)/1 + 1 = 32 - 5 + 4 + 1 = 32x32 (Same padding)."
+    },
+    {
+      "question": "Given an input of 64x64, kernel size 3x3, stride 2, and padding 0 (valid), what is the output dimension?",
+      "options": [
+        "31x31",
+        "32x32",
+        "30x30",
+        "28x28"
+      ],
+      "correct": 0,
+      "explanation": "H_out = floor((64 - 3 + 0)/2) + 1 = floor(61/2) + 1 = 30 + 1 = 31x31."
+    },
+    {
+      "question": "What does 'Valid Padding' mean in convolutional layers?",
+      "options": [
+        "No padding is added (P = 0), allowing the output feature map to shrink",
+        "Padding with ones",
+        "Padding that guarantees output size equals input size",
+        "Padding with mirror reflection"
+      ],
+      "correct": 0,
+      "explanation": "Valid padding sets P=0, so the filter only computes over valid image pixels without boundary padding."
+    },
+    {
+      "question": "What is the primary role of Pooling layers (e.g. Max Pooling, Average Pooling)?",
+      "options": [
+        "To downsample spatial dimensions, reducing computation and introducing minor translation invariance",
+        "To increase the number of channels",
+        "To backpropagate errors faster",
+        "To perform matrix inversion"
+      ],
+      "correct": 0,
+      "explanation": "Pooling reduces spatial resolution (height and width), reducing VRAM and parameter needs while providing translation invariance."
+    },
+    {
+      "question": "How does Max Pooling differ from Average Pooling?",
+      "options": [
+        "Max Pooling selects the maximum activation in each window, preserving dominant signals; Average Pooling computes the arithmetic mean, smoothing features",
+        "Max Pooling increases spatial size",
+        "Average Pooling is non-linear",
+        "Max Pooling contains trainable weights"
+      ],
+      "correct": 0,
+      "explanation": "Max pooling takes max(patch) highlighting edges/salient features; Average pooling takes mean(patch) capturing smooth background context."
+    },
+    {
+      "question": "Do standard pooling layers (Max/Avg Pooling) contain learnable weights?",
+      "options": [
+        "No, they are fixed non-parameterized mathematical pooling operations",
+        "Yes, one weight per window",
+        "Yes, they contain weights and biases",
+        "Only Max Pooling has weights"
+      ],
+      "correct": 0,
+      "explanation": "Pooling operations have fixed formulas (max or mean) and contain zero learnable parameters."
+    },
+    {
+      "question": "What is the 'Receptive Field' of a neuron in a convolutional network?",
+      "options": [
+        "The region of the original input image that contributes to that neuron's activation",
+        "The physical RAM occupied by the layer",
+        "The field of view of the camera",
+        "The number of output classes"
+      ],
+      "correct": 0,
+      "explanation": "The receptive field denotes the specific spatial patch of the input image that directly or indirectly influences the neuron's output."
+    },
+    {
+      "question": "How does stacking two 3x3 convolutional layers compare to using a single 5x5 convolutional layer?",
+      "options": [
+        "They have the same effective receptive field (5x5), but two 3x3 layers have fewer parameters (18 vs 25 weights) and include two non-linearities instead of one",
+        "The single 5x5 layer is always faster and has fewer parameters",
+        "Two 3x3 layers have a smaller receptive field",
+        "They are mathematically identical in every way"
+      ],
+      "correct": 0,
+      "explanation": "As proven by VGGNet, two 3x3 convolutions have receptive field 1 + 2*(3-1) = 5, with 2*(3*3)=18 params vs 25 params (28% savings) and two non-linearities."
+    },
+    {
+      "question": "What was the historical significance of AlexNet (2012)?",
+      "options": [
+        "It won the ImageNet Large Scale Visual Recognition Challenge by a wide margin, ushering in the modern deep learning era",
+        "It was the first model to predict stock prices",
+        "It invented the transformer architecture",
+        "It proved neural networks cannot classify images"
+      ],
+      "correct": 0,
+      "explanation": "AlexNet decisively won ImageNet 2012 with GPU-accelerated deep CNNs, proving the viability of large-scale deep learning."
+    },
+    {
+      "question": "What architectural innovation was introduced by VGGNet (Simonyan & Zisserman, 2014)?",
+      "options": [
+        "Standardizing on small 3x3 filters throughout the entire deep network architecture instead of large heterogeneous kernels",
+        "Replacing conv layers with decision trees",
+        "Using 100x100 filters",
+        "Eliminating all non-linearities"
+      ],
+      "correct": 0,
+      "explanation": "VGG demonstrated that deep networks constructed strictly from modular 3x3 convolution blocks outperform wider, shallower models with large filters."
+    },
+    {
+      "question": "What is a 1x1 convolution (Pointwise Convolution) primarily used for?",
+      "options": [
+        "Cross-channel pooling, channel dimension reduction or expansion, and adding non-linearities without altering spatial dimensions",
+        "Edge detection on black and white images",
+        "Downsampling image width and height",
+        "Data augmentation"
+      ],
+      "correct": 0,
+      "explanation": "A 1x1 conv computes linear combinations across channels at every spatial pixel, functioning as a channel-wise MLP to compress or project feature channels."
+    },
+    {
+      "question": "What is the core idea behind the Inception module in GoogLeNet?",
+      "options": [
+        "Processing the input concurrently through parallel filters of multiple sizes (1x1, 3x3, 5x5, and max pool) and concatenating their output channels",
+        "Stacking 100 identical linear layers",
+        "Dropping 90% of connections randomly",
+        "Using only fully connected layers"
+      ],
+      "correct": 0,
+      "explanation": "The Inception module processes features at multiple spatial scales simultaneously and lets the network learn which scale to emphasize."
+    },
+    {
+      "question": "What fundamental problem in deep networks did ResNet (Deep Residual Learning) solve in 2015?",
+      "options": [
+        "The degradation problem, where plain ultra-deep networks (e.g. 56 layers) experienced higher training and test error than shallower counterparts",
+        "Lack of labeled training data",
+        "Overfitting on small datasets",
+        "Inability to run on CPUs"
+      ],
+      "correct": 0,
+      "explanation": "He et al. showed that plain deep networks suffer optimization degradation (higher training error); residual identity connections solved this completely."
+    },
+    {
+      "question": "What is a Residual Skip Connection mathematically?",
+      "options": [
+        "y = F(x) + x, where F(x) is the residual mapping to be learned",
+        "y = F(x) * x",
+        "y = F(x) / x",
+        "y = max(F(x), x)"
+      ],
+      "correct": 0,
+      "explanation": "The residual block reformulates the target mapping as F(x) = H(x) - x, so the layer learns residual deviations F(x) on top of the identity shortcut x."
+    },
+    {
+      "question": "Why is it easier for a residual block to learn an identity mapping than a plain convolutional layer?",
+      "options": [
+        "Setting the residual weights F(x) to zero naturally yields y = 0 + x = x, whereas a plain layer must learn an identity matrix across multiple layers",
+        "Because residual connections do not use weights",
+        "Because identity is hard-coded into CUDA",
+        "Because ReLU is linear"
+      ],
+      "correct": 0,
+      "explanation": "If an identity mapping is optimal, gradient descent can easily push the weights of F(x) toward zero, whereas multi-layer non-linear transformations struggle to emulate pure identity."
+    },
+    {
+      "question": "What is a 'Bottleneck Residual Block' in ResNet-50 and deeper models?",
+      "options": [
+        "A block using 1x1 conv (reduce channels) -> 3x3 conv -> 1x1 conv (restore channels) to minimize computational FLOPs",
+        "A block that bottlenecks GPU memory bandwidth",
+        "A block with only one neuron",
+        "A layer that drops half the batch"
+      ],
+      "correct": 0,
+      "explanation": "Bottleneck blocks compress channels with 1x1 conv, apply 3x3 conv in the reduced lower-dimensional space, then restore channels with another 1x1 conv."
+    },
+    {
+      "question": "What is Dilated (Atrous) Convolution?",
+      "options": [
+        "A convolution where the kernel is expanded with spaces/holes between elements, enlarging the receptive field without adding parameters or downsampling",
+        "A convolution that rotates images 90 degrees",
+        "A convolution with random missing weights",
+        "A convolution that operates on audio"
+      ],
+      "correct": 0,
+      "explanation": "Dilated convolutions introduce a dilation rate r, sampling input pixels every r steps to expand receptive fields without losing spatial resolution (essential for segmentation)."
+    },
+    {
+      "question": "What is Transposed Convolution (often informally called Deconvolution)?",
+      "options": [
+        "An upsampling convolution operation that projects lower-resolution feature maps into higher-resolution representations",
+        "The mathematical matrix inverse of a convolution",
+        "A convolution evaluated backwards in time",
+        "A pooling operation that discards max values"
+      ],
+      "correct": 0,
+      "explanation": "Transposed convolutions perform learned spatial upsampling by mapping each input pixel to a kernel-sized footprint in the output."
+    },
+    {
+      "question": "What is Depthwise Separable Convolution (used in MobileNet and Xception)?",
+      "options": [
+        "Splitting a standard convolution into two steps: a depthwise spatial convolution per channel, followed by a 1x1 pointwise convolution across channels",
+        "Applying convolution to image depth in 3D MRI scans",
+        "Separating weights into positive and negative sets",
+        "Using separate GPUs for each layer"
+      ],
+      "correct": 0,
+      "explanation": "Depthwise separable convolution factors standard convolution into spatial filtering (depthwise) and channel mixing (pointwise), reducing computation by 8-9x."
+    },
+    {
+      "question": "How does Global Average Pooling (GAP) replace dense layers at the end of modern CNNs?",
+      "options": [
+        "By computing the average of each entire feature map into a single scalar per channel, reducing HxWxC to 1x1xC before classification",
+        "By averaging all images in the dataset",
+        "By taking the global mean of the weights",
+        "By averaging predictions across 10 epochs"
+      ],
+      "correct": 0,
+      "explanation": "GAP averages across spatial dimensions HxW for each channel, drastically reducing parameter count and eliminating overfitting from massive fully connected heads."
+    },
+    {
+      "question": "What is translation equivariance in convolutional layers?",
+      "options": [
+        "If the input image is shifted by (dx, dy), the resulting feature map is shifted by the exact same amount",
+        "The output is completely unchanged when an image is shifted",
+        "The network predicts the translation coordinates",
+        "The weights rotate automatically"
+      ],
+      "correct": 0,
+      "explanation": "Equivariance means f(g(x)) = g(f(x)): shifting the input shifts the internal feature representation by the corresponding spatial displacement."
+    },
+    {
+      "question": "How does translation equivariance differ from translation invariance?",
+      "options": [
+        "Equivariance means the feature map shifts with the input; Invariance means the final output (e.g. classification label) remains unchanged regardless of input shifts",
+        "They are identical terms",
+        "Invariance applies only to rotation",
+        "Equivariance only applies to audio"
+      ],
+      "correct": 0,
+      "explanation": "Convolutional feature maps are equivariant (they shift), while downstream pooling and global aggregations produce invariance (class prediction is 'cat' regardless of position)."
+    },
+    {
+      "question": "What is Channel Attention in Squeeze-and-Excitation Networks (SENet)?",
+      "options": [
+        "Explicitly modeling interdependencies between channels by globally pooling spatial information and recalibrating channel weights via a small bottleneck MLP",
+        "Discarding noisy channels randomly",
+        "Training each channel on a different GPU",
+        "Sorting channels by variance"
+      ],
+      "correct": 0,
+      "explanation": "SENet 'squeezes' spatial information into channel descriptors and 'excites' them with learned adaptive scales, emphasizing informative feature maps."
+    },
+    {
+      "question": "What is Feature Pyramid Network (FPN)?",
+      "options": [
+        "A top-down architecture with lateral connections that constructs rich multi-scale feature representations for object detection at different sizes",
+        "A pyramid of images resized on disk",
+        "A hierarchical decision tree",
+        "A 3D convolutional model"
+      ],
+      "correct": 0,
+      "explanation": "FPN combines low-resolution, semantically strong features with high-resolution, semantically weak features via lateral skip connections."
+    },
+    {
+      "question": "What is ConvNeXt (Liu et al., 2022)?",
+      "options": [
+        "A modernized pure ConvNet incorporating design choices from Vision Transformers (7x7 depthwise convs, inverted bottleneck, GELU, LayerNorm) to match Swin Transformers",
+        "A hybrid model of CNN and decision trees",
+        "A model that replaces convolutions with fast Fourier transforms",
+        "A generative video model"
+      ],
+      "correct": 0,
+      "explanation": "ConvNeXt modernized traditional CNNs with Transformer design principles, proving CNNs remain competitive with Vision Transformers in accuracy and efficiency."
+    },
+    {
+      "question": "What is the computational complexity (FLOPs) of a standard 2D convolution layer?",
+      "options": [
+        "O(H_out * W_out * C_in * C_out * K_h * K_w)",
+        "O(H_in * W_in)",
+        "O(C_in + C_out)",
+        "O(K_h^2)"
+      ],
+      "correct": 0,
+      "explanation": "Each of the H_out * W_out spatial positions in each of the C_out output channels requires C_in * K_h * K_w multiply-accumulate operations."
+    },
+    {
+      "question": "If an input has shape (32, 64, 64) [C, H, W] and is convolved with 64 filters of size (32, 3, 3) with stride 1 and padding 1, how many trainable weight parameters does this layer contain (excluding bias)?",
+      "options": [
+        "64 * 32 * 3 * 3 = 18,432",
+        "32 * 64 * 64 = 131,072",
+        "64 * 3 * 3 = 576",
+        "32 * 32 = 1,024"
+      ],
+      "correct": 0,
+      "explanation": "Trainable weights = C_out * C_in * K_h * K_w = 64 * 32 * 3 * 3 = 18,432 parameters."
+    },
+    {
+      "question": "What is Class Activation Mapping (CAM / Grad-CAM)?",
+      "options": [
+        "A visual explanation technique that uses gradients flowing into the final convolutional layer to generate a coarse heatmap of important image regions",
+        "A method for camera calibration",
+        "An activation function for computer vision",
+        "A loss function for object detection"
+      ],
+      "correct": 0,
+      "explanation": "Grad-CAM uses the gradients of any target concept flowing into the final conv layer to highlight the discriminative image regions used for prediction."
+    },
+    {
+      "question": "Why do we typically increase the number of channels (C) as we decrease the spatial dimensions (H, W) in deeper CNN stages?",
+      "options": [
+        "To capture richer, more abstract semantic feature combinations as spatial resolution is compressed",
+        "Because GPU memory requires powers of two",
+        "To make the layers square",
+        "Because older layers lose their weights"
+      ],
+      "correct": 0,
+      "explanation": "Downsampling reduces spatial redundancy while channel expansion allows the network to represent hundreds of complex semantic pattern combinations."
+    },
+    {
+      "question": "What is the purpose of Zero-Padding in convolutional layers?",
+      "options": [
+        "To prevent feature map spatial shrinkage and allow control over output dimensions, especially keeping borders from vanishing",
+        "To reset weight parameters to zero",
+        "To remove outliers from the edges",
+        "To make images square"
+      ],
+      "correct": 0,
+      "explanation": "Padding borders with zeros allows kernels to process boundary pixels equally and prevents feature maps from shrinking to 1x1 prematurely."
+    },
+    {
+      "question": "What happens when stride S = 2 is used in a convolutional layer?",
+      "options": [
+        "The output spatial height and width are approximately halved, performing learned downsampling without needing a separate pooling layer",
+        "The image resolution doubles",
+        "The number of channels is halved",
+        "The learning rate is multiplied by 2"
+      ],
+      "correct": 0,
+      "explanation": "A stride of 2 steps the kernel by 2 pixels each time, downsampling spatial dimensions by a factor of 2."
+    },
+    {
+      "question": "What is an Inverted Residual Block (used in MobileNetV2)?",
+      "options": [
+        "A block that expands input channels with 1x1 conv, applies 3x3 depthwise conv, then projects back to lower channels with linear bottleneck",
+        "A residual block with negative weights",
+        "A block evaluated backwards",
+        "A block that inverts colors"
+      ],
+      "correct": 0,
+      "explanation": "MobileNetV2's inverted bottleneck expands channels in the intermediate layer (thick in the middle) and places residual skips across narrow bottleneck representations."
+    },
+    {
+      "question": "What is the effect of replacing large pooling layers with strided convolutions (as in Springenberg et al., 'All Convolutional Net')?",
+      "options": [
+        "The network learns its own optimal spatial downsampling filters end-to-end via gradient descent rather than using a fixed rule",
+        "The network becomes slower and loses accuracy",
+        "It eliminates the need for activations",
+        "The network cannot backpropagate"
+      ],
+      "correct": 0,
+      "explanation": "Strided convolutions allow the network to learn adaptive downsampling transformations tailored to the dataset."
+    }
+  ],
+  "level": "advanced"
+}

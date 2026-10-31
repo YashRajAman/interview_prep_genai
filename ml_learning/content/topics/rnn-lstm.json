@@ -1,0 +1,479 @@
+{
+  "id": "rnn-lstm",
+  "title": "Sequential Models: RNN, LSTM & GRU",
+  "description": "Sequential Modeling, Backpropagation Through Time (BPTT), Exploding/Vanishing Gradients, LSTM Gating Mechanics, and GRUs.",
+  "duration": "40 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Recurrent Architectures for Sequential Data",
+        "subtitle": "Processing Temporal Signals, State Memory, and Overcoming Vanishing Gradients"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Sequential Modeling Paradigm",
+        "text": "Unlike feedforward networks which assume inputs are independent and identically distributed (i.i.d.), sequential data (text sentences, financial tickers, audio waves, medical ECGs) exhibits strong **temporal dependencies**: the meaning of token $x_t$ depends heavily on the historical context $x_1, \\dots, x_{t-1}$. **Recurrent Neural Networks (RNNs)** process sequential inputs step-by-step, maintaining an internal hidden state vector $h_t$ that functions as a running memory."
+      },
+      {
+        "type": "callout",
+        "style": "math",
+        "title": "Vanilla RNN Mathematical Formulation",
+        "text": "At each time step $t \\in \\{1, \\dots, T\\}$:\n\n$$h_t = \\tanh(W_{hh} h_{t-1} + W_{xh} x_t + b_h)$$\n$$\\hat{y}_t = \\text{softmax}(W_{hy} h_t + b_y)$$\n\nNotice that the weight matrices $W_{hh}, W_{xh}, W_{hy}$ are **shared across all time steps** $t$. Unrolling this operation over $T$ steps produces a computational graph of depth $T$."
+      },
+      {
+        "type": "table",
+        "title": "LSTM Gating Mechanics Breakdown (Hochreiter & Schmidhuber, 1997)",
+        "headers": [
+          "Gate / State Component",
+          "Mathematical Formula",
+          "Activation",
+          "Functional Role"
+        ],
+        "rows": [
+          [
+            "Forget Gate ($f_t$)",
+            "$f_t = \\sigma(W_f [h_{t-1}, x_t] + b_f)$",
+            "Sigmoid $\\in (0, 1)$",
+            "Decides what percentage of old cell memory $C_{t-1}$ to retain ($1$) or wipe clean ($0$)."
+          ],
+          [
+            "Input Gate ($i_t$)",
+            "$i_t = \\sigma(W_i [h_{t-1}, x_t] + b_i)$",
+            "Sigmoid $\\in (0, 1)$",
+            "Determines which coordinates of the candidate vector are worth recording into long-term memory."
+          ],
+          [
+            "Candidate State ($\\tilde{C}_t$)",
+            "$\\tilde{C}_t = \\tanh(W_c [h_{t-1}, x_t] + b_c)$",
+            "Tanh $\\in (-1, 1)$",
+            "Creates new candidate information to potentially write into the cell state."
+          ],
+          [
+            "Cell State Update ($C_t$)",
+            "$C_t = f_t \\odot C_{t-1} + i_t \\odot \\tilde{C}_t$",
+            "Linear Highway",
+            "The uninterrupted constant-error carousel carrying long-term memory through time."
+          ],
+          [
+            "Output Gate ($o_t$)",
+            "$o_t = \\sigma(W_o [h_{t-1}, x_t] + b_o)$",
+            "Sigmoid $\\in (0, 1)$",
+            "Controls which portions of the cell state $C_t$ are emitted as the visible hidden state $h_t$."
+          ],
+          [
+            "Hidden State ($h_t$)",
+            "$h_t = o_t \\odot \\tanh(C_t)$",
+            "Tanh $\\odot$ Sigmoid",
+            "The working output passed to the next step and downstream prediction heads."
+          ]
+        ]
+      },
+      {
+        "type": "callout",
+        "style": "tip",
+        "title": "GRU (Gated Recurrent Unit, Cho et al., 2014)",
+        "text": "The **GRU** simplifies LSTM by merging the cell state $C_t$ and hidden state $h_t$ into a single state vector $h_t$, using only **two gates**:\n1. **Reset Gate ($r_t$):** Determines how much of past state to ignore.\n2. **Update Gate ($z_t$):** Acts simultaneously as forget and input gate ($h_t = (1-z_t) h_{t-1} + z_t \\tilde{h}_t$).\n\n**Advantage:** GRUs feature 25% fewer parameters than LSTMs, train faster, and achieve competitive empirical performance on smaller datasets."
+      }
+    ],
+    "code_example": {
+      "title": "Minimal LSTM Cell Step in Pure NumPy",
+      "code": "import numpy as np\n\ndef sigmoid(x): return 1.0 / (1.0 + np.exp(-np.clip(x, -15, 15)))\n\nclass LSTMCell:\n    def __init__(self, input_dim, hidden_dim):\n        self.hidden_dim = hidden_dim\n        # Concatenated weights for [f, i, c, o] gates: (4 * hidden_dim, hidden_dim + input_dim)\n        k = hidden_dim + input_dim\n        self.W = np.random.randn(4 * hidden_dim, k) * 0.1\n        self.b = np.zeros((4 * hidden_dim, 1))\n        # Forget gate bias trick: initialize forget bias to 1.0\n        self.b[:hidden_dim] = 1.0\n        \n    def forward(self, x_t, h_prev, c_prev):\n        # Concatenate hidden state and input\n        concat = np.vstack((h_prev, x_t))\n        gates = np.dot(self.W, concat) + self.b\n        H = self.hidden_dim\n        \n        f = sigmoid(gates[0:H])\n        i = sigmoid(gates[H:2*H])\n        c_cand = np.tanh(gates[2*H:3*H])\n        o = sigmoid(gates[3*H:4*H])\n        \n        c_next = f * c_prev + i * c_cand\n        h_next = o * np.tanh(c_next)\n        return h_next, c_next\n\n# Run a sequence of 5 tokens\ncell = LSTMCell(input_dim=4, hidden_dim=8)\nh = np.zeros((8, 1))\nc = np.zeros((8, 1))\n\nprint('Running 5 time steps of LSTM forward pass:')\nfor t in range(5):\n    x_t = np.random.randn(4, 1)\n    h, c = cell.forward(x_t, h, c)\n    print(f'Step {t+1}: Hidden state norm = {np.linalg.norm(h):.4f}, Cell state norm = {np.linalg.norm(c):.4f}')"
+    }
+  },
+  "quiz": [
+    {
+      "question": "Why are standard feedforward networks ill-suited for arbitrary-length sequential modeling?",
+      "options": [
+        "They assume fixed input/output dimensions and cannot maintain persistent state across variable-length time steps",
+        "They cannot compute derivatives",
+        "They can only predict binary labels",
+        "They use too many activation functions"
+      ],
+      "correct": 0,
+      "explanation": "Feedforward networks require fixed input vectors and lack recurrent feedback mechanisms to accumulate sequential context."
+    },
+    {
+      "question": "What does 'Parameter Sharing across time' mean in Recurrent Neural Networks?",
+      "options": [
+        "The exact same weight matrices (W_hh, W_xh, W_hy) are reused at every time step t",
+        "Weights are shared with another user's model",
+        "Parameters are deleted every 10 steps",
+        "Each time step has a completely unique set of weights"
+      ],
+      "correct": 0,
+      "explanation": "Parameter sharing ensures the network can generalize across arbitrary sequence lengths and recognize patterns regardless of temporal position."
+    },
+    {
+      "question": "What algorithm is used to compute gradients in Recurrent Neural Networks?",
+      "options": [
+        "Backpropagation Through Time (BPTT)",
+        "Forward Euler Method",
+        "Greedy Search",
+        "Simulated Annealing"
+      ],
+      "correct": 0,
+      "explanation": "BPTT unrolls the recurrent network across the sequence length into a deep computation graph and performs reverse-mode autodiff."
+    },
+    {
+      "question": "Why do vanilla RNNs suffer from vanishing gradients when unrolled over long sequences?",
+      "options": [
+        "Because computing dL/dh_1 involves the product prod_{k=2}^t (W_hh^T * diag(1 - tanh^2)); if the spectral radius of W_hh < 1, the gradient decays exponentially to 0",
+        "Because tanh is strictly negative",
+        "Because sequence data has no loss",
+        "Because BPTT does not use the chain rule"
+      ],
+      "correct": 0,
+      "explanation": "Repeated matrix multiplications of W_hh across dozens of steps cause gradients to decay exponentially toward zero when eigenvalues are < 1."
+    },
+    {
+      "question": "What is Truncated Backpropagation Through Time (TBPTT)?",
+      "options": [
+        "Limiting the backward pass to a fixed window of k time steps rather than backpropagating all the way to sequence start",
+        "Halving the number of neurons every epoch",
+        "Dropping every second token",
+        "Stopping training after 10 seconds"
+      ],
+      "correct": 0,
+      "explanation": "TBPTT chunks long sequences into manageable segments (e.g. 50-100 steps) to bound memory consumption and avoid vanishing gradients."
+    },
+    {
+      "question": "Who invented the Long Short-Term Memory (LSTM) architecture in 1997?",
+      "options": [
+        "Sepp Hochreiter and Jürgen Schmidhuber",
+        "Geoffrey Hinton and Alex Krizhevsky",
+        "Vaswani and Shazeer",
+        "Yann LeCun and Yoshua Bengio"
+      ],
+      "correct": 0,
+      "explanation": "Hochreiter and Schmidhuber published 'Long Short-Term Memory' in Neural Computation 1997."
+    },
+    {
+      "question": "What is the 'Constant Error Carousel' (CEC) in an LSTM?",
+      "options": [
+        "The linear cell state update (C_t = f_t * C_{t-1} + i_t * c_cand) that allows gradients to flow across hundreds of steps without decaying exponentially",
+        "An error message when GPU memory runs out",
+        "A circular queue of data points",
+        "A loss function for rotation"
+      ],
+      "correct": 0,
+      "explanation": "The cell state operates as an additive highway; its derivative with respect to C_{t-1} includes an identity/forget component that bypasses repeated matrix multiplications."
+    },
+    {
+      "question": "What does the Forget Gate in an LSTM do?",
+      "options": [
+        "It outputs a vector of values between 0 and 1 via Sigmoid, determining how much of past cell memory C_{t-1} to preserve or discard",
+        "It deletes random training files",
+        "It resets the optimizer learning rate",
+        "It forgets the labels of the test set"
+      ],
+      "correct": 0,
+      "explanation": "The forget gate f_t = sigma(W_f [h_{t-1}, x_t] + b_f) computes element-wise retention factors: 1 keeps everything, 0 clears memory."
+    },
+    {
+      "question": "Why is the Forget Gate Bias (b_f) typically initialized to 1.0 (or 2.0) instead of 0.0 (Jozefowicz et al., 2015)?",
+      "options": [
+        "Setting b_f ~ 1.0 ensures sigmoid(b_f) ~ 0.73-0.88, causing the network to remember everything by default early in training rather than prematurely wiping memory",
+        "It prevents division by zero",
+        "It doubles the learning rate",
+        "It zeroes out the weights"
+      ],
+      "correct": 0,
+      "explanation": "Initializing forget bias to 1.0 prevents the network from aggressively clearing long-term memory before it has learned what to forget."
+    },
+    {
+      "question": "What does the Input Gate in an LSTM control?",
+      "options": [
+        "Which elements of the candidate state tilde{C}_t are added into the long-term cell state C_t",
+        "Which input features are read from disk",
+        "The learning rate of the model",
+        "The batch size of the sequence"
+      ],
+      "correct": 0,
+      "explanation": "The input gate acts as a write filter, deciding what newly calculated candidate information is stored in the cell state."
+    },
+    {
+      "question": "What does the Output Gate in an LSTM control?",
+      "options": [
+        "How much of the internal cell state C_t is exposed as the visible hidden state h_t to downstream layers and the next time step",
+        "How many tokens to print on screen",
+        "When to terminate the program",
+        "The softmax temperature"
+      ],
+      "correct": 0,
+      "explanation": "The output gate modulates which components of the filtered cell state tanh(C_t) form the hidden state h_t."
+    },
+    {
+      "question": "Which activation function is used for LSTM gates (forget, input, output), and why?",
+      "options": [
+        "Sigmoid, because its output range (0, 1) cleanly acts as a continuous 'percentage open' gating valve",
+        "ReLU, because it is fastest",
+        "Softmax, because gates must sum to 1",
+        "Tanh, because it is zero-centered"
+      ],
+      "correct": 0,
+      "explanation": "Sigmoid squashes values strictly into (0, 1), naturally acting as an analog multiplier where 0 is fully closed and 1 is fully open."
+    },
+    {
+      "question": "Which activation function is used for the candidate memory (tilde{C}_t) in LSTM?",
+      "options": [
+        "Tanh, because its output range is (-1, 1), allowing the model to both increase and decrease values in the cell state",
+        "Sigmoid",
+        "ReLU",
+        "Step function"
+      ],
+      "correct": 0,
+      "explanation": "Tanh allows candidate values to be both positive and negative, enabling the network to add or subtract from cell memory."
+    },
+    {
+      "question": "How many learnable parameter matrices (or gate projections) are there in a standard LSTM cell compared to a vanilla RNN?",
+      "options": [
+        "4x as many (Forget, Input, Candidate, Output gates)",
+        "2x as many",
+        "10x as many",
+        "The exact same number"
+      ],
+      "correct": 0,
+      "explanation": "An LSTM has 4 internal weight sets (W_f, W_i, W_c, W_o), making it 4 times larger in parameter count than a basic RNN cell."
+    },
+    {
+      "question": "What are the two gates in a Gated Recurrent Unit (GRU)?",
+      "options": [
+        "Reset Gate and Update Gate",
+        "Forget Gate and Input Gate",
+        "Start Gate and End Gate",
+        "Alpha Gate and Beta Gate"
+      ],
+      "correct": 0,
+      "explanation": "The GRU (Cho et al., 2014) consolidates gating into the Reset Gate (r_t) and Update Gate (z_t)."
+    },
+    {
+      "question": "How does the GRU combine the roles of the LSTM's forget and input gates?",
+      "options": [
+        "Using an update gate z_t such that h_t = (1 - z_t) * h_{t-1} + z_t * tilde{h}_t, ensuring that remembering more old state automatically decreases new input state",
+        "By multiplying both gates together",
+        "By deleting the forget gate entirely",
+        "By using a constant 0.5 ratio"
+      ],
+      "correct": 0,
+      "explanation": "The GRU couples forget and input decisions: it retains (1 - z_t) of previous state and adds z_t of candidate state, guaranteeing convex combinations."
+    },
+    {
+      "question": "What is a Bidirectional RNN (BiRNN / BiLSTM)?",
+      "options": [
+        "A network that processes the sequence in both forward (left-to-right) and backward (right-to-left) directions, concatenating hidden states at each step",
+        "A model that runs backward during training and forward during inference",
+        "A model with two parallel GPUs",
+        "A model with symmetric weights"
+      ],
+      "correct": 0,
+      "explanation": "BiRNNs process the sequence simultaneously from start-to-end and end-to-start, allowing token representations at time t to incorporate both past and future context."
+    },
+    {
+      "question": "Why cannot Bidirectional RNNs be used for autoregressive text generation (language modeling)?",
+      "options": [
+        "Because predicting token t+1 cannot look ahead at future tokens that have not yet been generated",
+        "Because bidirectional models cannot output text",
+        "Because bidirectional LSTMs have negative loss",
+        "Because backward passes crash on GPUs"
+      ],
+      "correct": 0,
+      "explanation": "Autoregressive generation generates tokens one by one into the future; peeking into the future would be a fatal data leak."
+    },
+    {
+      "question": "What is the Seq2Seq (Encoder-Decoder) architecture (Sutskever et al., 2014)?",
+      "options": [
+        "An encoder RNN reads the input sequence into a fixed-size context vector, and a decoder RNN unfolds that vector into a target output sequence",
+        "A model that encodes images into audio",
+        "A single RNN with double the hidden units",
+        "A method for training without targets"
+      ],
+      "correct": 0,
+      "explanation": "Seq2Seq popularized neural machine translation by compressing source sentences into a latent vector and decoding into target language tokens."
+    },
+    {
+      "question": "What was the primary bottleneck of the original Seq2Seq encoder-decoder before attention was introduced?",
+      "options": [
+        "The fixed-size context vector: compressing a 50-word complex sentence into a single 512-dim vector caused severe information loss on long sequences",
+        "LSTMs could not process English",
+        "GPUs did not support decoders",
+        "Cross-entropy loss failed on sequences"
+      ],
+      "correct": 0,
+      "explanation": "The 'information bottleneck' forced the entire source sentence into a single vector, causing translation quality to plummet for sentences longer than 20 words."
+    },
+    {
+      "question": "Who introduced the Bahdanau (Additive) Attention mechanism in 2014 to resolve the Seq2Seq bottleneck?",
+      "options": [
+        "Dzmitry Bahdanau, Kyunghyun Cho, and Yoshua Bengio",
+        "Ashish Vaswani et al.",
+        "Yann LeCun",
+        "Ilya Sutskever"
+      ],
+      "correct": 0,
+      "explanation": "Bahdanau et al. (2014) published 'Neural Machine Translation by Jointly Learning to Align and Translate', introducing soft attention."
+    },
+    {
+      "question": "How did Bahdanau attention resolve the Seq2Seq information bottleneck?",
+      "options": [
+        "By allowing the decoder to dynamically query and attend over all encoder hidden states at each decoding step via learned alignment weights",
+        "By expanding the context vector to 10,000 dimensions",
+        "By training on 100x more data",
+        "By removing the encoder"
+      ],
+      "correct": 0,
+      "explanation": "Attention creates a dynamic context vector at every output step as a weighted average over all input states, allowing direct access to any source token."
+    },
+    {
+      "question": "What is 'Teacher Forcing' during RNN training?",
+      "options": [
+        "Feeding the ground truth target token y_{t-1} as the input to the decoder at step t instead of feeding the model's own generated prediction y_hat_{t-1}",
+        "Having a senior engineer review model outputs",
+        "Training a student model with knowledge distillation",
+        "Using 10x higher learning rate on hard samples"
+      ],
+      "correct": 0,
+      "explanation": "Teacher forcing stabilizes early decoder training by feeding ground truth previous tokens, preventing compounding errors during training."
+    },
+    {
+      "question": "What is 'Exposure Bias' caused by Teacher Forcing?",
+      "options": [
+        "The mismatch where the model is trained with perfect ground truth inputs, but during inference must condition on its own potentially erroneous past predictions",
+        "Overexposing images during data augmentation",
+        "Running training without validation",
+        "Using an unnormalized dataset"
+      ],
+      "correct": 0,
+      "explanation": "At inference time, an early mistake propagates downstream because the decoder never practiced recovering from its own errors during training."
+    },
+    {
+      "question": "What is Scheduled Sampling (Bengio et al., 2015)?",
+      "options": [
+        "A curriculum where the decoder gradually transitions from feeding ground-truth tokens (teacher forcing) to feeding its own predictions during training",
+        "Sampling batches on a timer",
+        "Selecting random learning rates",
+        "Skipping time steps randomly"
+      ],
+      "correct": 0,
+      "explanation": "Scheduled sampling mitigates exposure bias by slowly increasing the probability of feeding model-generated tokens during training."
+    },
+    {
+      "question": "Why cannot Recurrent Neural Networks achieve the massive training parallelization of Transformers?",
+      "options": [
+        "RNNs have sequential temporal dependencies: computing h_t strictly requires h_{t-1}, preventing parallel execution across the time dimension on GPUs",
+        "RNNs cannot run on CUDA",
+        "RNNs only work on CPUs",
+        "RNNs require 64-bit precision"
+      ],
+      "correct": 0,
+      "explanation": "The recurrence relation h_t = f(h_{t-1}, x_t) is inherently sequential along sequence length T, making parallelization across tokens impossible during training."
+    },
+    {
+      "question": "What is a Peephole Connection in an LSTM (Gers & Schmidhuber, 2000)?",
+      "options": [
+        "Allowing the gate layers (forget, input, output) to inspect the cell state C directly in addition to h_{t-1} and x_t",
+        "Peeking at the test set during validation",
+        "Visualizing hidden states in TensorBoard",
+        "Connecting the first layer directly to the last layer"
+      ],
+      "correct": 0,
+      "explanation": "Peephole connections feed the internal cell state C_{t-1} directly into gate controllers, enabling precise timing and counting tasks."
+    },
+    {
+      "question": "What is the purpose of Gradient Clipping in RNN training?",
+      "options": [
+        "To prevent exploding gradients caused by long unrolled BPTT paths from causing NaN weights and model divergence",
+        "To speed up inference time",
+        "To make sequences shorter",
+        "To convert gradients to integers"
+      ],
+      "correct": 0,
+      "explanation": "Gradient clipping is virtually mandatory in recurrent architectures to prevent occasional massive gradient spikes along long unrolled sequences."
+    },
+    {
+      "question": "What is a character-level language model?",
+      "options": [
+        "An RNN that predicts the next character given previous characters in a text sequence",
+        "A model that classifies characters as fonts",
+        "A model that only works on alphabet letters",
+        "A model that requires OCR"
+      ],
+      "correct": 0,
+      "explanation": "A char-level RNN operates on raw characters with a vocabulary of ~100-256 tokens, predicting P(char_t | char_1...char_{t-1})."
+    },
+    {
+      "question": "In an LSTM with input size D and hidden size H, what is the shape of the combined weight matrix for all four gates?",
+      "options": [
+        "(4 * H, H + D)",
+        "(H, D)",
+        "(4 * D, H)",
+        "(H, 4 * H)"
+      ],
+      "correct": 0,
+      "explanation": "Concatenating [h_{t-1}, x_t] produces dimension (H + D). Projecting to 4 gates of size H requires a matrix of shape (4*H, H + D)."
+    },
+    {
+      "question": "What is the primary operational advantage of GRU over LSTM?",
+      "options": [
+        "GRU has fewer parameters (3 sets of weights vs 4), uses less VRAM, and trains ~20-30% faster while maintaining comparable accuracy on many tasks",
+        "GRU can process infinite sequences without RAM",
+        "GRU does not require backpropagation",
+        "GRU is immune to overfitting"
+      ],
+      "correct": 0,
+      "explanation": "With 1 fewer gate and no separate cell state, GRU is computationally lighter and less prone to overfitting on small-to-medium datasets."
+    },
+    {
+      "question": "What is Beam Search decoding in sequence-to-sequence models?",
+      "options": [
+        "A heuristic search algorithm that maintains the top B most probable sequence candidates at each step rather than just greedily picking the single highest token",
+        "A search that uses laser beams",
+        "Searching all 10^50 possible sequences exhaustively",
+        "A method for searching code files"
+      ],
+      "correct": 0,
+      "explanation": "Beam search maintains a beam width B of hypotheses, substantially improving sequence coherence compared to greedy decoding without the exponential cost of full search."
+    },
+    {
+      "question": "What is the Perplexity metric in sequence and language modeling?",
+      "options": [
+        "The exponentiated cross-entropy loss: exp(Loss), representing the effective branching factor / uncertainty of the model at each word",
+        "The percentage of misspelled words",
+        "The training time per epoch",
+        "The variance of hidden states"
+      ],
+      "correct": 0,
+      "explanation": "Perplexity = exp(CE_loss). A perplexity of 20 means the model is as confused as if it had to choose uniformly among 20 words at each step."
+    },
+    {
+      "question": "What is PackedSequence in PyTorch (`torch.nn.utils.rnn.pack_padded_sequence`)?",
+      "options": [
+        "An optimization that packs variable-length padded sequences into contiguous tensors, skipping computation on padding tokens during RNN passes",
+        "Zipping model weights into a zip archive",
+        "Quantizing sequences to 8-bit",
+        "Concatenating all batches into one sample"
+      ],
+      "correct": 0,
+      "explanation": "PackedSequence skips redundant matrix multiplications on pad tokens in variable-length batches, dramatically boosting GPU throughput."
+    },
+    {
+      "question": "Why did the Transformer architecture largely replace LSTMs and RNNs in state-of-the-art NLP after 2017?",
+      "options": [
+        "Transformers replace sequential recurrence with self-attention, allowing full parallelization across the entire sequence during training and capturing arbitrary long-range dependencies in O(1) path length",
+        "Transformers are smaller than RNNs",
+        "Transformers do not require text tokenization",
+        "Transformers cannot overfit"
+      ],
+      "correct": 0,
+      "explanation": "Transformers train all tokens simultaneously in parallel on GPUs and route information between any two positions in O(1) operations, eliminating sequential BPTT bottlenecks."
+    }
+  ],
+  "level": "advanced"
+}

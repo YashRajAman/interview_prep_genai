@@ -1,0 +1,471 @@
+{
+  "id": "kmeans",
+  "title": "Unsupervised Learning: K-Means Clustering",
+  "description": "Centroid optimization, Within-Cluster Sum of Squares (WCSS / Inertia), Lloyd's algorithm, K-Means++ initialization, Elbow Method, and Silhouette Analysis.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "K-Means Partitional Clustering",
+        "subtitle": "Iterative Centroid-Based Optimization for Unsupervised Discovery of Compact Clusters"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "Mathematical Objective: Inertia (WCSS)",
+        "content": "Given an unlabeled dataset $X = \\{\\mathbf{x}_1, \\dots, \\mathbf{x}_n\\}$, K-Means partitions the $n$ observations into $K$ disjoint sets $S = \\{S_1, S_2, \\dots, S_K\\}$ to minimize the **Within-Cluster Sum of Squares (Inertia)**:\n\n$$J = \\sum_{k=1}^K \\sum_{\\mathbf{x} \\in S_k} \\|\\mathbf{x} - \\boldsymbol{\\mu}_k\\|^2$$\n\nwhere $\\boldsymbol{\\mu}_k = \\frac{1}{|S_k|} \\sum_{\\mathbf{x} \\in S_k} \\mathbf{x}$ is the arithmetic mean centroid of cluster $S_k$."
+      },
+      {
+        "type": "text",
+        "title": "Lloyd's Alternating Minimization Algorithm",
+        "content": "Finding the global minimum of $J$ is NP-hard. Lloyd's heuristic converges iteratively:\n1. **Initialization:** Select $K$ initial centroid coordinates $\\boldsymbol{\\mu}_1, \\dots, \\boldsymbol{\\mu}_K$.\n2. **Assignment Step (Expectation):** Assign every observation $\\mathbf{x}_i$ to its nearest centroid:\n$$c^{(i)} = \\arg\\min_k \\|\\mathbf{x}_i - \\boldsymbol{\\mu}_k\\|^2$$\n3. **Update Step (Maximization):** Recalculate each centroid as the mean of all points assigned to it:\n$$\\boldsymbol{\\mu}_k = \\frac{1}{|S_k|} \\sum_{i \\in S_k} \\mathbf{x}_i$$\n4. **Repeat** steps 2 and 3 until centroids cease moving (convergence)."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "K-Means++ Initialization (Arthur & Vassilvitskii, 2007)",
+        "content": "Standard random initialization frequently converges to suboptimal, high-inertia local minima.\n\n**K-Means++ Smart Initialization:**\n1. Choose the first centroid $\\boldsymbol{\\mu}_1$ uniformly at random from the dataset.\n2. For each remaining point $\\mathbf{x}$, compute $D(\\mathbf{x})$: the distance to the nearest already-chosen centroid.\n3. Choose the next centroid with probability proportional to squared distance: $P(\\mathbf{x}) = \\frac{D(\\mathbf{x})^2}{\\sum D(\\mathbf{x}')^2}$.\n4. Repeat until $K$ centroids are chosen. **Guarantees $O(\\log K)$ competitive bound against optimal clustering!**"
+      },
+      {
+        "type": "text",
+        "title": "Determining Optimal K: Elbow Method vs. Silhouette Score",
+        "content": "- **The Elbow Method:** Plot Inertia vs. $K$. As $K$ increases, inertia monotonically decreases. Look for the 'inflection elbow' where marginal variance reduction sharply flattens.\n- **Silhouette Analysis:** Measures how similar point $i$ is to its own cluster ($a(i)$) compared to the nearest neighboring cluster ($b(i)$):\n$$s(i) = \\frac{b(i) - a(i)}{\\max(a(i), b(i)}} \\in [-1, +1]$$\n  - $s \\approx +1$: Sample is well clustered far from neighbors.\n  - $s \\approx 0$: Sample is on the decision boundary between clusters.\n  - $s < 0$: Sample is likely assigned to the wrong cluster."
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Core Limitations of K-Means",
+        "content": "1. Assumes clusters are **spherical (isotropic)** and of roughly equal size.\n2. Fails completely on non-convex geometric shapes (e.g. concentric rings or half-moons).\n3. Highly sensitive to extreme outliers, which pull centroids away from true cluster cores."
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Preprocessing Mandate",
+        "content": "Because K-Means optimizes squared Euclidean distances, **feature standardization (StandardScaler) is strictly mandatory**. Unscaled features will distort cluster shapes along the largest numerical axis."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Cluster Convergence Explorer",
+    "description": "Examine centroid movements and compare standard random initialization with K-Means++ smart seeding.",
+    "items": [
+      {
+        "text": "Random seed picking two centroids in the same dense group",
+        "category": "Suboptimal Convergence"
+      },
+      {
+        "text": "K-Means++ spreading initial seeds proportional to squared distance",
+        "category": "Optimal Seeding (K-Means++)"
+      },
+      {
+        "text": "Inertia curve inflection point showing clear optimal K",
+        "category": "Elbow Method"
+      }
+    ],
+    "categories": [
+      "Suboptimal Convergence",
+      "Optimal Seeding (K-Means++)",
+      "Elbow Method"
+    ]
+  },
+  "code": {
+    "description": "Fit K-Means with KMeans++, compute Inertia and Silhouette scores across K values, and identify the optimal cluster count.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import make_blobs\nfrom sklearn.cluster import KMeans\nfrom sklearn.metrics import silhouette_score\n\n# Generate synthetic data with 4 true clusters\nX, _ = make_blobs(n_samples=200, centers=4, n_features=2, cluster_std=0.8, random_state=42)\n\nprint('=== Evaluating Cluster Quality Across K = 2 to 6 ===')\nfor k in range(2, 7):\n    km = KMeans(n_clusters=k, init='k-means++', n_init=10, random_state=42)\n    labels = km.fit_predict(X)\n    sil = silhouette_score(X, labels)\n    print(f'K = {k}: Inertia (WCSS) = {km.inertia_:8.2f} | Silhouette Score = {sil:.4f}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What mathematical objective function does K-Means clustering minimize?",
+      "options": [
+        "Entropy of the dataset",
+        "Inertia (Within-Cluster Sum of Squares: $\\sum_{k=1}^K \\sum_{x \\in S_k} \\|x - \\mu_k\\|^2$)",
+        "The number of clusters K",
+        "The distance between cluster centroids"
+      ],
+      "correct": 1,
+      "explanation": "K-Means minimizes Inertia (WCSS), the sum of squared Euclidean distances between points and their assigned cluster centroid."
+    },
+    {
+      "question": "What does a cluster centroid $\\boldsymbol{\\mu}_k$ represent in K-Means?",
+      "options": [
+        "The point with the largest value",
+        "The arithmetic mean coordinate vector of all data points currently assigned to cluster $k$",
+        "The median of the dataset",
+        "The geometric origin (0, 0)"
+      ],
+      "correct": 1,
+      "explanation": "The centroid is the geometric center of gravity (mean position) of all observations belonging to that cluster."
+    },
+    {
+      "question": "Why is standard K-Means sensitive to initial centroid selection?",
+      "options": [
+        "Because Python random numbers have bugs",
+        "The optimization problem is non-convex and NP-hard; poor initial centroids frequently trap the algorithm in suboptimal local minima",
+        "Because K-Means only runs once",
+        "Because centroids can only be integers"
+      ],
+      "correct": 1,
+      "explanation": "Different initializations lead to different local minima; poor initialization traps centroids in merged or split clusters."
+    },
+    {
+      "question": "How does K-Means++ smart initialization select initial centroids?",
+      "options": [
+        "By choosing centroids alphabetically",
+        "By picking the first centroid randomly, and choosing subsequent centroids with probability proportional to their squared distance from the nearest existing centroid",
+        "By running PCA first",
+        "By placing centroids at the corners of the space"
+      ],
+      "correct": 1,
+      "explanation": "K-Means++ spaces initial centroids far apart, guaranteeing an expected approximation bound of $O(\\log K)$ against optimal clustering."
+    },
+    {
+      "question": "What does the Elbow Method plot to help determine the optimal number of clusters $K$?",
+      "options": [
+        "Training accuracy vs test accuracy",
+        "Inertia (Within-Cluster Sum of Squares) on the y-axis against the number of clusters $K$ on the x-axis",
+        "Number of features vs runtime",
+        "Silhouette score vs learning rate"
+      ],
+      "correct": 1,
+      "explanation": "The Elbow Method plots Inertia vs K; the 'elbow' inflection point identifies where adding more clusters yields diminishing returns."
+    },
+    {
+      "question": "What is the valid mathematical range of the Silhouette Coefficient $s(i)$ for a data point?",
+      "options": [
+        "$[-1, +1]$",
+        "$[0, 1]$",
+        "$[0, \\infty)$",
+        "$[-100, +100]$"
+      ],
+      "correct": 0,
+      "explanation": "The Silhouette Coefficient is bounded between -1 and +1: $\\frac{b - a}{\\max(a, b)}$."
+    },
+    {
+      "question": "What does a Silhouette Coefficient close to $+1.0$ indicate about a data point?",
+      "options": [
+        "The point is an outlier",
+        "The point is well-matched to its own cluster and far away from neighboring clusters",
+        "The point is on the decision boundary between two clusters",
+        "The point was assigned to the wrong cluster"
+      ],
+      "correct": 1,
+      "explanation": "A score near +1 indicates tight intra-cluster cohesion ($a \\ll b$) and excellent separation from other clusters."
+    },
+    {
+      "question": "What does a negative Silhouette Coefficient ($s < 0$) indicate?",
+      "options": [
+        "The model is optimal",
+        "The point is closer to a neighboring cluster than to its assigned cluster, indicating likely misclustering",
+        "The distance is zero",
+        "The dataset has negative numbers"
+      ],
+      "correct": 1,
+      "explanation": "Negative values mean the average distance to samples in the assigned cluster exceeds the distance to a neighboring cluster."
+    },
+    {
+      "question": "Why is feature standardization (e.g. StandardScaler) strictly required before K-Means clustering?",
+      "options": [
+        "Because K-Means cannot compute with large numbers",
+        "Because K-Means uses Euclidean distance; unscaled features with large ranges dominate distance calculations and warp cluster shapes",
+        "Because scikit-learn throws an error without scaling",
+        "Because K-Means only accepts data between 0 and 1"
+      ],
+      "correct": 1,
+      "explanation": "Euclidean distance is sensitive to relative feature scales; unscaled features cause clusters to elongate along high-magnitude axes."
+    },
+    {
+      "question": "What geometric cluster shape does K-Means inherently assume?",
+      "options": [
+        "Arbitrary curved manifolds",
+        "Spherical (isotropic) clusters of roughly equal variance in all directions",
+        "Concentric rings",
+        "Crescent moon shapes"
+      ],
+      "correct": 1,
+      "explanation": "Because K-Means minimizes squared Euclidean distance, it implicitly models clusters as spherical hyperspheres of equal dispersion."
+    },
+    {
+      "question": "What happens when K-Means is applied to concentric circular rings or intertwined moon-shaped data?",
+      "options": [
+        "It correctly separates the rings",
+        "It fails completely, slicing through the rings with linear boundaries because it cannot model non-convex geometric manifolds",
+        "It automatically increases K to 10",
+        "It throws a convergence exception"
+      ],
+      "correct": 1,
+      "explanation": "K-Means forms linear Voronoi boundaries, incapable of separating non-convex manifolds like concentric circles."
+    },
+    {
+      "question": "What is the computational complexity of one iteration of Lloyd's K-Means algorithm on $N$ samples with $D$ features and $K$ clusters?",
+      "options": [
+        "$O(N \\cdot K \\cdot D)$",
+        "$O(N^2)$",
+        "$O(K^3)$",
+        "$O(\\log N)$"
+      ],
+      "correct": 0,
+      "explanation": "Assigning $N$ samples to $K$ centroids across $D$ dimensions takes $O(N K D)$ operations per iteration."
+    },
+    {
+      "question": "What is Mini-Batch K-Means (`MiniBatchKMeans` in Scikit-learn)?",
+      "options": [
+        "A model that only clusters small datasets",
+        "A variant that updates centroids using small random mini-batches per step, speeding up convergence by 3-10x on massive datasets with minimal loss of cluster quality",
+        "A model that clusters in 2D only",
+        "An algorithm that deletes outliers"
+      ],
+      "correct": 1,
+      "explanation": "MiniBatchKMeans uses stochastic mini-batches to update centroids, enabling out-of-core clustering on million-row datasets."
+    },
+    {
+      "question": "How does an extreme outlier affect K-Means clustering?",
+      "options": [
+        "It has zero effect",
+        "Because K-Means minimizes squared distance, an extreme outlier pulls a centroid heavily toward itself, potentially forming an entire 1-point cluster",
+        "It causes K to decrease by 1",
+        "It makes the inertia negative"
+      ],
+      "correct": 1,
+      "explanation": "Quadratic squaring penalizes extreme outliers heavily, pulling centroids away from dense data centers."
+    },
+    {
+      "question": "What is K-Medoids (PAM - Partitioning Around Medoids), and how does it differ from K-Means?",
+      "options": [
+        "K-Medoids uses neural networks",
+        "K-Medoids chooses actual data points as cluster centers (medoids) and minimizes Manhattan ($L_1$) distance, making it far more robust to outliers than K-Means",
+        "K-Medoids does not require K to be specified",
+        "K-Medoids only works on categorical data"
+      ],
+      "correct": 1,
+      "explanation": "K-Medoids restricts centers to actual observations and uses non-squared distances, resisting outlier distortion."
+    },
+    {
+      "question": "What is the Davies-Bouldin Index used for in clustering evaluation?",
+      "options": [
+        "Measuring GPU memory consumption",
+        "Evaluating clustering quality based on the ratio of within-cluster distances to between-cluster separations; lower values indicate better clustering",
+        "Calculating the number of iterations",
+        "Testing if data is normal"
+      ],
+      "correct": 1,
+      "explanation": "The Davies-Bouldin index measures average similarity between each cluster and its most similar one; lower scores mean tighter, well-separated clusters."
+    },
+    {
+      "question": "What is the Calinski-Harabasz Index (Variance Ratio Criterion)?",
+      "options": [
+        "A metric for regression only",
+        "The ratio of the sum of between-cluster dispersion to within-cluster dispersion; higher values indicate denser, better-separated clusters",
+        "The percentage of outliers",
+        "A measure of CPU runtime"
+      ],
+      "correct": 1,
+      "explanation": "Calinski-Harabasz evaluates the ratio of between-cluster to within-cluster variance; higher scores reflect distinct, compact clusters."
+    },
+    {
+      "question": "Can K-Means guarantee convergence to a stationary point?",
+      "options": [
+        "No, K-Means can loop infinitely",
+        "Yes; because the assignment and update steps both monotonically decrease the non-negative objective function $J$ across a finite set of partitions, convergence is mathematically guaranteed",
+        "Only if $K=2$",
+        "Only if all data is positive"
+      ],
+      "correct": 1,
+      "explanation": "Inertia strictly decreases or remains constant at each step; since partitions are finite, Lloyd's algorithm must converge to a local minimum."
+    },
+    {
+      "question": "In Scikit-learn's `KMeans(n_init=10)`, what does `n_init=10` specify?",
+      "options": [
+        "The number of iterations per run",
+        "The number of times the K-Means algorithm will run independently with different random centroid seeds, retaining the single best run with lowest Inertia",
+        "The number of clusters K",
+        "The batch size"
+      ],
+      "correct": 1,
+      "explanation": "`n_init` runs K-Means multiple times from scratch and outputs the model achieving the lowest overall WCSS."
+    },
+    {
+      "question": "What is vector quantization in image compression using K-Means?",
+      "options": [
+        "Compressing images using JPEG format",
+        "Replacing millions of 24-bit RGB pixel colors with a small palette of $K$ cluster centroids (e.g. $K=16$), dramatically reducing image file size",
+        "Converting color images to grayscale",
+        "Rotating the image by 90 degrees"
+      ],
+      "correct": 1,
+      "explanation": "Color quantization clusters RGB coordinates into $K$ palette centroids, mapping each pixel to a small cluster index."
+    },
+    {
+      "question": "What happens to Inertia as $K$ increases from 1 to $N$ (where $N$ is the number of data points)?",
+      "options": [
+        "Inertia increases monotonically",
+        "Inertia decreases monotonically until reaching exactly 0 when $K = N$ (each point is its own centroid)",
+        "Inertia remains constant",
+        "Inertia becomes negative"
+      ],
+      "correct": 1,
+      "explanation": "When $K=N$, every point is its own centroid; distance to centroid is 0, so inertia equals 0."
+    },
+    {
+      "question": "Why can you NOT simply pick the $K$ that minimizes Inertia?",
+      "options": [
+        "Because inertia is difficult to calculate",
+        "Because Inertia trivially approaches zero as $K$ approaches $N$, which would lead to the meaningless conclusion that every single point should be its own cluster",
+        "Because inertia requires labeled data",
+        "Because inertia only works for $K < 5$"
+      ],
+      "correct": 1,
+      "explanation": "Inertia strictly drops with increasing $K$; the goal is finding the elbow where marginal reduction slows down."
+    },
+    {
+      "question": "What is a Voronoi cell in the context of K-Means?",
+      "options": [
+        "A biological cell",
+        "The convex polygonal region containing all spatial points that are closer to a specific centroid $\\boldsymbol{\\mu}_k$ than to any other centroid",
+        "A cluster with zero points",
+        "A matrix of distances"
+      ],
+      "correct": 1,
+      "explanation": "K-Means partitions space into Voronoi cells bounded by linear perpendicular bisectors between centroids."
+    },
+    {
+      "question": "How does K-Means behave when true clusters in the data have significantly different densities?",
+      "options": [
+        "It separates them perfectly",
+        "It struggles: it tends to split low-density clusters and merge adjacent dense clusters because it optimizes global Euclidean variance",
+        "It automatically weights density",
+        "It converts density to probability"
+      ],
+      "correct": 1,
+      "explanation": "K-Means minimizes global sum of squares; low-density clusters get fractured to reduce large squared distances."
+    },
+    {
+      "question": "How does K-Means behave when true clusters have significantly different sizes (e.g. Cluster 1 has 10,000 points, Cluster 2 has 50 points)?",
+      "options": [
+        "It isolates the 50 points cleanly",
+        "The massive cluster pulls centroids toward itself, often splitting the large cluster and misgrouping the small cluster",
+        "It ignores the 10,000 points",
+        "It deletes the small cluster"
+      ],
+      "correct": 1,
+      "explanation": "Centroids gravitate toward heavy sample mass; K-Means assumes roughly equal cluster sizes."
+    },
+    {
+      "question": "What is the Adjusted Rand Index (ARI) in clustering evaluation?",
+      "options": [
+        "A measure of training speed",
+        "An external evaluation metric comparing cluster assignments against ground-truth labels, adjusted for chance grouping, bounded between -1 and +1",
+        "The distance between centroids",
+        "The percentage of outliers"
+      ],
+      "correct": 1,
+      "explanation": "ARI measures similarity between predicted clusters and true class labels, where 0 represents chance agreement and 1 represents perfect match."
+    },
+    {
+      "question": "What is Normalized Mutual Information (NMI) in clustering?",
+      "options": [
+        "A metric for linear regression",
+        "An information-theoretic metric measuring the shared mutual information between predicted clusters and true labels, normalized to $[0, 1]$",
+        "A metric measuring CPU usage",
+        "The variance ratio of clusters"
+      ],
+      "correct": 1,
+      "explanation": "NMI quantifies the reduction in uncertainty of ground-truth classes given cluster assignments, independent of label permutation."
+    },
+    {
+      "question": "What is the purpose of the `tol` (tolerance) parameter in `KMeans`?",
+      "options": [
+        "Controls the number of CPU threads",
+        "The relative tolerance with respect to Frobenius norm of the difference in cluster centers to declare convergence: stops if $\\|\\boldsymbol{\\mu}_t - \\boldsymbol{\\mu}_{t-1}\\|^2 < \\text{tol}$",
+        "The maximum number of missing values allowed",
+        "The minimum cluster size"
+      ],
+      "correct": 1,
+      "explanation": "`tol` defines the convergence threshold: when centroids move less than `tol`, the algorithm halts."
+    },
+    {
+      "question": "What happens when an initial centroid in K-Means has zero data points assigned to it during the assignment step (an empty cluster)?",
+      "options": [
+        "The algorithm crashes with a division by zero",
+        "Modern implementations reinitialize the orphaned centroid to the data point farthest from any current centroid",
+        "The algorithm stops",
+        "The value of K increases by 1"
+      ],
+      "correct": 1,
+      "explanation": "In robust implementations (like scikit-learn), orphaned centroids are reassigned to the sample with the highest residual error."
+    },
+    {
+      "question": "What is bisecting K-Means (`BisectingKMeans` in Scikit-learn)?",
+      "options": [
+        "A model that only creates 2 clusters",
+        "A hierarchical variant that recursively splits clusters into two sub-clusters using K-Means until $K$ clusters are formed, often producing more balanced clusters",
+        "A model that rotates data by 45 degrees",
+        "An algorithm that splits features in half"
+      ],
+      "correct": 1,
+      "explanation": "Bisecting K-Means applies 2-means recursively, often finding better global clusters than standard flat K-Means."
+    },
+    {
+      "question": "Can K-Means cluster data based on Cosine Distance directly in standard Scikit-learn?",
+      "options": [
+        "Yes, by setting metric='cosine'",
+        "No; standard KMeans only minimizes Euclidean distance, but normalizing vectors to unit length ($\\|\\mathbf{x}\\| = 1$) makes Euclidean distance equivalent to cosine distance",
+        "Cosine distance is impossible in clustering",
+        "Only on GPUs"
+      ],
+      "correct": 1,
+      "explanation": "For unit-normalized vectors ($\\|x\\|_2 = 1$), squared Euclidean distance is strictly proportional to cosine distance: $\\|x-y\\|^2 = 2 - 2(x \\cdot y)$!"
+    },
+    {
+      "question": "Why is K-Means called a 'hard clustering' algorithm?",
+      "options": [
+        "Because the math is difficult",
+        "Every sample is assigned strictly and deterministically to exactly one cluster (membership is 0 or 1)",
+        "Because it only runs on hard drives",
+        "Because it requires large memory"
+      ],
+      "correct": 1,
+      "explanation": "Hard clustering assigns samples strictly to a single cluster; soft clustering (like GMMs) assigns fractional probabilities."
+    },
+    {
+      "question": "What algorithm provides a 'soft (probabilistic)' counterpart to K-Means?",
+      "options": [
+        "Decision Trees",
+        "Gaussian Mixture Models (GMM) using Expectation-Maximization",
+        "Support Vector Machines",
+        "Linear Regression"
+      ],
+      "correct": 1,
+      "explanation": "Gaussian Mixture Models assign soft probabilities of belonging to each Gaussian distribution via EM."
+    },
+    {
+      "question": "In customer segmentation, what is the primary benefit of inspecting the feature coordinates of K-Means centroids?",
+      "options": [
+        "It reveals missing values",
+        "Centroid coordinates provide the mathematical 'prototypes' defining the average profile of each customer segment (e.g. high-spend, low-frequency)",
+        "It computes customer churn rate",
+        "It proves the model is overfitted"
+      ],
+      "correct": 1,
+      "explanation": "Centroid coordinates define the archetypal profile for each cohort (e.g., mean income, mean age, average visits)."
+    },
+    {
+      "question": "What is the time complexity of K-Means++ initialization?",
+      "options": [
+        "$O(1)$",
+        "$O(K \\cdot N \\cdot D)$",
+        "$O(N^3)$",
+        "$O(N!)$"
+      ],
+      "correct": 1,
+      "explanation": "Selecting each of the $K$ centroids involves computing distances to $N$ samples across $D$ dimensions: $O(K \\cdot N \\cdot D)$."
+    }
+  ],
+  "level": "intermediate"
+}

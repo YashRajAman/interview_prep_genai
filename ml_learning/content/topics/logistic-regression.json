@@ -1,0 +1,469 @@
+{
+  "id": "logistic-regression",
+  "title": "Logistic Regression & Classification",
+  "description": "Odds and log-odds (logit), sigmoid activation function, binary cross-entropy loss (log loss), maximum likelihood estimation, and multiclass Softmax.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Logistic Regression for Classification",
+        "subtitle": "Probabilistic Binary and Multiclass Classification via the Sigmoid and Softmax Transforms"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Sigmoid (Logistic) Function",
+        "content": "Unlike linear regression which outputs unbounded continuous values ($-\\infty$ to $+\\infty$), logistic regression passes a linear combination through the **logistic sigmoid function** $\\sigma(z)$ to produce a calibrated probability between 0 and 1:\n\n$$z = \\mathbf{w}^T \\mathbf{x} + b$$\n$$\\hat{p} = P(y = 1 | \\mathbf{x}) = \\sigma(z) = \\frac{1}{1 + e^{-z}} = \\frac{1}{1 + e^{-(\\mathbf{w}^T \\mathbf{x} + b)}}$$\n\n- When $z \\rightarrow +\\infty$, $\\sigma(z) \\rightarrow 1$.\n- When $z \\rightarrow -\\infty$, $\\sigma(z) \\rightarrow 0$.\n- When $z = 0$, $\\sigma(z) = 0.5$ (the default decision boundary threshold)."
+      },
+      {
+        "type": "text",
+        "title": "Log-Odds and the Logit Transformation",
+        "content": "The **odds** of an event with probability $p$ is defined as the ratio of success to failure:\n$$\\text{Odds} = \\frac{p}{1 - p}$$\n\nTaking the natural logarithm of the odds yields the **logit** function:\n$$\\text{logit}(p) = \\ln\\left(\\frac{p}{1 - p}\\right) = \\mathbf{w}^T \\mathbf{x} + b$$\n\nThus, Logistic Regression is fundamentally a linear model for the **log-odds** of the positive class!"
+      },
+      {
+        "type": "text",
+        "title": "The Cost Function: Binary Cross-Entropy (Log Loss)",
+        "content": "We cannot use Mean Squared Error (MSE) for logistic regression because the non-linear sigmoid causes MSE to be non-convex with numerous local minima traps. Instead, we use **Binary Cross-Entropy Loss** derived from Maximum Likelihood Estimation (MLE):\n\n$$J(\\mathbf{w}) = -\\frac{1}{n} \\sum_{i=1}^n \\left[ y^{(i)} \\ln(\\hat{p}^{(i)}) + (1 - y^{(i)}) \\ln(1 - \\hat{p}^{(i)}) \\right]$$\n\n- If ground truth $y = 1$ and model predicts $\\hat{p} \\rightarrow 1$, penalty $\\rightarrow 0$.\n- If ground truth $y = 1$ and model predicts $\\hat{p} \\rightarrow 0$, penalty $-\\ln(\\hat{p}) \\rightarrow +\\infty$!\n- Binary Cross-Entropy is strictly **convex** with respect to weights $\\mathbf{w}$."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Multiclass Extensions: OvR vs. Softmax",
+        "content": "| Strategy | Architecture | Formulation | Best For |\n|---|---|---|---|\n| **One-vs-Rest (OvR)** | Trains $K$ separate binary logistic classifiers | $P(y=k \\text{ vs not } k)$ | Multilabel classification or large $K$ |\n| **Multinomial (Softmax)** | Single unified model producing normalized probability vector | $P(y=k) = \\frac{e^{\\mathbf{w}_k^T \\mathbf{x}}}{\\sum_j e^{\\mathbf{w}_j^T \\mathbf{x}}}$ | Mutually exclusive multiclass problems (e.g. MNIST 0-9) |"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "Decision Threshold Calibration",
+        "content": "The default classification threshold is 0.5. However, in asymmetric risk domains (e.g. cancer detection or fraud), the engineer can lower the threshold to 0.15 to maximize **Recall** at the expense of Precision."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "classification-game",
+    "title": "Sigmoid Probability Explorer",
+    "description": "Vary input values $z = w \\cdot x + b$ to see how the sigmoid curve maps logits to output probabilities.",
+    "items": [
+      {
+        "text": "z = +5.0 maps to probability near 0.993",
+        "category": "High Probability"
+      },
+      {
+        "text": "z = 0.0 maps to probability exactly 0.500",
+        "category": "Decision Boundary"
+      },
+      {
+        "text": "z = -5.0 maps to probability near 0.007",
+        "category": "Low Probability"
+      },
+      {
+        "text": "z = +2.2 maps to probability near 0.900",
+        "category": "High Probability"
+      }
+    ],
+    "categories": [
+      "High Probability",
+      "Decision Boundary",
+      "Low Probability"
+    ]
+  },
+  "code": {
+    "description": "Train a Logistic Regression classifier, inspect learned coefficients, extract probabilities with predict_proba, and plot the decision boundary.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import make_classification\nfrom sklearn.linear_model import LogisticRegression\n\n# Generate a synthetic binary classification dataset\nX, y = make_classification(n_samples=100, n_features=2, n_redundant=0, n_informative=2,\n                           n_clusters_per_class=1, random_state=42)\n\n# Fit Logistic Regression\nclf = LogisticRegression(random_state=42)\nclf.fit(X, y)\n\n# Evaluate predicted probabilities for the first 3 samples\nprobs = clf.predict_proba(X[:3])\npreds = clf.predict(X[:3])\n\nprint('Learned Coefficients (weights):', clf.coef_[0])\nprint('Learned Intercept (bias):      ', clf.intercept_[0])\nprint('\\nFirst 3 Samples:')\nfor i in range(3):\n    print(f'Sample {i}: P(Class 0) = {probs[i][0]:.3f}, P(Class 1) = {probs[i][1]:.3f} -> Predicted: {preds[i]}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What is the mathematical range of the logistic sigmoid function $\\sigma(z) = \\frac{1}{1 + e^{-z}}$?",
+      "options": [
+        "$[-1, +1]$",
+        "$(0, 1)$ strictly between 0 and 1",
+        "$(-\\infty, +\\infty)$",
+        "$[0, +\\infty)$"
+      ],
+      "correct": 1,
+      "explanation": "The sigmoid function squashes any real-valued number from $-\\infty$ to $+\\infty$ smoothly into the open interval $(0, 1)$."
+    },
+    {
+      "question": "What is the value of the sigmoid function $\\sigma(0)$ when the input logit $z = 0$?",
+      "options": [
+        "0.0",
+        "0.5",
+        "1.0",
+        "-1.0"
+      ],
+      "correct": 1,
+      "explanation": "$\\sigma(0) = \\frac{1}{1 + e^{-0}} = \\frac{1}{1 + 1} = \\frac{1}{2} = 0.5$."
+    },
+    {
+      "question": "Why is Mean Squared Error (MSE) NOT used as the loss function for Logistic Regression?",
+      "options": [
+        "Because MSE cannot be implemented in Python",
+        "The non-linear sigmoid transform makes the MSE cost function non-convex with numerous local minima traps",
+        "Because MSE produces negative probabilities",
+        "Because MSE only works with text data"
+      ],
+      "correct": 1,
+      "explanation": "Passing a linear combination through the non-linear sigmoid renders MSE non-convex, meaning gradient descent could easily get trapped in poor local minima."
+    },
+    {
+      "question": "What is the cost function used to optimize Logistic Regression?",
+      "options": [
+        "Mean Absolute Percentage Error",
+        "Binary Cross-Entropy Loss (Log Loss)",
+        "Hinge Loss",
+        "Kullback-Leibler Divergence"
+      ],
+      "correct": 1,
+      "explanation": "Binary Cross-Entropy derived from Maximum Likelihood Estimation is the standard convex loss for binary logistic regression."
+    },
+    {
+      "question": "If the ground truth is $y = 1$ and a logistic model predicts probability $\\hat{p} = 0.0001$, what happens to the Log Loss penalty?",
+      "options": [
+        "The penalty is zero",
+        "The penalty approaches infinity ($-\\ln(0.0001) \\approx 9.21$), severely penalizing confident incorrect predictions",
+        "The penalty becomes negative",
+        "The penalty is capped at 1.0"
+      ],
+      "correct": 1,
+      "explanation": "Log Loss heavily penalizes confident wrong predictions; as $\\hat{p} \\rightarrow 0$ when $y = 1$, $-\\ln(\\hat{p}) \\rightarrow +\\infty$."
+    },
+    {
+      "question": "What is the logit function defined as?",
+      "options": [
+        "The square root of probability",
+        "The natural logarithm of the odds: $\\ln\\left(\\frac{p}{1-p}\\right)$",
+        "The inverse of matrix determinant",
+        "The exponential of the target"
+      ],
+      "correct": 1,
+      "explanation": "The logit is the log-odds: mapping probability $p \\in (0, 1)$ to $(-\\infty, +\\infty)$."
+    },
+    {
+      "question": "If the odds of an outcome are 3 to 1, what is the corresponding probability $p$?",
+      "options": [
+        "0.33",
+        "0.75",
+        "0.25",
+        "3.0"
+      ],
+      "correct": 1,
+      "explanation": "$p = \\frac{\\text{Odds}}{1 + \\text{Odds}} = \\frac{3}{1 + 3} = \\frac{3}{4} = 0.75$."
+    },
+    {
+      "question": "What geometric shape is the decision boundary of standard Logistic Regression?",
+      "options": [
+        "A circle",
+        "A linear hyperplane (a straight line in 2D, plane in 3D)",
+        "A parabola",
+        "A non-linear decision tree"
+      ],
+      "correct": 1,
+      "explanation": "The decision boundary occurs where $\\mathbf{w}^T \\mathbf{x} + b = 0$, which is mathematically a linear hyperplane."
+    },
+    {
+      "question": "How can Logistic Regression be adapted to capture non-linear decision boundaries?",
+      "options": [
+        "By increasing the learning rate to 10",
+        "By introducing polynomial feature interactions ($x_1^2, x_1 x_2$) into the feature matrix prior to fitting",
+        "By using OLS Normal Equation",
+        "By deleting the intercept"
+      ],
+      "correct": 1,
+      "explanation": "Expanding the feature space with polynomial terms allows linear classifiers to form non-linear boundaries in the original feature space."
+    },
+    {
+      "question": "What is the Softmax function used for in machine learning?",
+      "options": [
+        "Calculating Euclidean distance between vectors",
+        "Generalizing the binary sigmoid function to multi-class classification by outputting a normalized probability distribution over $K$ classes",
+        "Minimizing hardware power usage",
+        "Sorting decision tree branches"
+      ],
+      "correct": 1,
+      "explanation": "The Softmax function $\\frac{e^{z_i}}{\\sum e^{z_j}}$ normalizes real-valued logits into probabilities that sum to 1.0 across $K$ classes."
+    },
+    {
+      "question": "In binary classification, if the cost of a False Negative (missing fraud) is 20x worse than a False Positive (alerting on legitimate user), how should the decision threshold be adjusted?",
+      "options": [
+        "Raised from 0.5 to 0.9",
+        "Lowered from 0.5 to approximately 0.05 - 0.15 to maximize recall",
+        "Kept at exactly 0.500",
+        "Thresholds cannot be changed in logistic regression"
+      ],
+      "correct": 1,
+      "explanation": "Lowering the decision threshold flags more potential cases as positive, dramatically reducing costly False Negatives."
+    },
+    {
+      "question": "What does a positive coefficient $w_1 = +1.5$ in logistic regression indicate about feature $x_1$?",
+      "options": [
+        "Increasing $x_1$ decreases the probability of the target",
+        "For every 1-unit increase in $x_1$, the log-odds of the positive class increase by 1.5 (odds multiply by $e^{1.5} \\approx 4.48$)",
+        "Feature $x_1$ has 1.5% accuracy",
+        "Feature $x_1$ is an outlier"
+      ],
+      "correct": 1,
+      "explanation": "Coefficients in logistic regression represent changes in log-odds; exponentiating gives the multiplicative change in odds (odds ratio)."
+    },
+    {
+      "question": "What happens when training data is perfectly linearly separable in unregularized Logistic Regression?",
+      "options": [
+        "Training finishes in 1 iteration",
+        "The weights $\\mathbf{w}$ can diverge toward infinity as the model tries to push predicted probabilities to exactly 0.0 and 1.0",
+        "The loss becomes negative",
+        "The intercept becomes zero"
+      ],
+      "correct": 1,
+      "explanation": "Without regularization, weights explode to $\\pm \\infty$ on separable data to make sigmoid outputs exactly 0 or 1, requiring $L_2$ regularization."
+    },
+    {
+      "question": "How does $L_2$ regularization (Ridge penalty) prevent weight explosion in Logistic Regression?",
+      "options": [
+        "By deleting features with small weights",
+        "By adding a penalty $\\frac{1}{2} \\lambda \\|\\mathbf{w}\\|_2^2$ to the log loss function, penalizing large weight magnitudes",
+        "By converting logits into integers",
+        "By forcing all weights to be positive"
+      ],
+      "correct": 1,
+      "explanation": "$L_2$ regularization bounds weight magnitudes, ensuring numerical stability even on linearly separable datasets."
+    },
+    {
+      "question": "In Scikit-learn's `LogisticRegression(C=1.0)`, what does the hyperparameter `C` represent?",
+      "options": [
+        "The learning rate",
+        "The inverse of regularization strength ($C = 1 / \\lambda$); smaller values specify stronger regularization",
+        "The count of training epochs",
+        "The batch size"
+      ],
+      "correct": 1,
+      "explanation": "In scikit-learn, $C$ is inverse regularization strength; smaller $C$ imposes stronger penalties against large weights."
+    },
+    {
+      "question": "What is the derivative of the sigmoid function $\\sigma(z)$ with respect to $z$?",
+      "options": [
+        "$\\sigma(z)^2$",
+        "$\\sigma(z)(1 - \\sigma(z))$",
+        "$e^{-z}$",
+        "$\\frac{1}{z}$"
+      ],
+      "correct": 1,
+      "explanation": "The derivative of the sigmoid is convenient and elegant: $\\sigma'(z) = \\sigma(z)(1 - \\sigma(z))$."
+    },
+    {
+      "question": "What is the gradient of the binary cross-entropy loss with respect to weight $w_j$ in Logistic Regression?",
+      "options": [
+        "$\\frac{1}{n} \\sum (\\hat{p}_i - y_i) x_{ij}$",
+        "$\\sum (y_i - \\hat{p}_i)^2$",
+        "$\\frac{1}{n} \\sum y_i x_{ij}$",
+        "Zero"
+      ],
+      "correct": 0,
+      "explanation": "Remarkably, the gradient $\\nabla_{\\mathbf{w}} J = \\frac{1}{n} X^T (\\hat{\\mathbf{p}} - \\mathbf{y})$ has identical functional form to linear regression!"
+    },
+    {
+      "question": "What is the One-vs-Rest (OvR) multiclass strategy?",
+      "options": [
+        "Training 1 model that outputs 10 classes simultaneously",
+        "Training $K$ separate binary classifiers, each distinguishing one class from all other $K-1$ classes combined",
+        "Pairing every class against every other class",
+        "Selecting the class with the smallest weight"
+      ],
+      "correct": 1,
+      "explanation": "OvR trains $K$ individual binary classifiers: class 1 vs rest, class 2 vs rest, etc., choosing the highest probability."
+    },
+    {
+      "question": "If you have 4 classes in a multiclass problem, how many binary classifiers does One-vs-Rest (OvR) train?",
+      "options": [
+        "2",
+        "4",
+        "6",
+        "16"
+      ],
+      "correct": 1,
+      "explanation": "OvR trains exactly $K$ binary models. For 4 classes, it trains 4 binary models."
+    },
+    {
+      "question": "If you have 4 classes, how many binary classifiers does One-vs-One (OvO) train?",
+      "options": [
+        "4",
+        "6 ($\\frac{4 \\times 3}{2} = 6$)",
+        "12",
+        "16"
+      ],
+      "correct": 1,
+      "explanation": "OvO trains a classifier for every pairwise combination: $\\frac{K(K-1)}{2} = \\frac{4 \\times 3}{2} = 6$."
+    },
+    {
+      "question": "What is probability calibration in classification models?",
+      "options": [
+        "Making sure probabilities sum to 100",
+        "Ensuring that when a model outputs a confidence of 0.80, the empirical ground-truth frequency of the event is indeed 80%",
+        "Dividing probabilities by 2",
+        "Setting all probabilities to 0.5"
+      ],
+      "correct": 1,
+      "explanation": "A calibrated classifier outputs true posterior probabilities matching empirical base rates (e.g. Platt scaling / isotonic regression)."
+    },
+    {
+      "question": "Which method is commonly used to recalibrate uncalibrated probability predictions?",
+      "options": [
+        "Platt Scaling (logistic regression on model outputs) or Isotonic Regression",
+        "Multiplying logits by 10",
+        "Adding random Gaussian noise",
+        "Deleting outliers"
+      ],
+      "correct": 0,
+      "explanation": "Platt scaling fits a univariate logistic regression to model score outputs to calibrate them into true probabilities."
+    },
+    {
+      "question": "What does a classification Brier score measure?",
+      "options": [
+        "The execution time of the model",
+        "The mean squared difference between predicted probabilities and the actual binary outcomes: $\\frac{1}{n} \\sum (\\hat{p}_i - y_i)^2$",
+        "The number of parameters in the model",
+        "The accuracy on the majority class"
+      ],
+      "correct": 1,
+      "explanation": "The Brier score measures the accuracy of probabilistic predictions; lower scores indicate better calibration and discrimination."
+    },
+    {
+      "question": "Why is feature scaling essential before fitting Logistic Regression when regularization is enabled?",
+      "options": [
+        "Logistic regression cannot compute without scaling",
+        "Because regularization penalizes all weights equally; without scaling, features with large scales have artificially small weights and escape penalization",
+        "Scaling makes non-linear data linear",
+        "Scaling removes missing values"
+      ],
+      "correct": 1,
+      "explanation": "Regularization applies uniform penalties; if feature scales differ by orders of magnitude, unscaled features are unfairly penalized."
+    },
+    {
+      "question": "What is the difference between `predict()` and `predict_proba()` in scikit-learn?",
+      "options": [
+        "`predict()` returns discrete class labels (0 or 1); `predict_proba()` returns the continuous probability array $[P(y=0), P(y=1)]$",
+        "`predict()` runs on CPU; `predict_proba()` runs on GPU",
+        "`predict()` is for training; `predict_proba()` is for testing",
+        "They are identical functions with identical outputs"
+      ],
+      "correct": 0,
+      "explanation": "`predict()` thresholds probabilities at 0.5 to return discrete labels; `predict_proba()` returns raw continuous probabilities."
+    },
+    {
+      "question": "What is the log-loss for a prediction of $\\hat{p} = 0.5$ when the true label is $y = 1$?",
+      "options": [
+        "$0$",
+        "$-\\ln(0.5) \\approx 0.693$",
+        "$1.0$",
+        "$\\infty$"
+      ],
+      "correct": 1,
+      "explanation": "When $y = 1$, loss is $-\\ln(\\hat{p}) = -\\ln(0.5) = \\ln(2) \\approx 0.693$."
+    },
+    {
+      "question": "What is the Receiver Operating Characteristic (ROC) curve?",
+      "options": [
+        "A plot of loss over training epochs",
+        "A plot of True Positive Rate (Sensitivity) vs False Positive Rate ($1 - \\text{Specificity}$) across all classification thresholds",
+        "A plot of feature correlations",
+        "A 3D visualization of weights"
+      ],
+      "correct": 1,
+      "explanation": "The ROC curve illustrates classifier diagnostic ability across every possible decision threshold from 0 to 1."
+    },
+    {
+      "question": "What is the Area Under the ROC Curve (ROC-AUC) of a completely random guesser?",
+      "options": [
+        "0.0",
+        "0.5",
+        "1.0",
+        "-1.0"
+      ],
+      "correct": 1,
+      "explanation": "A random classifier has a diagonal ROC curve with an area under the curve of exactly 0.50."
+    },
+    {
+      "question": "What does an ROC-AUC score of 1.0 indicate?",
+      "options": [
+        "The model is guessing randomly",
+        "The model achieves perfect class separability with zero overlap across thresholds",
+        "The model has 100% false positives",
+        "The model overfitted in 1 epoch"
+      ],
+      "correct": 1,
+      "explanation": "ROC-AUC = 1.0 indicates perfect separation: all positive instances are ranked higher than all negative instances."
+    },
+    {
+      "question": "Why is Precision-Recall AUC (PR-AUC) preferred over ROC-AUC on highly imbalanced datasets (e.g. 0.1% fraud)?",
+      "options": [
+        "PR-AUC computes faster",
+        "ROC-AUC can be deceptively optimistic because the massive volume of true negatives keeps False Positive Rate artificially small",
+        "PR-AUC only works on neural networks",
+        "ROC-AUC requires balanced classes to execute"
+      ],
+      "correct": 1,
+      "explanation": "In extreme imbalance, large True Negatives suppress FPR in ROC; PR curves focus strictly on the minority positive class."
+    },
+    {
+      "question": "What is an Odds Ratio (OR)?",
+      "options": [
+        "The ratio of training time to test time",
+        "The ratio of the odds of an event occurring in one group compared to the odds in another group",
+        "The score of a model on validation data",
+        "The difference between mean and median"
+      ],
+      "correct": 1,
+      "explanation": "Odds ratios quantify the association strength between an exposure feature and an outcome event."
+    },
+    {
+      "question": "If a patient's log-odds of recovery are $+2.0$, what is their estimated probability of recovery?",
+      "options": [
+        "$50\\%$",
+        "$\\frac{1}{1 + e^{-2}} \\approx \\frac{1}{1 + 0.135} \\approx 88.1\\%$",
+        "$20\\%$",
+        "$99.9\\%$"
+      ],
+      "correct": 1,
+      "explanation": "$P = \\frac{1}{1 + e^{-z}} = \\frac{1}{1 + e^{-2}} \\approx 0.8808$ (88.1%)."
+    },
+    {
+      "question": "What is the primary assumption regarding the relationship between independent features and the target in Logistic Regression?",
+      "options": [
+        "A linear relationship between features and the target probability directly",
+        "A linear relationship between features and the log-odds (logit) of the target",
+        "A quadratic relationship between features",
+        "Zero correlation between features"
+      ],
+      "correct": 1,
+      "explanation": "Logistic regression assumes linearity in the logit space: $\\ln(p / (1-p)) = \\mathbf{w}^T \\mathbf{x} + b$."
+    },
+    {
+      "question": "What algorithm is typically used to optimize logistic regression when second-order curvature information is utilized?",
+      "options": [
+        "Newton-Raphson / Iteratively Reweighted Least Squares (IRLS)",
+        "Apriori algorithm",
+        "K-Means",
+        "Random Forest"
+      ],
+      "correct": 0,
+      "explanation": "Newton-Raphson (IRLS) uses second-order Hessian information to converge in few iterations on moderate datasets."
+    },
+    {
+      "question": "Why is Logistic Regression widely favored as a production baseline in regulated industries (finance, insurance)?",
+      "options": [
+        "Because it is completely unexplainable",
+        "Because it is highly interpretable, produces calibrated probabilities, and individual coefficients can be legally audited as risk weights",
+        "Because it uses more GPU memory than transformers",
+        "Because it can never have errors"
+      ],
+      "correct": 1,
+      "explanation": "Regulators require explainability; logistic regression's explicit odds ratios allow clear justification for loan decisions."
+    }
+  ],
+  "level": "beginner"
+}

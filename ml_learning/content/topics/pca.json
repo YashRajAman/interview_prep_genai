@@ -1,0 +1,457 @@
+{
+  "id": "pca",
+  "title": "Dimensionality Reduction: PCA",
+  "description": "Variance maximization, Covariance matrix, Eigenvalues and Eigenvectors, Singular Value Decomposition (SVD), explained variance ratio, scree plots, and t-SNE intuition.",
+  "duration": "30 min",
+  "features": [
+    "read",
+    "interactive",
+    "code",
+    "quiz"
+  ],
+  "content": {
+    "sections": [
+      {
+        "type": "hero",
+        "title": "Principal Component Analysis (PCA)",
+        "subtitle": "Unsupervised Linear Dimensionality Reduction via Variance Maximization and SVD"
+      },
+      {
+        "type": "callout",
+        "style": "definition",
+        "title": "The Dual Perspectives of PCA",
+        "content": "Pioneered by Karl Pearson (1901), PCA transforms $d$ correlated features into $k < d$ orthogonal, uncorrelated **Principal Components** through two mathematically equivalent formulations:\n1. **Variance Maximization:** Find orthogonal axes along which the projection of the data has maximum possible variance.\n2. **Reconstruction Error Minimization:** Find a lower-dimensional linear subspace that minimizes the squared Euclidean reconstruction distance to the original points."
+      },
+      {
+        "type": "text",
+        "title": "Mathematical Derivation via the Covariance Matrix",
+        "content": "1. **Mean Center Data:** Ensure every feature has zero mean: $\\bar{\\mathbf{x}} = \\mathbf{0}$.\n2. **Compute Covariance Matrix:** For centered matrix $X \\in \\mathbb{R}^{n \\times d}$:\n$$\\Sigma = \\frac{1}{n-1} X^T X \\in \\mathbb{R}^{d \\times d}$$\n3. **Eigen-Decomposition:** Solve for eigenvalues $\\lambda_i$ and eigenvectors $\\mathbf{v}_i$:\n$$\\Sigma \\mathbf{v}_i = \\lambda_i \\mathbf{v}_i$$\n- The **eigenvectors** $\\mathbf{v}_i$ (principal directions) are mutually orthogonal unit vectors: $\\mathbf{v}_i^T \\mathbf{v}_j = 0$.\n- The **eigenvalues** $\\lambda_i$ represent the exact variance explained along each principal direction ($PC_1$ has largest $\\lambda_1$)."
+      },
+      {
+        "type": "callout",
+        "style": "comparison",
+        "title": "Modern Implementation: Singular Value Decomposition (SVD)",
+        "content": "Calculating $X^T X$ directly is computationally inefficient and numerically unstable. Modern implementations (including Scikit-learn) perform SVD directly on centered data $X$:\n\n$$X = U \\Sigma V^T$$\n\n- The right singular vectors $V$ are the **principal component directions (eigenvectors)**.\n- The singular values $s_i$ relate directly to eigenvalues: $\\lambda_i = \\frac{s_i^2}{n-1}$.\n- Transformed data coordinates (scores) are computed by $Z = X V_k$."
+      },
+      {
+        "type": "text",
+        "title": "Explained Variance Ratio & Scree Plot",
+        "content": "The proportion of total variance captured by the $j$-th principal component is:\n$$\\text{Explained Variance Ratio}_j = \\frac{\\lambda_j}{\\sum_{i=1}^d \\lambda_i}$$\n\n**Scree Plot Rule of Thumb:** Retain the top $k$ components that explain **85% to 95%** of the cumulative variance, or cut at the visible 'elbow'."
+      },
+      {
+        "type": "callout",
+        "style": "warning",
+        "title": "Mandatory Requirement: Zero-Centering & Standardization",
+        "content": "PCA is entirely driven by variance. If feature $x_1$ has a variance of $10,000$ and $x_2$ has a variance of $1.0$, $PC_1$ will align almost 100% with $x_1$ regardless of whether $x_2$ is informative! **Always standardize features (StandardScaler) before PCA!**"
+      },
+      {
+        "type": "callout",
+        "style": "key-takeaway",
+        "title": "PCA vs. t-SNE / UMAP",
+        "content": "PCA is a **linear, global** projection method: fast, deterministic, invertible, and excellent for downstream modeling. In contrast, t-SNE and UMAP are **non-linear, localized manifold learning** methods: superb for 2D visualization, but stochastic, non-invertible, and unsuitable for direct feature preprocessing."
+      }
+    ]
+  },
+  "interactive": {
+    "type": "statistics-calculator",
+    "title": "PCA Projection & Variance Calculator",
+    "description": "Simulate 2D to 1D PCA projection and observe how explained variance ratio changes with rotation angle.",
+    "metrics": [
+      "explained_variance_ratio",
+      "pc1_variance",
+      "reconstruction_error"
+    ]
+  },
+  "code": {
+    "description": "Perform PCA with Scikit-learn, inspect eigenvalues and explained variance ratios, and plot cumulative variance to choose optimal K.",
+    "starter": "import numpy as np\nfrom sklearn.datasets import load_breast_cancer\nfrom sklearn.preprocessing import StandardScaler\nfrom sklearn.decomposition import PCA\n\n# Load 30-dimensional breast cancer dataset\ndata = load_breast_cancer()\nX, y = data.data, data.target\n\n# 1. Standardize features (mandatory for PCA)\nX_scaled = StandardScaler().fit_transform(X)\n\n# 2. Fit PCA retaining all 30 components to inspect variance\npca_full = PCA(random_state=42)\npca_full.fit(X_scaled)\n\ncumulative_var = np.cumsum(pca_full.explained_variance_ratio_)\nk_90 = np.argmax(cumulative_var >= 0.90) + 1\n\nprint(f'Original Dimensions: {X.shape[1]} features')\nprint(f'PC1 Explains: {pca_full.explained_variance_ratio_[0]*100:.2f}% of total variance')\nprint(f'PC2 Explains: {pca_full.explained_variance_ratio_[1]*100:.2f}% of total variance')\nprint(f'Top 2 components together explain {cumulative_var[1]*100:.2f}% variance')\nprint(f'Components needed to explain >= 90% variance: {k_90} (compressed from 30 to {k_90}!)')\n\n# 3. Project to 2D for visualization\npca_2d = PCA(n_components=2, random_state=42)\nX_2d = pca_2d.fit_transform(X_scaled)\nprint(f'Projected 2D Shape: {X_2d.shape}')\n"
+  },
+  "quiz": [
+    {
+      "question": "What does Principal Component Analysis (PCA) mathematically maximize when finding the first principal component ($PC_1$)?",
+      "options": [
+        "The correlation between features",
+        "The variance of the projected data points along that orthogonal axis",
+        "The number of samples",
+        "The model classification accuracy"
+      ],
+      "correct": 1,
+      "explanation": "PCA searches for the direction of maximum variance, preserving the greatest amount of information in the projection."
+    },
+    {
+      "question": "What is the mathematical relationship between the principal component directions ($PC_1, PC_2, \\dots$)?",
+      "options": [
+        "They are parallel",
+        "They are mutually orthogonal (perpendicular to each other, dot product = 0)",
+        "They have equal eigenvalues",
+        "They form a closed polygon"
+      ],
+      "correct": 1,
+      "explanation": "Principal components are strictly orthogonal to each other, ensuring components are completely uncorrelated."
+    },
+    {
+      "question": "In the eigen-decomposition of the covariance matrix $\\Sigma \\mathbf{v} = \\lambda \\mathbf{v}$, what do the eigenvalues $\\lambda$ represent?",
+      "options": [
+        "The number of features",
+        "The amount of variance captured along the corresponding eigenvector direction",
+        "The residual error of linear regression",
+        "The learning rate multiplier"
+      ],
+      "correct": 1,
+      "explanation": "Each eigenvalue $\\lambda_i$ equals the variance of the data projected onto the corresponding eigenvector $\\mathbf{v}_i$."
+    },
+    {
+      "question": "Why must features be standardized (StandardScaler) before performing PCA?",
+      "options": [
+        "Because PCA only runs on numbers between 0 and 1",
+        "Features with larger variances will dominate the principal components purely due to arbitrary unit scale rather than informational importance",
+        "Because unscaled features cause singular matrices",
+        "Because PCA requires positive numbers"
+      ],
+      "correct": 1,
+      "explanation": "PCA is scale-dependent; an unscaled feature measured in grams (large variance) will dominate a feature in kilograms."
+    },
+    {
+      "question": "What is the formula for the Explained Variance Ratio of the $k$-th principal component?",
+      "options": [
+        "$\\frac{\\lambda_k}{\\sum_{i=1}^d \\lambda_i}$",
+        "$\\lambda_k^2$",
+        "$\\frac{\\lambda_k}{N}$",
+        "$\\sqrt{\\lambda_k}$"
+      ],
+      "correct": 0,
+      "explanation": "The ratio is eigenvalue $\\lambda_k$ divided by the sum of all eigenvalues, expressing the percentage of total variance explained."
+    },
+    {
+      "question": "What does a Scree Plot display in PCA diagnostics?",
+      "options": [
+        "A plot of loss over epochs",
+        "Eigenvalues or explained variance ratios plotted in descending order against the component index, used to visually identify the elbow cutoff",
+        "A 3D scatterplot of points",
+        "A confusion matrix"
+      ],
+      "correct": 1,
+      "explanation": "A scree plot shows eigenvalues in descending order; the 'elbow' where the curve levels off suggests the number of components to retain."
+    },
+    {
+      "question": "Why do modern implementations of PCA use Singular Value Decomposition (SVD) on $X$ instead of computing the covariance matrix $X^T X$ directly?",
+      "options": [
+        "SVD runs only on GPUs",
+        "Computing $X^T X$ directly can square condition numbers, causing numerical instability and precision loss; SVD on $X$ is far more stable",
+        "SVD eliminates the need for centering",
+        "SVD produces fewer components"
+      ],
+      "correct": 1,
+      "explanation": "SVD avoids computing $X^T X$ explicitly, providing superior numerical stability and precision on ill-conditioned data."
+    },
+    {
+      "question": "In SVD decomposition $X = U \\Sigma V^T$, which matrix contains the principal directions (eigenvectors of $X^T X$)?",
+      "options": [
+        "The left singular vectors $U$",
+        "The right singular vectors $V$ (or $V^T$ rows)",
+        "The diagonal matrix $\\Sigma$",
+        "The original matrix $X$"
+      ],
+      "correct": 1,
+      "explanation": "The columns of $V$ (rows of $V^T$) are the right singular vectors, identical to the eigenvectors of the covariance matrix."
+    },
+    {
+      "question": "How do you project centered data matrix $X$ into a $k$-dimensional PCA subspace using right singular matrix $V_k$?",
+      "options": [
+        "$Z = X / V_k$",
+        "$Z = X V_k$",
+        "$Z = X + V_k$",
+        "$Z = V_k X$"
+      ],
+      "correct": 1,
+      "explanation": "Multiplying data matrix $X \\in \\mathbb{R}^{n \\times d}$ by the top $k$ eigenvectors $V_k \\in \\mathbb{R}^{d \\times k}$ yields reduced coordinates $Z \\in \\mathbb{R}^{n \\times k}$."
+    },
+    {
+      "question": "Can PCA be used as a lossy data compression technique?",
+      "options": [
+        "No, PCA does not compress data",
+        "Yes; by retaining only the top $k < d$ components, data is compressed and can be reconstructed with minimal squared error: $\\hat{X} = Z V_k^T$",
+        "Only on audio files",
+        "Only if $k = 1$"
+      ],
+      "correct": 1,
+      "explanation": "PCA provides optimal linear lossy compression; projected coordinates $Z$ require less storage, and $\\hat{X} = Z V_k^T$ reconstructs the data."
+    },
+    {
+      "question": "What is the reconstruction error (reconstruction loss) in PCA?",
+      "options": [
+        "The number of NaN values",
+        "The squared Euclidean distance between the original data points and their lower-dimensional PCA reconstructed approximations: $\\|X - \\hat{X}\\|_F^2$",
+        "The time required to run SVD",
+        "The difference between eigenvalues"
+      ],
+      "correct": 1,
+      "explanation": "Reconstruction error measures the information lost by discarding the trailing $d - k$ principal components."
+    },
+    {
+      "question": "Is PCA a supervised or unsupervised dimensionality reduction technique?",
+      "options": [
+        "Supervised, because it uses target labels $y$",
+        "Unsupervised, because it operates strictly on the feature matrix $X$ without knowledge of target labels $y$",
+        "Semi-supervised",
+        "Reinforcement learning"
+      ],
+      "correct": 1,
+      "explanation": "PCA is entirely unsupervised; it maximizes variance among inputs $X$ with zero awareness of target classes or outcomes."
+    },
+    {
+      "question": "What supervised dimensionality reduction technique maximizes between-class variance relative to within-class variance?",
+      "options": [
+        "Linear Discriminant Analysis (LDA)",
+        "K-Means",
+        "DBSCAN",
+        "StandardScaler"
+      ],
+      "correct": 0,
+      "explanation": "LDA is a supervised linear dimensionality reduction method that finds projections maximizing class separability."
+    },
+    {
+      "question": "What is a potential risk of using PCA for dimensionality reduction before classification?",
+      "options": [
+        "PCA increases the number of features",
+        "Because PCA is unsupervised, the directions of maximal variance in $X$ might not align with the directions that separate class labels $y$",
+        "PCA turns numbers into text",
+        "PCA forces models to use decision trees"
+      ],
+      "correct": 1,
+      "explanation": "High variance does not guarantee class separability; an uninformative noise feature with huge variance could dominate $PC_1$."
+    },
+    {
+      "question": "What is Kernel PCA (KPCA)?",
+      "options": [
+        "A kernel written in C++",
+        "A non-linear extension of PCA that uses the kernel trick (RBF, Polynomial) to perform PCA in a high-dimensional feature space, unfolding non-linear manifolds",
+        "A method for compressing kernels",
+        "A regularizer for decision trees"
+      ],
+      "correct": 1,
+      "explanation": "Kernel PCA applies the kernel trick to map data into Hilbert space before PCA, enabling non-linear dimensionality reduction (e.g. concentric circles)."
+    },
+    {
+      "question": "What is Incremental PCA (`IncrementalPCA` in Scikit-learn)?",
+      "options": [
+        "PCA that only increases eigenvalues",
+        "A variant of PCA that processes data in mini-batches, allowing PCA on massive datasets that cannot fit entirely into computer RAM",
+        "PCA that runs on GPUs",
+        "A method for adding columns"
+      ],
+      "correct": 1,
+      "explanation": "IncrementalPCA updates SVD in chunks, enabling out-of-core dimensionality reduction on datasets larger than physical memory."
+    },
+    {
+      "question": "What does `n_components=0.95` signify in Scikit-learn's `PCA(n_components=0.95)`?",
+      "options": [
+        "It retains exactly 95 features",
+        "It automatically selects the minimum number of principal components required to preserve at least 95% of total cumulative variance",
+        "It sets learning rate to 0.95",
+        "It drops 95% of the data"
+      ],
+      "correct": 1,
+      "explanation": "Passing a float between 0 and 1 tells Scikit-learn to retain enough components to meet the specified cumulative variance threshold."
+    },
+    {
+      "question": "Are the principal components generated by PCA interpretable in terms of original physical features?",
+      "options": [
+        "Yes, each component corresponds to exactly 1 original feature",
+        "No, each principal component is a linear combination (weighted mixture) of all original features, making direct individual interpretation difficult",
+        "Yes, components retain original column names",
+        "They have no mathematical meaning"
+      ],
+      "correct": 1,
+      "explanation": "Principal components are linear combinations $\\sum v_{ij} x_j$; individual components blend many features, obscuring individual domain semantics."
+    },
+    {
+      "question": "What are the 'loadings' in PCA?",
+      "options": [
+        "The time it takes to load the CSV file",
+        "The weights (coefficients) of the original features in the linear combination that defines each principal component (the elements of eigenvector $\\mathbf{v}_i$)",
+        "The memory footprint of the matrix",
+        "The eigenvalues divided by 2"
+      ],
+      "correct": 1,
+      "explanation": "Loadings represent the correlations between original variables and principal components, showing which features contribute most to each axis."
+    },
+    {
+      "question": "What is t-SNE (t-Distributed Stochastic Neighbor Embedding) primarily used for compared to PCA?",
+      "options": [
+        "Preprocessing features for linear regression",
+        "Non-linear 2D or 3D visualization of high-dimensional data by preserving local neighborhood probabilities using Student-t distributions",
+        "Compressing files on disk",
+        "A clustering algorithm that outputs labels"
+      ],
+      "correct": 1,
+      "explanation": "t-SNE is a non-linear manifold technique optimized for exploratory visual clustering in 2D/3D by preserving local proximities."
+    },
+    {
+      "question": "Why is t-SNE generally NOT suitable for feature preprocessing prior to training downstream ML models?",
+      "options": [
+        "t-SNE produces text outputs",
+        "t-SNE is non-parametric, non-deterministic, has no stable out-of-sample projection function for new test points, and distorts global distances",
+        "t-SNE is too fast",
+        "t-SNE requires labeled data"
+      ],
+      "correct": 1,
+      "explanation": "t-SNE lacks an analytical projection mapping for new query points, can create artificial clusters, and does not preserve global distances."
+    },
+    {
+      "question": "What is UMAP (Uniform Manifold Approximation and Projection) and why has it largely superseded t-SNE in industry?",
+      "options": [
+        "A replacement for Python",
+        "A non-linear manifold reduction method based on Riemannian geometry that preserves both local AND global structure while running much faster than t-SNE",
+        "A linear regression algorithm",
+        "A method for scaling features"
+      ],
+      "correct": 1,
+      "explanation": "UMAP preserves global data topology better than t-SNE, executes significantly faster, and supports out-of-sample `transform()` for new data."
+    },
+    {
+      "question": "What is the sum of all eigenvalues of the sample covariance matrix $\\Sigma$ equal to?",
+      "options": [
+        "1.0",
+        "The total variance of all features combined (the trace of $\\Sigma$: $\\sum_{j=1}^d \\text{Var}(x_j)$)",
+        "The number of samples $N$",
+        "The determinant of $\\Sigma$"
+      ],
+      "correct": 1,
+      "explanation": "The sum of eigenvalues equals the trace of the covariance matrix: $\\sum \\lambda_i = \\text{tr}(\\Sigma) = \\sum \\text{Var}(x_j)$."
+    },
+    {
+      "question": "What is the correlation between $PC_1$ and $PC_2$ in any standard PCA transformation?",
+      "options": [
+        "$r = 1.0$",
+        "$r = 0.0$ (they are mathematically uncorrelated)",
+        "$r = -1.0$",
+        "It depends on the dataset"
+      ],
+      "correct": 1,
+      "explanation": "Because principal component directions are orthogonal eigenvectors, the covariance and correlation between any two components is strictly zero."
+    },
+    {
+      "question": "Can PCA be used to resolve multicollinearity in Linear Regression?",
+      "options": [
+        "No, PCA makes multicollinearity worse",
+        "Yes; transforming collinear features into orthogonal principal components completely eliminates multicollinearity (Principal Component Regression - PCR)",
+        "Only if $K=1$",
+        "Only if all features are positive"
+      ],
+      "correct": 1,
+      "explanation": "Principal Component Regression (PCR) projects correlated features onto orthogonal components, completely resolving collinearity."
+    },
+    {
+      "question": "What is the maximum number of principal components that can be extracted from a dataset with $N$ samples and $D$ features?",
+      "options": [
+        "$N \\times D$",
+        "$\\min(N - 1, D)$",
+        "$D^2$",
+        "Infinite"
+      ],
+      "correct": 1,
+      "explanation": "The maximum rank of centered matrix $X$ is $\\min(N-1, D)$, bounding the maximum number of non-zero eigenvalues."
+    },
+    {
+      "question": "If you have 1,000 features but only 50 samples, what is the maximum number of informative principal components PCA can extract?",
+      "options": [
+        "1,000",
+        "49 ($N - 1$)",
+        "50",
+        "2"
+      ],
+      "correct": 1,
+      "explanation": "Centering 50 samples yields at most 49 linearly independent dimensions; components beyond 49 have eigenvalues of exactly zero."
+    },
+    {
+      "question": "What does a Biplot visualize in PCA exploratory analysis?",
+      "options": [
+        "Two separate models running in parallel",
+        "A plot showing both the projected data sample points (scores) and the original feature vectors (loadings arrows) simultaneously on the first two components",
+        "A plot of binary classification accuracy",
+        "A confusion matrix with 2 classes"
+      ],
+      "correct": 1,
+      "explanation": "A biplot overlays data point coordinates and feature loading vectors, showing how individual variables drive cluster separation."
+    },
+    {
+      "question": "What is Randomized PCA in Scikit-learn (`svd_solver='randomized'`)?",
+      "options": [
+        "An algorithm that returns random numbers",
+        "An approximate SVD method using random matrix projections that rapidly computes the top $k$ components in $O(N \\cdot D \\cdot k)$ instead of exact $O(N \\cdot D^2)$",
+        "A method that deletes columns randomly",
+        "An algorithm with zero accuracy"
+      ],
+      "correct": 1,
+      "explanation": "Randomized SVD (Halko et al., 2011) approximates the top $k$ components with extreme speed on large matrices."
+    },
+    {
+      "question": "Why does PCA fail to capture non-linear structures like the 'Swiss Roll' dataset?",
+      "options": [
+        "Because PCA only runs on 2D data",
+        "PCA is strictly a linear projection method; it projects points onto flat hyperplanes, squashing non-linear folds on top of each other",
+        "Because the Swiss roll has no variance",
+        "Because the Swiss roll requires GPU clusters"
+      ],
+      "correct": 1,
+      "explanation": "PCA cannot bend or unroll non-linear manifolds; linear projection crushes the layers of a Swiss roll together."
+    },
+    {
+      "question": "What is Sparse PCA (`SparsePCA` in Scikit-learn)?",
+      "options": [
+        "A model for sparse matrices",
+        "A variant of PCA that enforces an $L_1$ penalty on component loadings, yielding sparse components where most feature weights are exactly zero for enhanced interpretability",
+        "PCA that drops rows",
+        "A decision tree algorithm"
+      ],
+      "correct": 1,
+      "explanation": "Sparse PCA forces many feature loadings to zero using $L_1$ regularization, making components easier for human domain experts to interpret."
+    },
+    {
+      "question": "What is the relationship between the singular values $s_i$ from SVD and the eigenvalues $\\lambda_i$ of the covariance matrix?",
+      "options": [
+        "$\\lambda_i = s_i$",
+        "$\\lambda_i = \\frac{s_i^2}{n - 1}$",
+        "$\\lambda_i = \\sqrt{s_i}$",
+        "$\\lambda_i = s_i \\times (n-1)$"
+      ],
+      "correct": 1,
+      "explanation": "The eigenvalues of $X^T X / (n-1)$ equal the squared singular values divided by degrees of freedom: $\\frac{s_i^2}{n-1}$."
+    },
+    {
+      "question": "What happens when an engineer runs PCA without mean-centering the data first?",
+      "options": [
+        "The computer crashes with a divide-by-zero error",
+        "The first principal component will point directly toward the mean of the data cloud rather than along the direction of maximum variance",
+        "The eigenvalues become negative",
+        "The variance becomes zero"
+      ],
+      "correct": 1,
+      "explanation": "Without zero-centering, $PC_1$ is pulled toward the center of mass rather than capturing the internal variance spread."
+    },
+    {
+      "question": "Can PCA be applied directly to categorical text features without encoding?",
+      "options": [
+        "Yes, PCA natively handles strings",
+        "No, PCA is purely a linear algebra matrix operation requiring continuous numerical coordinates; categorical variables must be encoded first",
+        "Only if categories are short words",
+        "Only in Python 3.12+"
+      ],
+      "correct": 1,
+      "explanation": "PCA computes covariance and dot products; text and categories must be encoded into numeric vectors (e.g. One-Hot, TF-IDF)."
+    },
+    {
+      "question": "What is the primary difference between PCA and Factor Analysis?",
+      "options": [
+        "PCA is for classification; Factor Analysis is for regression",
+        "PCA creates linear combinations that explain maximum observed variance; Factor Analysis is a probabilistic model assuming observed data is generated by unobserved latent factors plus error",
+        "They are identical algorithms",
+        "Factor Analysis does not use linear algebra"
+      ],
+      "correct": 1,
+      "explanation": "PCA models total observed variance; Factor Analysis models common shared variance among variables while accounting for unique feature error variance."
+    }
+  ],
+  "level": "intermediate"
+}
