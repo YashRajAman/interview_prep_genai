@@ -333,7 +333,86 @@ If you prefer building locally and transferring the `.tar.gz`:
 
 ---
 
-## 9. Cleanup & Maintenance
+## 9. Auto-Start Podman Containers on System Boot
+
+Because Podman is daemonless (unlike Docker, which has a background `dockerd`), you configure systemd to start your containers automatically when the server boots.
+
+### Method 1: Built-in `podman-restart` (Easiest)
+
+Podman includes a built-in systemd service that starts all containers marked with `--restart always` or `--restart on-failure`.
+
+#### Step 1: Enable Linger (Critical for Rootless Users)
+By default, Linux stops rootless services when you log out. Enabling linger allows rootless containers to start at boot and keep running in the background:
+```bash
+loginctl enable-linger $USER
+```
+
+#### Step 2: Enable the Podman Restart Service
+```bash
+# For rootless Podman (standard):
+systemctl --user enable --now podman-restart.service
+
+# Or if running Podman as root (sudo):
+# sudo systemctl enable --now podman-restart.service
+```
+
+#### Step 3: Run container with `--restart always`
+```bash
+podman run -d \
+  --name ml-learning-platform \
+  -p 8000:8000 \
+  --restart always \
+  ml-learning-platform:latest
+```
+That's it! Every time the server boots, Podman will automatically launch this container.
+
+---
+
+### Method 2: Modern Systemd Quadlet (Production Standard for Podman 4.4+)
+
+Podman's **Quadlet** allows systemd to manage your container declaratively as a native Linux service.
+
+#### Step 1: Enable User Linger
+```bash
+loginctl enable-linger $USER
+```
+
+#### Step 2: Create Quadlet Definition
+Create directory and file `~/.config/containers/systemd/ml-learning-platform.container`:
+```bash
+mkdir -p ~/.config/containers/systemd
+cat << 'EOF' > ~/.config/containers/systemd/ml-learning-platform.container
+[Unit]
+Description=ML Learning Platform Container
+After=network-online.target
+
+[Container]
+ContainerName=ml-learning-platform
+Image=localhost/ml-learning-platform:latest
+PublishPort=8000:8000
+Restart=always
+
+[Install]
+WantedBy=default.target
+EOF
+```
+
+#### Step 3: Reload and Start the Service
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now ml-learning-platform.service
+```
+
+#### Managing the Service:
+```bash
+systemctl --user status ml-learning-platform
+systemctl --user restart ml-learning-platform
+systemctl --user stop ml-learning-platform
+```
+
+---
+
+## 10. Cleanup & Maintenance
 
 ### Clean Up Unused Resources (Dangling Images & Containers)
 ```bash
