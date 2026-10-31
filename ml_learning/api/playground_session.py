@@ -100,10 +100,19 @@ class PlaygroundSession:
                 }
 
             if not response_container or not response_container[0]:
+                worker_stderr = ""
+                try:
+                    if self.process and self.process.stderr and self.process.poll() is not None:
+                        worker_stderr = self.process.stderr.read()
+                except Exception:
+                    pass
+                err_msg = "Kernel process terminated unexpectedly."
+                if worker_stderr.strip():
+                    err_msg += f"\n{worker_stderr.strip()}"
                 return {
                     "success": False,
                     "stdout": "",
-                    "stderr": "Kernel process terminated unexpectedly.",
+                    "stderr": err_msg,
                     "result": None,
                     "result_html": None,
                     "plots": []
