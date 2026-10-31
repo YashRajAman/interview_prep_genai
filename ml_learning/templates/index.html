@@ -21,7 +21,15 @@
     <link rel="stylesheet" href="/static/vendor/katex/katex.min.css">
     
     <!-- Main CSS -->
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=10">
+
+    <!-- Immediate Theme Restoration -->
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('ml_odyssey_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
 </head>
 <body>
     <!-- Animated Background -->
@@ -38,6 +46,10 @@
     <!-- Navigation -->
     <nav id="main-nav">
         <div class="nav-inner">
+            <button class="nav-contents-btn" id="nav-contents-btn" type="button" title="Hierarchical Curriculum & Contents (Ctrl+K)">
+                <span class="nav-contents-icon">📑</span>
+                <span class="nav-contents-label">Contents</span>
+            </button>
             <a href="#" class="nav-logo" id="nav-logo">
                 <span class="logo-icon">🧠</span>
                 <span class="logo-text">ML <span class="logo-accent">Odyssey</span></span>
@@ -45,6 +57,7 @@
             <div class="nav-links">
                 <a href="#" class="nav-link active" data-route="home" id="nav-home">Home</a>
                 <a href="#" class="nav-link" data-route="levels" id="nav-levels">Levels</a>
+                <a href="#" class="nav-link" data-route="playground" id="nav-playground">🧪 Playground</a>
                 <a href="#" class="nav-link" data-route="progress" id="nav-progress">Progress</a>
             </div>
             <div class="nav-progress-mini" id="nav-progress-mini">
@@ -53,8 +66,68 @@
                 </div>
                 <span class="nav-progress-text" id="nav-progress-text">0%</span>
             </div>
+            <!-- Theme Selector Dropdown -->
+            <div class="nav-theme-dropdown" id="nav-theme-dropdown">
+                <button class="nav-theme-btn" id="theme-toggle-btn" type="button" title="Choose Aesthetic Theme">
+                    <span class="theme-btn-icon" id="theme-btn-icon">🎨</span>
+                    <span class="theme-btn-label" id="theme-btn-label">Theme ▾</span>
+                </button>
+                <div class="theme-dropdown-menu" id="theme-dropdown-menu">
+                    <button class="theme-option active" data-theme="dark" type="button">
+                        <span class="theme-preview-dot" style="background:#0d0e1a;border-color:#00d4aa;"></span>
+                        <span>Deep Cosmos (Dark)</span>
+                    </button>
+                    <button class="theme-option" data-theme="light" type="button">
+                        <span class="theme-preview-dot" style="background:#f8fafc;border-color:#0284c7;"></span>
+                        <span>Clean Daylight (Light)</span>
+                    </button>
+                    <button class="theme-option" data-theme="cyberpunk" type="button">
+                        <span class="theme-preview-dot" style="background:#0a0518;border-color:#00f2fe;"></span>
+                        <span>Cyberpunk Neon</span>
+                    </button>
+                    <button class="theme-option" data-theme="emerald" type="button">
+                        <span class="theme-preview-dot" style="background:#051410;border-color:#10b981;"></span>
+                        <span>Forest Emerald</span>
+                    </button>
+                    <button class="theme-option" data-theme="sunset" type="button">
+                        <span class="theme-preview-dot" style="background:#14100e;border-color:#f59e0b;"></span>
+                        <span>Solar Sunset</span>
+                    </button>
+                    <button class="theme-option" data-theme="nord" type="button">
+                        <span class="theme-preview-dot" style="background:#1e222a;border-color:#88c0d0;"></span>
+                        <span>Nordic Frost</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </nav>
+
+    <!-- Hierarchical Content Menu Drawer -->
+    <div class="content-drawer-backdrop" id="content-drawer-backdrop"></div>
+    <aside class="content-drawer" id="content-drawer" aria-label="Hierarchical Course Contents">
+        <div class="drawer-header">
+            <div class="drawer-title-group">
+                <span class="drawer-icon">📚</span>
+                <h2 class="drawer-title">Curriculum & Topics</h2>
+            </div>
+            <div class="drawer-header-actions">
+                <button class="drawer-pin-btn" id="drawer-pin-btn" type="button" title="Pin sidebar to left (Ctrl+\)">📌</button>
+                <button class="drawer-close-btn" id="drawer-close-btn" type="button" title="Close (Esc)">✕</button>
+            </div>
+        </div>
+
+        <div class="drawer-search-bar">
+            <div class="drawer-search-inner">
+                <span class="drawer-search-icon">🔍</span>
+                <input type="text" class="drawer-search-input" id="drawer-search-input" placeholder="Search levels, topics, concepts...">
+                <button class="drawer-search-clear" id="drawer-search-clear" type="button" style="display:none;" title="Clear">✕</button>
+            </div>
+        </div>
+
+        <div class="drawer-tree" id="drawer-tree-container">
+            <!-- Populated dynamically by CurriculumDrawer in app.js -->
+        </div>
+    </aside>
 
     <!-- Main Content -->
     <main id="app-content">
@@ -77,7 +150,8 @@
     <script src="/static/js/progress.js"></script>
     <script src="/static/js/quiz-engine.js"></script>
     <script src="/static/js/code-playground.js"></script>
+    <script src="/static/js/playground.js?v=4"></script>
     <script src="/static/js/visualizations.js"></script>
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=10"></script>
 </body>
 </html>

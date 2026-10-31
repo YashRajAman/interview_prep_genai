@@ -1,0 +1,284 @@
+{
+  "notebooks": [
+    {
+      "id": "backpropagation",
+      "title": "Backpropagation & Computational Graphs",
+      "level": "advanced",
+      "filename": "backpropagation.ipynb",
+      "path": "/api/notebook/advanced/backpropagation"
+    },
+    {
+      "id": "boosting",
+      "title": "Boosting: AdaBoost, Gradient Boosting & XGBoost",
+      "level": "intermediate",
+      "filename": "boosting.ipynb",
+      "path": "/api/notebook/intermediate/boosting"
+    },
+    {
+      "id": "cnn",
+      "title": "Convolutional Neural Networks (CNNs)",
+      "level": "advanced",
+      "filename": "cnn.ipynb",
+      "path": "/api/notebook/advanced/cnn"
+    },
+    {
+      "id": "decision-trees",
+      "title": "Decision Trees & Recursive Partitioning",
+      "level": "beginner",
+      "filename": "decision-trees.ipynb",
+      "path": "/api/notebook/beginner/decision-trees"
+    },
+    {
+      "id": "eda-basics",
+      "title": "Exploratory Data Analysis (EDA) Basics",
+      "level": "novice",
+      "filename": "eda-basics.ipynb",
+      "path": "/api/notebook/novice/eda-basics"
+    },
+    {
+      "id": "ensemble-methods",
+      "title": "Ensemble Methods: Bagging & Random Forests",
+      "level": "intermediate",
+      "filename": "ensemble-methods.ipynb",
+      "path": "/api/notebook/intermediate/ensemble-methods"
+    },
+    {
+      "id": "ethics-bias-fairness",
+      "title": "AI Ethics, Fairness & Explainability (XAI)",
+      "level": "professional",
+      "filename": "ethics-bias-fairness.ipynb",
+      "path": "/api/notebook/professional/ethics-bias-fairness"
+    },
+    {
+      "id": "feature-engineering",
+      "title": "Feature Engineering & Preprocessing",
+      "level": "intermediate",
+      "filename": "feature-engineering.ipynb",
+      "path": "/api/notebook/intermediate/feature-engineering"
+    },
+    {
+      "id": "generative-models",
+      "title": "Generative Modeling: VAEs, GANs & Diffusion",
+      "level": "professional",
+      "filename": "generative-models.ipynb",
+      "path": "/api/notebook/professional/generative-models"
+    },
+    {
+      "id": "gradient-descent",
+      "title": "Gradient Descent Visualized",
+      "level": "beginner",
+      "filename": "gradient-descent.ipynb",
+      "path": "/api/notebook/beginner/gradient-descent"
+    },
+    {
+      "id": "hierarchical-dbscan",
+      "title": "Hierarchical & Density-Based (DBSCAN) Clustering",
+      "level": "intermediate",
+      "filename": "hierarchical-dbscan.ipynb",
+      "path": "/api/notebook/intermediate/hierarchical-dbscan"
+    },
+    {
+      "id": "hyperparameter-tuning",
+      "title": "Hyperparameter Optimization & Tuning",
+      "level": "advanced",
+      "filename": "hyperparameter-tuning.ipynb",
+      "path": "/api/notebook/advanced/hyperparameter-tuning"
+    },
+    {
+      "id": "kmeans",
+      "title": "Unsupervised Learning: K-Means Clustering",
+      "level": "intermediate",
+      "filename": "kmeans.ipynb",
+      "path": "/api/notebook/intermediate/kmeans"
+    },
+    {
+      "id": "knn",
+      "title": "K-Nearest Neighbors (KNN)",
+      "level": "beginner",
+      "filename": "knn.ipynb",
+      "path": "/api/notebook/beginner/knn"
+    },
+    {
+      "id": "linear-regression",
+      "title": "Linear Regression \u2014 From Scratch",
+      "level": "beginner",
+      "filename": "linear-regression.ipynb",
+      "path": "/api/notebook/beginner/linear-regression"
+    },
+    {
+      "id": "llm-fine-tuning",
+      "title": "LLM Fine-Tuning & Alignment (LoRA & DPO)",
+      "level": "professional",
+      "filename": "llm-fine-tuning.ipynb",
+      "path": "/api/notebook/professional/llm-fine-tuning"
+    },
+    {
+      "id": "logistic-regression",
+      "title": "Logistic Regression & Classification",
+      "level": "beginner",
+      "filename": "logistic-regression.ipynb",
+      "path": "/api/notebook/beginner/logistic-regression"
+    },
+    {
+      "id": "math-foundations",
+      "title": "Math Intuition for ML (No Fear!)",
+      "level": "novice",
+      "filename": "math-foundations.ipynb",
+      "path": "/api/notebook/novice/math-foundations"
+    },
+    {
+      "id": "ml-lifecycle",
+      "title": "The Machine Learning Lifecycle",
+      "level": "novice",
+      "filename": "ml-lifecycle.ipynb",
+      "path": "/api/notebook/novice/ml-lifecycle"
+    },
+    {
+      "id": "ml-pipeline",
+      "title": "Building End-to-End ML Pipelines",
+      "level": "intermediate",
+      "filename": "ml-pipeline.ipynb",
+      "path": "/api/notebook/intermediate/ml-pipeline"
+    },
+    {
+      "id": "mlops-monitoring",
+      "title": "MLOps, Monitoring & Drift Detection",
+      "level": "professional",
+      "filename": "mlops-monitoring.ipynb",
+      "path": "/api/notebook/professional/mlops-monitoring"
+    },
+    {
+      "id": "model-deployment",
+      "title": "Model Serving & High-Throughput Inference",
+      "level": "professional",
+      "filename": "model-deployment.ipynb",
+      "path": "/api/notebook/professional/model-deployment"
+    },
+    {
+      "id": "model-evaluation",
+      "title": "Model Evaluation: Accuracy, Precision, Recall, F1 & ROC",
+      "level": "beginner",
+      "filename": "model-evaluation.ipynb",
+      "path": "/api/notebook/beginner/model-evaluation"
+    },
+    {
+      "id": "naive-bayes",
+      "title": "Naive Bayes & Probabilistic Classification",
+      "level": "beginner",
+      "filename": "naive-bayes.ipynb",
+      "path": "/api/notebook/beginner/naive-bayes"
+    },
+    {
+      "id": "neural-networks-intro",
+      "title": "Neural Networks & Architectures",
+      "level": "advanced",
+      "filename": "neural-networks-intro.ipynb",
+      "path": "/api/notebook/advanced/neural-networks-intro"
+    },
+    {
+      "id": "nlp-pipelines",
+      "title": "Modern NLP Pipelines & Tokenization",
+      "level": "professional",
+      "filename": "nlp-pipelines.ipynb",
+      "path": "/api/notebook/professional/nlp-pipelines"
+    },
+    {
+      "id": "optimizers-deep-learning",
+      "title": "Optimizers & Learning Rate Schedules",
+      "level": "advanced",
+      "filename": "optimizers-deep-learning.ipynb",
+      "path": "/api/notebook/advanced/optimizers-deep-learning"
+    },
+    {
+      "id": "pca",
+      "title": "Dimensionality Reduction: PCA",
+      "level": "intermediate",
+      "filename": "pca.ipynb",
+      "path": "/api/notebook/intermediate/pca"
+    },
+    {
+      "id": "probability-basics",
+      "title": "Probability & Everyday Statistics",
+      "level": "novice",
+      "filename": "probability-basics.ipynb",
+      "path": "/api/notebook/novice/probability-basics"
+    },
+    {
+      "id": "rag-vector-db",
+      "title": "Retrieval-Augmented Generation & Vector DBs",
+      "level": "professional",
+      "filename": "rag-vector-db.ipynb",
+      "path": "/api/notebook/professional/rag-vector-db"
+    },
+    {
+      "id": "regularization-dl",
+      "title": "Deep Learning Regularization & Normalization",
+      "level": "advanced",
+      "filename": "regularization-dl.ipynb",
+      "path": "/api/notebook/advanced/regularization-dl"
+    },
+    {
+      "id": "reinforcement-learning",
+      "title": "Reinforcement Learning: MDPs to Policy Gradients",
+      "level": "professional",
+      "filename": "reinforcement-learning.ipynb",
+      "path": "/api/notebook/professional/reinforcement-learning"
+    },
+    {
+      "id": "rnn-lstm",
+      "title": "Sequential Models: RNN, LSTM & GRU",
+      "level": "advanced",
+      "filename": "rnn-lstm.ipynb",
+      "path": "/api/notebook/advanced/rnn-lstm"
+    },
+    {
+      "id": "svm",
+      "title": "Support Vector Machines (SVM)",
+      "level": "intermediate",
+      "filename": "svm.ipynb",
+      "path": "/api/notebook/intermediate/svm"
+    },
+    {
+      "id": "train-test-split",
+      "title": "Overfitting, Underfitting & Cross-Validation",
+      "level": "beginner",
+      "filename": "train-test-split.ipynb",
+      "path": "/api/notebook/beginner/train-test-split"
+    },
+    {
+      "id": "transfer-learning",
+      "title": "Transfer Learning & Fine-Tuning Strategies",
+      "level": "advanced",
+      "filename": "transfer-learning.ipynb",
+      "path": "/api/notebook/advanced/transfer-learning"
+    },
+    {
+      "id": "transformers",
+      "title": "The Transformer Architecture & Attention",
+      "level": "professional",
+      "filename": "transformers.ipynb",
+      "path": "/api/notebook/professional/transformers"
+    },
+    {
+      "id": "types-of-ml",
+      "title": "Types of Machine Learning",
+      "level": "novice",
+      "filename": "types-of-ml.ipynb",
+      "path": "/api/notebook/novice/types-of-ml"
+    },
+    {
+      "id": "understanding-data",
+      "title": "Understanding Data: Rows, Columns & Types",
+      "level": "novice",
+      "filename": "understanding-data.ipynb",
+      "path": "/api/notebook/novice/understanding-data"
+    },
+    {
+      "id": "what-is-ml",
+      "title": "What is Machine Learning?",
+      "level": "novice",
+      "filename": "what-is-ml.ipynb",
+      "path": "/api/notebook/novice/what-is-ml"
+    }
+  ]
+}

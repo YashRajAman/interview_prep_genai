@@ -23,7 +23,7 @@ templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "t
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Serve the main SPA shell."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse(request=request, name="index.html")
 
 
 # Include API routes

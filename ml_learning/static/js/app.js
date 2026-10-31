@@ -196,7 +196,7 @@
 
     /**
      * Extract display ($$...$$) and inline ($...$) math from markdown content.
-     * Prevents currency like $300,000 from being mangled.
+     * Prevents currency like $300k, $280k, $150 from being mangled.
      *
      * @param {string} content
      * @returns {{text: string, tokens: Array}}
@@ -205,18 +205,38 @@
         var mathTokens = [];
         if (!content) return { text: '', tokens: mathTokens };
 
-        // 1. Display math: $$ ... $$
-        var text = content.replace(/\$\$([\s\S]+?)\$\$/g, function (match, math) {
+        var text = content;
+
+        // 0. Protect literal escaped currency like \$300k or \$
+        text = text.replace(/\\\$([0-9][0-9,]*(?:\.[0-9]+)?[kKmMbB]?\b)?/g, function (match, val) {
+            var token = '@@MATH_CURRENCY_' + mathTokens.length + '@@';
+            mathTokens.push({ type: 'currency', value: '$' + (val || '') });
+            return token;
+        });
+
+        // 1. Protect currency amounts with k/m/b suffixes like $300k, $280k, $20k, $1.5M
+        text = text.replace(/\$([0-9][0-9,]*(?:\.[0-9]+)?[kKmMbB])\b/g, function (match, val) {
+            var token = '@@MATH_CURRENCY_' + mathTokens.length + '@@';
+            mathTokens.push({ type: 'currency', value: '$' + val });
+            return token;
+        });
+
+        // 2. Protect standalone prices like $500, $5,000, $150 followed by space/word/punctuation
+        text = text.replace(/\$([0-9][0-9,]*(?:\.[0-9]+)?)(?=\s+(?:per|higher|lower|more|less|dollars|in|of|or|and|\/|month|year|epoch|GPU|budget|model)|[.,;:!?)]|\s*$)/gi, function (match, val) {
+            var token = '@@MATH_CURRENCY_' + mathTokens.length + '@@';
+            mathTokens.push({ type: 'currency', value: '$' + val });
+            return token;
+        });
+
+        // 3. Display math: $$ ... $$
+        text = text.replace(/\$\$([\s\S]+?)\$\$/g, function (match, math) {
             var token = '@@MATH_DISPLAY_' + mathTokens.length + '@@';
             mathTokens.push({ type: 'display', math: math });
             return '\n' + token + '\n';
         });
 
-        // 2. Inline math: $ ... $ (excluding currency like $300,000 or $450)
-        text = text.replace(/(^|[^\$])\$([^\$\s](?:[^\$\n]*?[^\$\s])?)\$(?!\$)/g, function (match, prefix, math) {
-            if (/^\d[\d,]*(\.\d+)?$/.test(math.trim())) {
-                return match; // currency
-            }
+        // 4. Inline math: $ ... $ (closing delimiter cannot be followed by alphanumeric or $)
+        text = text.replace(/(^|[^\$])\$([^\$\s](?:[^\$\n]*?[^\$\s])?)\$(?![0-9a-zA-Z\$])/g, function (match, prefix, math) {
             var token = '@@MATH_INLINE_' + mathTokens.length + '@@';
             mathTokens.push({ type: 'inline', math: math });
             return prefix + token;
@@ -234,9 +254,12 @@
      */
     function restoreMath(html, mathTokens) {
         if (!html || !mathTokens || !mathTokens.length) return html || '';
-        return html.replace(/@@MATH_(DISPLAY|INLINE)_(\d+)@@/g, function (match, kind, idx) {
+        return html.replace(/@@MATH_(DISPLAY|INLINE|CURRENCY)_(\d+)@@/g, function (match, kind, idx) {
             var token = mathTokens[parseInt(idx, 10)];
             if (!token) return match;
+            if (token.type === 'currency') {
+                return '<span class="currency-amount">' + token.value + '</span>';
+            }
             return renderMathToString(token.math, token.type === 'display');
         });
     }
@@ -259,6 +282,7 @@
                         { left: '\\[', right: '\\]', display: true }
                     ],
                     ignoredTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                    ignoredClasses: ['katex-ignore', 'katex-html', 'currency-amount'],
                     throwOnError: false
                 });
             } catch (err) {
@@ -671,9 +695,14 @@
             'levels': 'levels',
             'level': 'levels',
             'topic': 'levels',  // topic view is under Levels nav
+            'playground': 'playground',
             'progress': 'progress'
         };
         updateNavActive(navMap[route] || 'home');
+
+        if (window.CurriculumDrawer && CurriculumDrawer.isOpen) {
+            CurriculumDrawer.renderTree();
+        }
 
         scrollTop();
 
@@ -683,6 +712,9 @@
                 break;
             case 'levels':
                 renderLevels();
+                break;
+            case 'playground':
+                renderPlayground();
                 break;
             case 'level':
                 if (params.length >= 1) {
@@ -703,6 +735,17 @@
                 break;
             default:
                 renderHome();
+        }
+    }
+
+    /**
+     * Render the interactive Jupyter Playground page.
+     */
+    function renderPlayground() {
+        if (window.Playground) {
+            window.Playground.render(appContent);
+        } else {
+            appContent.innerHTML = '<div class="loading-screen"><div class="loader"><div class="loader-brain">📓</div><div class="loader-text">Loading Jupyter Playground...</div></div></div>';
         }
     }
 
@@ -730,7 +773,8 @@
                   'through interactive lessons, code playgrounds, visualizations, and quizzes.</p>';
         html +=   '<div>';
         html +=     '<button class="btn btn-primary btn-large" data-nav="levels">Start Learning →</button>';
-        html +=     '<button class="btn btn-secondary btn-large" data-nav="progress">View Progress</button>';
+        html +=     '<button class="btn btn-secondary btn-large" data-nav="playground" style="margin-left:0.75rem;">🧪 Interactive Playground</button>';
+        html +=     '<button class="btn btn-outline btn-large" data-nav="progress" style="margin-left:0.75rem;">View Progress</button>';
         html +=   '</div>';
         html += '</section>';
 
@@ -1019,30 +1063,33 @@
         var hasQuiz = Array.isArray(topic.quiz) && topic.quiz.length > 0;
 
         // Build the tab list.
-        var tabs = [{ id: 'content', label: '📖 Content', alwaysShow: true }];
+        var tabs = [{ id: 'content', label: '📖 Read & Theory', alwaysShow: true }];
 
         if (hasInteractive) {
             tabs.push({ id: 'interactive', label: '🎮 Interactive' });
         }
         if (hasCode) {
-            tabs.push({ id: 'code', label: '💻 Code' });
+            tabs.push({ id: 'code', label: '💻 Code Sandbox' });
         }
         if (hasQuiz) {
-            tabs.push({ id: 'quiz', label: '✅ Quiz' });
+            tabs.push({ id: 'quiz', label: '✅ Quizzes' });
         }
 
         var html = '';
 
         // Breadcrumb.
         html += '<div class="topic-detail fade-in">';
-        html +=   '<div class="breadcrumb">';
-        html +=     '<a href="#" data-nav="home">Home</a>';
-        html +=     '<span class="separator">›</span>';
-        html +=     '<a href="#" data-nav="levels">Levels</a>';
-        html +=     '<span class="separator">›</span>';
-        html +=     '<a href="#" data-nav="level/' + levelId + '">' + escapeHtml(level.name) + '</a>';
-        html +=     '<span class="separator">›</span>';
-        html +=     '<span class="current">' + escapeHtml(topic.title) + '</span>';
+        html +=   '<div class="breadcrumb" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;">';
+        html +=     '<div>';
+        html +=       '<a href="#" data-nav="home">Home</a>';
+        html +=       '<span class="separator">›</span>';
+        html +=       '<a href="#" data-nav="levels">Levels</a>';
+        html +=       '<span class="separator">›</span>';
+        html +=       '<a href="#" data-nav="level/' + levelId + '">' + escapeHtml(level.name) + '</a>';
+        html +=       '<span class="separator">›</span>';
+        html +=       '<span class="current">' + escapeHtml(topic.title) + '</span>';
+        html +=     '</div>';
+        html +=     '<button type="button" class="btn btn-sm btn-outline" id="topic-curriculum-toggle" style="font-size:0.8rem;padding:0.25rem 0.65rem;">📚 Contents Tree</button>';
         html +=   '</div>';
 
         // Topic header.
@@ -1063,24 +1110,44 @@
             };
             html += '<span class="feature-badge">' + (icons[feat] || feat) + '</span>';
         });
+        html += '<a href="/api/notebook/' + levelId + '/' + topicId + '" class="feature-badge" download="' + topicId + '.ipynb" style="text-decoration:none;cursor:pointer;background:rgba(124,92,255,0.18);border-color:rgba(124,92,255,0.4);color:#c7d2fe;">📥 Download .ipynb</a>';
         html +=     '</div>';
         html +=   '</div>';
 
-        // Tab navigation (sticky).
-        html +=   '<div class="topic-nav" id="topic-nav">';
-        tabs.forEach(function (tab, idx) {
-            html += '<div class="topic-nav-tab' + (idx === 0 ? ' active' : '') +
-                    '" data-tab="' + tab.id + '">' + tab.label + '</div>';
-        });
+        // In-page search bar
+        html +=   '<div class="inpage-search-bar" id="inpage-search-bar">';
+        html +=     '<span class="inpage-search-icon">🔍</span>';
+        html +=     '<input type="text" class="inpage-search-input" id="inpage-search-input" placeholder="Search in this page (text, code, math)...">';
+        html +=     '<span class="inpage-search-count" id="inpage-search-count"></span>';
+        html +=     '<div class="inpage-search-nav">';
+        html +=       '<button type="button" class="inpage-nav-btn" id="inpage-search-prev" title="Previous match (Shift+Enter)" disabled>▲</button>';
+        html +=       '<button type="button" class="inpage-nav-btn" id="inpage-search-next" title="Next match (Enter)" disabled>▼</button>';
+        html +=       '<button type="button" class="inpage-nav-btn" id="inpage-search-clear" title="Clear search (Esc)" disabled>✕</button>';
+        html +=     '</div>';
         html +=   '</div>';
 
-        // Tab content containers.
-        html +=   '<div class="topic-content" id="topic-content">';
+        // Build Section TOC for Read tab
+        var sectionsTocHtml = '';
+        var sections = (topic.content && topic.content.sections) || [];
+        sections.forEach(function (sec, sIdx) {
+            var title = sec.title || (sec.subtitle ? sec.subtitle : (sec.type ? sec.type.charAt(0).toUpperCase() + sec.type.slice(1) : 'Section ' + (sIdx + 1)));
+            sectionsTocHtml += '<a href="#section-' + sIdx + '" class="toc-anchor-link" data-target="section-' + sIdx + '">';
+            sectionsTocHtml +=   '<span class="toc-bullet">§</span>';
+            sectionsTocHtml +=   '<span class="toc-text">' + escapeHtml(title) + '</span>';
+            sectionsTocHtml += '</a>';
+        });
+
+        // Layout: Main scrolling content + Fixed right sidebar
+        html += '<div class="topic-detail-layout">';
+
+        // Center column: page contents (scrolls)
+        html +=   '<main class="topic-main-column">';
+        html +=     '<div class="topic-content" id="topic-content">';
 
         // Content tab.
-        html +=     '<div class="tab-pane" data-pane="content" style="display:block;">';
-        html +=       renderContentSections(topic);
-        html +=     '</div>';
+        html +=       '<div class="tab-pane" data-pane="content" style="display:block;">';
+        html +=         renderContentSections(topic);
+        html +=       '</div>';
 
         // Interactive tab.
         if (hasInteractive) {
@@ -1103,17 +1170,70 @@
             html +=   '</div>';
         }
 
-        html +=   '</div>'; // .topic-content
+        html +=     '</div>'; // .topic-content
 
-        // Prev/Next topic navigation.
-        html +=   renderTopicNavFooter(level, topic);
+        // Prev/Next topic navigation footer.
+        html +=     renderTopicNavFooter(level, topic);
+        html +=   '</main>'; // .topic-main-column
 
+        // Right column: fixed activities & TOC
+        html +=   '<aside class="topic-right-sidebar" id="topic-right-sidebar">';
+        html +=     '<div class="topic-sidebar-panel">';
+        html +=       '<div class="topic-sidebar-section">';
+        html +=         '<div class="topic-sidebar-title">Activities</div>';
+        html +=         '<div class="topic-nav topic-vertical-nav" id="topic-nav">';
+        tabs.forEach(function (tab, idx) {
+            html +=       '<button type="button" class="topic-nav-tab' + (idx === 0 ? ' active' : '') +
+                          '" data-tab="' + tab.id + '">';
+            html +=         '<span class="tab-badge-indicator"></span>';
+            html +=         '<span class="tab-label-text">' + tab.label + '</span>';
+            html +=       '</button>';
+        });
+        html +=         '</div>'; // .topic-nav
+        html +=       '</div>'; // .topic-sidebar-section
+
+        if (sections.length > 0) {
+            html +=   '<div class="topic-toc-container" id="topic-toc-container">';
+            html +=     '<div class="topic-sidebar-title">On This Page</div>';
+            html +=     '<nav class="topic-toc-links">';
+            html +=       sectionsTocHtml;
+            html +=     '</nav>';
+            html +=   '</div>';
+        }
+
+        html +=     '</div>'; // .topic-sidebar-panel
+        html +=   '</aside>'; // .topic-right-sidebar
+
+        html += '</div>'; // .topic-detail-layout
         html += '</div>'; // .topic-detail
 
         appContent.innerHTML = html;
         attachNavClicks();
         attachTabHandlers(level, topic);
+        attachTocHandlers();
         renderMath(appContent);
+        InPageSearch.init();
+
+        var treeBtn = document.getElementById('topic-curriculum-toggle');
+        if (treeBtn) {
+            treeBtn.addEventListener('click', function () {
+                CurriculumDrawer.open();
+            });
+        }
+
+        // Check if there is a pending section scroll from the curriculum drawer
+        var pendingScroll = sessionStorage.getItem('pending_scroll_section');
+        if (pendingScroll) {
+            sessionStorage.removeItem('pending_scroll_section');
+            setTimeout(function () {
+                var el = document.getElementById(pendingScroll);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    el.classList.add('section-highlight-pulse');
+                    setTimeout(function () { el.classList.remove('section-highlight-pulse'); }, 1600);
+                }
+            }, 150);
+        }
     }
 
     /**
@@ -1126,28 +1246,29 @@
         var sections = (topic.content && topic.content.sections) || [];
         var html = '';
 
-        sections.forEach(function (section) {
+        sections.forEach(function (section, sIdx) {
+            var secId = 'section-' + sIdx;
             switch (section.type) {
                 case 'hero':
-                    html += renderHeroBlock(section);
+                    html += renderHeroBlock(section, secId);
                     break;
                 case 'text':
-                    html += renderTextSection(section);
+                    html += renderTextSection(section, secId);
                     break;
                 case 'callout':
-                    html += renderCallout(section);
+                    html += renderCallout(section, secId);
                     break;
                 case 'table':
-                    html += renderTableSection(section);
+                    html += renderTableSection(section, secId);
                     break;
                 case 'visualization':
-                    html += renderVisualizationBlock(section);
+                    html += renderVisualizationBlock(section, secId);
                     break;
                 default:
                     if (section.headers && section.rows) {
-                        html += renderTableSection(section);
+                        html += renderTableSection(section, secId);
                     } else {
-                        html += renderTextSection(section);
+                        html += renderTextSection(section, secId);
                     }
             }
         });
@@ -1158,8 +1279,8 @@
     /**
      * Render a hero block section (large title at the top of content).
      */
-    function renderHeroBlock(section) {
-        var html = '<div class="hero-block">';
+    function renderHeroBlock(section, secId) {
+        var html = '<div class="hero-block"' + (secId ? ' id="' + secId + '"' : '') + '>';
         html +=   '<h2 class="hero-block-title">' + escapeHtml(section.title || '') + '</h2>';
         if (section.subtitle) {
             html += '<p class="hero-block-subtitle">' + escapeHtml(section.subtitle) + '</p>';
@@ -1171,8 +1292,8 @@
     /**
      * Render a text section with markdown-like parsing.
      */
-    function renderTextSection(section) {
-        var html = '<div class="content-section">';
+    function renderTextSection(section, secId) {
+        var html = '<div class="content-section"' + (secId ? ' id="' + secId + '"' : '') + '>';
         if (section.title) {
             html += '<h3 class="section-title">' + escapeHtml(section.title) + '</h3>';
         }
@@ -1187,9 +1308,9 @@
     /**
      * Render a callout box with style-specific colors.
      */
-    function renderCallout(section) {
+    function renderCallout(section, secId) {
         var style = section.style || 'info';
-        var html = '<div class="callout ' + style + '">';
+        var html = '<div class="callout ' + style + '"' + (secId ? ' id="' + secId + '"' : '') + '>';
         if (section.title) {
             html += '<div class="callout-title">' + escapeHtml(section.title) + '</div>';
         }
@@ -1204,8 +1325,8 @@
     /**
      * Render a table section.
      */
-    function renderTableSection(section) {
-        var html = '<div class="content-section">';
+    function renderTableSection(section, secId) {
+        var html = '<div class="content-section"' + (secId ? ' id="' + secId + '"' : '') + '>';
         if (section.title) {
             html += '<h3 class="section-title">' + escapeHtml(section.title) + '</h3>';
         }
@@ -1213,13 +1334,15 @@
         var rows = section.rows || [];
         html += '<div class="table-container"><table class="data-table"><thead><tr>';
         headers.forEach(function (h) {
-            html += '<th>' + formatInline(escapeHtml(h)) + '</th>';
+            var ext = extractMath(h);
+            html += '<th>' + restoreMath(formatInline(escapeHtml(ext.text)), ext.tokens) + '</th>';
         });
         html += '</tr></thead><tbody>';
         rows.forEach(function (row) {
             html += '<tr>';
             row.forEach(function (cell) {
-                html += '<td>' + formatInline(escapeHtml(cell)) + '</td>';
+                var ext = extractMath(cell);
+                html += '<td>' + restoreMath(formatInline(escapeHtml(ext.text)), ext.tokens) + '</td>';
             });
             html += '</tr>';
         });
@@ -1231,9 +1354,9 @@
      * Render a visualization block with a container for the canvas.
      * The actual rendering is deferred until the tab is shown (lazy init).
      */
-    function renderVisualizationBlock(section) {
+    function renderVisualizationBlock(section, secId) {
         var vizId = section.id || '';
-        var html = '<div class="visualization-block" data-viz-id="' + escapeHtml(vizId) + '">';
+        var html = '<div class="visualization-block"' + (secId ? ' id="' + secId + '"' : '') + ' data-viz-id="' + escapeHtml(vizId) + '">';
         if (section.title) {
             html += '<h3 class="viz-title">' + escapeHtml(section.title) + '</h3>';
         }
@@ -1322,6 +1445,12 @@
                     }
                 });
 
+                // Show/hide Section TOC: show on 'content' (Read & Theory), hide on other activities
+                var tocContainer = document.getElementById('topic-toc-container');
+                if (tocContainer) {
+                    tocContainer.style.display = (tabId === 'content') ? 'block' : 'none';
+                }
+
                 // Lazy-init the tab content on first view.
                 if (!initialized[tabId]) {
                     initialized[tabId] = true;
@@ -1336,7 +1465,7 @@
                         if (ta && ta.CodeMirror) {
                             ta.CodeMirror.refresh();
                         }
-                    }, 10);
+                    }, 30);
                 }
             });
         });
@@ -1344,6 +1473,66 @@
         // If the Content tab is the first tab (default), render visualizations.
         // Visualizations are already rendered above, so just mark content as initialized.
         initialized['content'] = true;
+    }
+
+    /**
+     * Attach click handlers and scrollspy to the in-page TOC in the fixed right sidebar.
+     */
+    function attachTocHandlers() {
+        var links = document.querySelectorAll('.topic-toc-links .toc-anchor-link');
+        if (!links || links.length === 0) return;
+
+        links.forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                var targetId = this.getAttribute('data-target');
+                var el = document.getElementById(targetId);
+                if (el) {
+                    // Ensure 'content' tab is active
+                    var contentTab = document.querySelector('.topic-nav-tab[data-tab="content"]');
+                    if (contentTab && !contentTab.classList.contains('active')) {
+                        contentTab.click();
+                    }
+
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    el.classList.add('section-highlight-pulse');
+                    setTimeout(function () {
+                        el.classList.remove('section-highlight-pulse');
+                    }, 1600);
+
+                    links.forEach(function (l) { l.classList.remove('active'); });
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // IntersectionObserver ScrollSpy
+        if (window.IntersectionObserver) {
+            var sections = document.querySelectorAll('.topic-content .tab-pane[data-pane="content"] > [id^="section-"]');
+            if (sections.length > 0) {
+                var observer = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting) {
+                            var id = entry.target.id;
+                            links.forEach(function (l) {
+                                if (l.getAttribute('data-target') === id) {
+                                    l.classList.add('active');
+                                } else {
+                                    l.classList.remove('active');
+                                }
+                            });
+                        }
+                    });
+                }, {
+                    rootMargin: '-70px 0px -65% 0px',
+                    threshold: 0
+                });
+
+                sections.forEach(function (sec) {
+                    observer.observe(sec);
+                });
+            }
+        }
     }
 
     /**
@@ -1707,6 +1896,734 @@
     }
 
     // ------------------------------------------------------------------
+    // In-Page Content Search
+    // ------------------------------------------------------------------
+    var InPageSearch = {
+        matches: [],
+        currentIndex: -1,
+        debounceTimer: null,
+
+        init: function () {
+            var self = this;
+            self.matches = [];
+            self.currentIndex = -1;
+
+            var input = document.getElementById('inpage-search-input');
+            var prevBtn = document.getElementById('inpage-search-prev');
+            var nextBtn = document.getElementById('inpage-search-next');
+            var clearBtn = document.getElementById('inpage-search-clear');
+
+            if (!input) return;
+
+            input.value = '';
+            self.updateControls();
+
+            input.addEventListener('input', function () {
+                clearTimeout(self.debounceTimer);
+                var val = this.value;
+                self.debounceTimer = setTimeout(function () {
+                    self.search(val);
+                }, 120);
+            });
+
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        self.prev();
+                    } else {
+                        self.next();
+                    }
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    self.clear();
+                    input.blur();
+                }
+            });
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function () {
+                    self.prev();
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function () {
+                    self.next();
+                });
+            }
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    self.clear();
+                    input.focus();
+                });
+            }
+        },
+
+        clearHighlights: function () {
+            var marks = document.querySelectorAll('mark.inpage-search-match');
+            marks.forEach(function (mark) {
+                var parent = mark.parentNode;
+                if (parent) {
+                    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                    parent.normalize();
+                }
+            });
+            this.matches = [];
+            this.currentIndex = -1;
+        },
+
+        search: function (query) {
+            var self = this;
+            self.clearHighlights();
+
+            var trimmed = (query || '').trim();
+            if (!trimmed || trimmed.length < 2) {
+                self.updateControls();
+                return;
+            }
+
+            var container = document.querySelector('.topic-detail') || appContent;
+            if (!container) return;
+
+            var textNodes = [];
+            var walker = document.createTreeWalker(
+                container,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: function (node) {
+                        if (!node.nodeValue || !node.nodeValue.trim()) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+                        var parent = node.parentElement;
+                        if (!parent) return NodeFilter.FILTER_REJECT;
+
+                        // Exclude inpage search bar itself and navigation controls
+                        if (parent.closest('#inpage-search-bar') ||
+                            parent.closest('.inpage-search-bar') ||
+                            parent.closest('#topic-right-sidebar') ||
+                            parent.closest('.topic-right-sidebar') ||
+                            parent.closest('button') ||
+                            parent.closest('nav') ||
+                            parent.closest('.topic-nav') ||
+                            parent.closest('.breadcrumb')) {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+
+                        var tag = parent.tagName.toUpperCase();
+                        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'INPUT' || tag === 'TEXTAREA') {
+                            return NodeFilter.FILTER_REJECT;
+                        }
+
+                        return NodeFilter.FILTER_ACCEPT;
+                    }
+                },
+                false
+            );
+
+            var currNode;
+            while ((currNode = walker.nextNode())) {
+                textNodes.push(currNode);
+            }
+
+            var escaped = trimmed.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            var regex = new RegExp(escaped, 'gi');
+
+            textNodes.forEach(function (node) {
+                var val = node.nodeValue;
+                if (!val) return;
+                regex.lastIndex = 0;
+                if (!regex.test(val)) return;
+
+                regex.lastIndex = 0;
+                var frag = document.createDocumentFragment();
+                var lastIdx = 0;
+                var match;
+                var matched = false;
+
+                while ((match = regex.exec(val)) !== null) {
+                    matched = true;
+                    if (match.index > lastIdx) {
+                        frag.appendChild(document.createTextNode(val.substring(lastIdx, match.index)));
+                    }
+                    var mark = document.createElement('mark');
+                    mark.className = 'inpage-search-match';
+                    mark.textContent = match[0];
+                    frag.appendChild(mark);
+                    self.matches.push(mark);
+                    lastIdx = regex.lastIndex;
+                }
+
+                if (matched) {
+                    if (lastIdx < val.length) {
+                        frag.appendChild(document.createTextNode(val.substring(lastIdx)));
+                    }
+                    if (node.parentNode) {
+                        node.parentNode.replaceChild(frag, node);
+                    }
+                }
+            });
+
+            if (self.matches.length > 0) {
+                self.currentIndex = 0;
+                self.highlightCurrent(true);
+            } else {
+                self.currentIndex = -1;
+            }
+
+            self.updateControls();
+        },
+
+        next: function () {
+            if (this.matches.length === 0) return;
+            this.currentIndex = (this.currentIndex + 1) % this.matches.length;
+            this.highlightCurrent(true);
+        },
+
+        prev: function () {
+            if (this.matches.length === 0) return;
+            this.currentIndex = (this.currentIndex - 1 + this.matches.length) % this.matches.length;
+            this.highlightCurrent(true);
+        },
+
+        highlightCurrent: function (scroll) {
+            this.matches.forEach(function (m) {
+                m.classList.remove('inpage-search-active');
+            });
+
+            if (this.currentIndex >= 0 && this.currentIndex < this.matches.length) {
+                var active = this.matches[this.currentIndex];
+                active.classList.add('inpage-search-active');
+
+                // If match is inside a tab pane that is currently inactive, auto-switch to that tab
+                var tabPane = active.closest('.tab-pane');
+                if (tabPane && !tabPane.classList.contains('active')) {
+                    var tabId = tabPane.getAttribute('data-tab');
+                    var tabBtn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+                    if (tabBtn) tabBtn.click();
+                }
+
+                if (scroll) {
+                    active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+            this.updateControls();
+        },
+
+        clear: function () {
+            this.clearHighlights();
+            var input = document.getElementById('inpage-search-input');
+            if (input) input.value = '';
+            this.updateControls();
+        },
+
+        updateControls: function () {
+            var countLabel = document.getElementById('inpage-search-count');
+            var prevBtn = document.getElementById('inpage-search-prev');
+            var nextBtn = document.getElementById('inpage-search-next');
+            var clearBtn = document.getElementById('inpage-search-clear');
+            var input = document.getElementById('inpage-search-input');
+
+            var val = (input ? input.value : '').trim();
+            var total = this.matches.length;
+
+            if (countLabel) {
+                if (!val || val.length < 2) {
+                    countLabel.textContent = '';
+                } else if (total === 0) {
+                    countLabel.textContent = '0 matches';
+                } else {
+                    countLabel.textContent = (this.currentIndex + 1) + ' of ' + total;
+                }
+            }
+
+            if (prevBtn) prevBtn.disabled = total === 0;
+            if (nextBtn) nextBtn.disabled = total === 0;
+            if (clearBtn) clearBtn.disabled = !val;
+        }
+    };
+
+    // ------------------------------------------------------------------
+    // Hierarchical Curriculum Drawer
+    // ------------------------------------------------------------------
+    var CurriculumDrawer = {
+        isOpen: false,
+        isPinned: false,
+        expandedLevels: {},
+
+        init: function () {
+            var self = this;
+            var navBtn = document.getElementById('nav-contents-btn');
+            var closeBtn = document.getElementById('drawer-close-btn');
+            var pinBtn = document.getElementById('drawer-pin-btn');
+            var backdrop = document.getElementById('content-drawer-backdrop');
+            var searchInput = document.getElementById('drawer-search-input');
+            var clearBtn = document.getElementById('drawer-search-clear');
+
+            if (navBtn) {
+                navBtn.addEventListener('click', function () {
+                    self.toggle();
+                });
+            }
+
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function () {
+                    if (self.isPinned) {
+                        self.setPinned(false);
+                    }
+                    self.close();
+                });
+            }
+
+            if (pinBtn) {
+                pinBtn.addEventListener('click', function () {
+                    self.togglePin();
+                });
+            }
+
+            if (backdrop) {
+                backdrop.addEventListener('click', function () {
+                    self.close();
+                });
+            }
+
+            // Restore saved pinned state if on desktop screen (>= 1024px)
+            var savedPinned = localStorage.getItem('ml_odyssey_drawer_pinned') === 'true';
+            if (savedPinned && window.innerWidth >= 1024) {
+                self.setPinned(true);
+            }
+
+            // Handle window resize: auto-unpin if window is resized below 1024px
+            window.addEventListener('resize', function () {
+                if (self.isPinned && window.innerWidth < 1024) {
+                    self.setPinned(false);
+                    self.close();
+                }
+            });
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    var val = this.value;
+                    if (clearBtn) {
+                        clearBtn.style.display = val ? 'block' : 'none';
+                    }
+                    self.filterTree(val);
+                });
+
+                searchInput.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape') {
+                        if (this.value) {
+                            this.value = '';
+                            if (clearBtn) clearBtn.style.display = 'none';
+                            self.filterTree('');
+                        } else if (!self.isPinned) {
+                            self.close();
+                        }
+                    }
+                });
+            }
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function () {
+                    if (searchInput) {
+                        searchInput.value = '';
+                        searchInput.focus();
+                    }
+                    clearBtn.style.display = 'none';
+                    self.filterTree('');
+                });
+            }
+
+            // Global keyboard shortcuts: Ctrl+K for drawer, Ctrl+\ for pin, Ctrl+F for in-page search
+            document.addEventListener('keydown', function (e) {
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+                    e.preventDefault();
+                    self.toggle();
+                } else if ((e.ctrlKey || e.metaKey) && (e.key === '\\' || e.code === 'Backslash')) {
+                    e.preventDefault();
+                    self.togglePin();
+                } else if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F')) {
+                    var inpageInput = document.getElementById('inpage-search-input');
+                    if (inpageInput) {
+                        e.preventDefault();
+                        inpageInput.focus();
+                        inpageInput.select();
+                    }
+                } else if (e.key === 'Escape') {
+                    if (self.isOpen && !self.isPinned) {
+                        self.close();
+                    }
+                }
+            });
+        },
+
+        setPinned: function (pinned) {
+            this.isPinned = !!pinned;
+            localStorage.setItem('ml_odyssey_drawer_pinned', this.isPinned ? 'true' : 'false');
+
+            var drawer = document.getElementById('content-drawer');
+            var pinBtn = document.getElementById('drawer-pin-btn');
+            var backdrop = document.getElementById('content-drawer-backdrop');
+
+            if (this.isPinned) {
+                document.body.classList.add('drawer-pinned');
+                if (drawer) {
+                    drawer.classList.add('pinned');
+                    drawer.classList.add('show');
+                }
+                if (pinBtn) {
+                    pinBtn.classList.add('active');
+                    pinBtn.setAttribute('title', 'Unpin sidebar (Ctrl+\\)');
+                }
+                if (backdrop) {
+                    backdrop.classList.remove('show');
+                }
+                this.isOpen = true;
+                this.renderTree();
+            } else {
+                document.body.classList.remove('drawer-pinned');
+                if (drawer) {
+                    drawer.classList.remove('pinned');
+                }
+                if (pinBtn) {
+                    pinBtn.classList.remove('active');
+                    pinBtn.setAttribute('title', 'Pin sidebar to left (Ctrl+\\)');
+                }
+            }
+        },
+
+        togglePin: function () {
+            this.setPinned(!this.isPinned);
+        },
+
+        open: function () {
+            var drawer = document.getElementById('content-drawer');
+            var backdrop = document.getElementById('content-drawer-backdrop');
+            var searchInput = document.getElementById('drawer-search-input');
+
+            if (!drawer) return;
+
+            this.isOpen = true;
+            drawer.classList.add('show');
+            if (backdrop && !this.isPinned) {
+                backdrop.classList.add('show');
+            }
+
+            this.renderTree();
+
+            if (searchInput) {
+                setTimeout(function () {
+                    searchInput.focus();
+                }, 100);
+            }
+        },
+
+        close: function () {
+            if (this.isPinned) return; // Do not close if pinned to left!
+
+            var drawer = document.getElementById('content-drawer');
+            var backdrop = document.getElementById('content-drawer-backdrop');
+
+            this.isOpen = false;
+            if (drawer) drawer.classList.remove('show');
+            if (backdrop) backdrop.classList.remove('show');
+        },
+
+        toggle: function () {
+            if (this.isPinned) {
+                this.setPinned(false);
+                this.close();
+            } else if (this.isOpen) {
+                this.close();
+            } else {
+                this.open();
+            }
+        },
+
+        getActiveTopicInfo: function () {
+            var hash = location.hash.replace(/^#/, '');
+            var parts = hash.split('/');
+            if (parts[0] === 'topic' && parts.length >= 3) {
+                return { levelId: parts[1], topicId: parts[2] };
+            }
+            if (parts[0] === 'level' && parts.length >= 2) {
+                return { levelId: parts[1], topicId: null };
+            }
+            return null;
+        },
+
+        renderTree: function (filterQuery) {
+            var container = document.getElementById('drawer-tree-container');
+            if (!container || !topicsData || !topicsData.levels) return;
+
+            var active = this.getActiveTopicInfo();
+            // Automatically expand active topic's level, or the first level by default
+            if (active && active.levelId) {
+                this.expandedLevels[active.levelId] = true;
+            } else if (topicsData.levels[0]) {
+                this.expandedLevels[topicsData.levels[0].id] = true;
+            }
+
+            var query = (filterQuery || '').trim().toLowerCase();
+            var html = '';
+            var totalMatches = 0;
+
+            topicsData.levels.forEach(function (level) {
+                var levelMatches = !query || (level.name && level.name.toLowerCase().indexOf(query) !== -1);
+                var topics = level.topics || [];
+
+                // Filter topics
+                var filteredTopics = topics.filter(function (t) {
+                    if (!query || levelMatches) return true;
+                    if (t.title && t.title.toLowerCase().indexOf(query) !== -1) return true;
+                    if (t.content && t.content.sections) {
+                        return t.content.sections.some(function (sec) {
+                            var title = sec.title || sec.subtitle || sec.type || '';
+                            return title.toLowerCase().indexOf(query) !== -1;
+                        });
+                    }
+                    return false;
+                });
+
+                if (query && !levelMatches && filteredTopics.length === 0) {
+                    return;
+                }
+
+                totalMatches += filteredTopics.length;
+                var isExpanded = query ? true : !!CurriculumDrawer.expandedLevels[level.id];
+
+                var completedCount = 0;
+                topics.forEach(function (t) {
+                    if (window.ProgressTracker && ProgressTracker.isTopicCompleted(level.id, t.id)) {
+                        completedCount++;
+                    }
+                });
+
+                html += '<div class="tree-level-group ' + (isExpanded ? 'expanded' : '') + '" data-level="' + level.id + '">';
+                html +=   '<div class="tree-level-header" data-toggle-level="' + level.id + '">';
+                html +=     '<div class="tree-level-left">';
+                html +=       '<span class="tree-level-dot" style="background:' + (level.color || 'var(--primary)') + '"></span>';
+                html +=       '<span class="tree-level-title">' + escapeHtml(level.name) + '</span>';
+                html +=     '</div>';
+                html +=     '<div class="tree-level-meta">';
+                html +=       '<span class="tree-level-badge">' + completedCount + '/' + topics.length + '</span>';
+                html +=       '<span class="tree-level-caret">▶</span>';
+                html +=     '</div>';
+                html +=   '</div>';
+
+                html +=   '<div class="tree-topics-list">';
+                var topicsToRender = query ? filteredTopics : topics;
+
+                topicsToRender.forEach(function (t) {
+                    var isTopicActive = active && active.levelId === level.id && active.topicId === t.id;
+                    var isCompleted = window.ProgressTracker ? ProgressTracker.isTopicCompleted(level.id, t.id) : false;
+                    var isStarted = window.ProgressTracker ? ProgressTracker.isTopicStarted(level.id, t.id) : false;
+
+                    var statusIcon = '○';
+                    var statusClass = '';
+                    if (isCompleted) {
+                        statusIcon = '✓';
+                        statusClass = 'completed';
+                    } else if (isStarted) {
+                        statusIcon = '◐';
+                        statusClass = 'started';
+                    }
+
+                    var hasSections = t.content && t.content.sections && t.content.sections.length > 0;
+                    var showSubtopics = isTopicActive || (query && hasSections);
+
+                    html += '<div class="tree-topic-item ' + (isTopicActive ? 'active' : '') + (showSubtopics ? ' show-subtopics' : '') + '" data-topic-id="' + t.id + '" data-level-id="' + level.id + '">';
+                    html +=   '<a href="#topic/' + level.id + '/' + t.id + '" class="tree-topic-link" data-level-id="' + level.id + '" data-topic-id="' + t.id + '">';
+                    html +=     '<div class="tree-topic-title-group">';
+                    html +=       '<span class="tree-topic-icon">' + (isTopicActive ? '📖' : '📄') + '</span>';
+                    html +=       '<span class="tree-topic-title">' + escapeHtml(t.title) + '</span>';
+                    html +=     '</div>';
+                    html +=     '<span class="tree-topic-status ' + statusClass + '">' + statusIcon + '</span>';
+                    html +=   '</a>';
+
+                    // Subtopics / Sections in topic
+                    if (hasSections) {
+                        html += '<div class="tree-subtopics-list">';
+                        t.content.sections.forEach(function (s, sIdx) {
+                            var secTitle = s.title || (s.subtitle ? s.subtitle : (s.type ? s.type.charAt(0).toUpperCase() + s.type.slice(1) : 'Section ' + (sIdx + 1)));
+                            html += '<a href="#topic/' + level.id + '/' + t.id + '" class="tree-subtopic-link" data-level-id="' + level.id + '" data-topic-id="' + t.id + '" data-section-id="section-' + sIdx + '">§ ' + escapeHtml(secTitle) + '</a>';
+                        });
+                        html += '</div>';
+                    }
+
+                    html += '</div>';
+                });
+
+                html +=   '</div>'; // .tree-topics-list
+                html += '</div>'; // .tree-level-group
+            });
+
+            if (query && totalMatches === 0) {
+                html = '<div class="drawer-empty-search"><p>🔍 No topics matching "<strong>' + escapeHtml(query) + '</strong>"</p></div>';
+            }
+
+            container.innerHTML = html;
+            this.attachTreeEvents(container);
+        },
+
+        filterTree: function (query) {
+            this.renderTree(query);
+        },
+
+        attachTreeEvents: function (container) {
+            var self = this;
+
+            // Level toggle
+            container.querySelectorAll('.tree-level-header').forEach(function (header) {
+                header.addEventListener('click', function () {
+                    var group = this.closest('.tree-level-group');
+                    var levelId = this.getAttribute('data-toggle-level');
+                    if (group) {
+                        var willExpand = !group.classList.contains('expanded');
+                        group.classList.toggle('expanded');
+                        if (levelId) {
+                            self.expandedLevels[levelId] = willExpand;
+                        }
+                    }
+                });
+            });
+
+            // Topic link click
+            container.querySelectorAll('.tree-topic-link').forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var lvlId = this.getAttribute('data-level-id');
+                    var topId = this.getAttribute('data-topic-id');
+                    if (!self.isPinned) {
+                        self.close();
+                    }
+                    navigate('topic/' + lvlId + '/' + topId);
+                });
+            });
+
+            // Subtopic link click (section jump)
+            container.querySelectorAll('.tree-subtopic-link').forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    var lvlId = this.getAttribute('data-level-id');
+                    var topId = this.getAttribute('data-topic-id');
+                    var secId = this.getAttribute('data-section-id');
+
+                    var currentHash = location.hash.replace(/^#/, '');
+                    var targetRoute = 'topic/' + lvlId + '/' + topId;
+
+                    if (!self.isPinned) {
+                        self.close();
+                    }
+
+                    if (currentHash === targetRoute) {
+                        var el = document.getElementById(secId);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            el.classList.add('section-highlight-pulse');
+                            setTimeout(function () { el.classList.remove('section-highlight-pulse'); }, 1600);
+                        }
+                    } else {
+                        sessionStorage.setItem('pending_scroll_section', secId);
+                        navigate(targetRoute);
+                    }
+                });
+            });
+        }
+    };
+
+    window.InPageSearch = InPageSearch;
+    window.CurriculumDrawer = CurriculumDrawer;
+
+    // ------------------------------------------------------------------
+    // Theme Manager
+    // ------------------------------------------------------------------
+    var THEME_LABELS = {
+        'dark': '🌌 Cosmos',
+        'light': '☀️ Daylight',
+        'cyberpunk': '⚡ Cyberpunk',
+        'emerald': '🌲 Emerald',
+        'sunset': '🌅 Sunset',
+        'nord': '❄️ Nord'
+    };
+
+    var ThemeManager = {
+        init: function () {
+            var current = localStorage.getItem('ml_odyssey_theme') || 'dark';
+            ThemeManager.applyTheme(current, false);
+
+            var toggleBtn = document.getElementById('theme-toggle-btn');
+            var menu = document.getElementById('theme-dropdown-menu');
+
+            if (toggleBtn && menu) {
+                toggleBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    menu.classList.toggle('show');
+                });
+
+                document.addEventListener('click', function () {
+                    menu.classList.remove('show');
+                });
+
+                menu.querySelectorAll('.theme-option').forEach(function (opt) {
+                    opt.addEventListener('click', function () {
+                        var chosenTheme = opt.getAttribute('data-theme');
+                        ThemeManager.applyTheme(chosenTheme, true);
+                        menu.classList.remove('show');
+                    });
+                });
+            }
+        },
+
+        applyTheme: function (themeId, notifySession) {
+            if (!THEME_LABELS[themeId]) themeId = 'dark';
+            document.documentElement.setAttribute('data-theme', themeId);
+            localStorage.setItem('ml_odyssey_theme', themeId);
+
+            var btnLabel = document.getElementById('theme-btn-label');
+            if (btnLabel) {
+                btnLabel.textContent = (THEME_LABELS[themeId] || 'Theme') + ' ▾';
+            }
+
+            // Update active state in theme dropdown menu
+            document.querySelectorAll('.theme-option').forEach(function (opt) {
+                if (opt.getAttribute('data-theme') === themeId) {
+                    opt.classList.add('active');
+                } else {
+                    opt.classList.remove('active');
+                }
+            });
+
+            // Update playground theme selector if present
+            var pgSelect = document.getElementById('playground-theme-select');
+            if (pgSelect) {
+                pgSelect.value = themeId;
+            }
+
+            // If CodeMirror editors exist, refresh layout
+            if (window.CodeMirror) {
+                setTimeout(function () {
+                    document.querySelectorAll('.CodeMirror').forEach(function (cmEl) {
+                        if (cmEl.CodeMirror) cmEl.CodeMirror.refresh();
+                    });
+                }, 50);
+            }
+
+            // Notify active playground session
+            if (window.Playground && typeof window.Playground.setTheme === 'function') {
+                window.Playground.setTheme(themeId, notifySession);
+            }
+        },
+
+        getCurrentTheme: function () {
+            return document.documentElement.getAttribute('data-theme') || localStorage.getItem('ml_odyssey_theme') || 'dark';
+        }
+    };
+
+    window.ThemeManager = ThemeManager;
+
+    // ------------------------------------------------------------------
     // Initialization
     // ------------------------------------------------------------------
 
@@ -1727,6 +2644,8 @@
 
         // Wire up top nav.
         attachMainNavHandlers();
+        ThemeManager.init();
+        CurriculumDrawer.init();
 
         // Load topics data, then start the router.
         loadTopics()
@@ -1766,6 +2685,8 @@
         showToast: showToast,
         parseMarkdown: parseMarkdown,
         renderMath: renderMath,
-        getTopicsData: function () { return topicsData; }
+        getTopicsData: function () { return topicsData; },
+        CurriculumDrawer: CurriculumDrawer,
+        InPageSearch: InPageSearch
     };
 })();
