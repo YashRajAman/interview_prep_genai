@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Learning Pathways — Interactive platforms for mastering ML, FastAPI, and beyond.">
+    <title>Learning Pathways — Choose Your Journey</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Design system (shared with ML Odyssey & FastAPI platforms) */
+        :root, [data-theme="dark"] {
+            --bg-base: #0d0e1a;
+            --bg-surface: #161b33;
+            --bg-surface-hover: #1e2540;
+            --bg-elevated: #1a1f3a;
+            --border-color: #2a2f4a;
+            --border-light: #353b5e;
+            --primary: #00d4aa;
+            --primary-hover: #00f0c0;
+            --primary-dim: rgba(0, 212, 170, 0.15);
+            --secondary: #7c5cff;
+            --secondary-hover: #9174ff;
+            --secondary-dim: rgba(124, 92, 255, 0.15);
+            --text-primary: #e0e0f0;
+            --text-secondary: #9090b0;
+            --text-muted: #606080;
+            --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-heading: 'Space Grotesk', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            --radius-card: 16px;
+            --radius-button: 8px;
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5);
+        }
+
+        [data-theme="light"] {
+            --bg-base: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-surface-hover: #f1f5f9;
+            --bg-elevated: #ffffff;
+            --border-color: #e2e8f0;
+            --border-light: #cbd5e1;
+            --primary: #0284c7;
+            --primary-hover: #0369a1;
+            --primary-dim: rgba(2, 132, 199, 0.12);
+            --secondary: #6366f1;
+            --secondary-hover: #4f46e5;
+            --secondary-dim: rgba(99, 102, 241, 0.12);
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.12);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        .bg-animation {
+            position: fixed; inset: 0; z-index: -1; overflow: hidden;
+        }
+        .bg-gradient {
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 20% 0%, var(--primary-dim) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 100%, var(--secondary-dim) 0%, transparent 50%);
+            opacity: 0.6;
+        }
+        .bg-grid {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(var(--border-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.15;
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+        }
+        .orb-1 { width: 400px; height: 400px; background: var(--primary); top: -10%; left: -5%; animation: float 20s ease-in-out infinite; }
+        .orb-2 { width: 300px; height: 300px; background: var(--secondary); bottom: -10%; right: 5%; animation: float 25s ease-in-out infinite reverse; }
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            33% { transform: translate(30px, -30px); }
+            66% { transform: translate(-20px, 20px); }
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 80px 24px 40px;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--primary-dim);
+            border: 1px solid var(--primary);
+            border-radius: 999px;
+            font-size: 14px;
+            color: var(--primary);
+            font-weight: 500;
+            margin-bottom: 24px;
+        }
+        .hero-badge .pulse-dot {
+            width: 8px; height: 8px;
+            background: var(--primary);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        h1 {
+            font-family: var(--font-heading);
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+        }
+        h1 .accent { color: var(--primary); }
+        .subtitle {
+            font-size: 18px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        /* Pathway grid */
+        .pathways-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        .pathway-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .pathway-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+        .pathway-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .pathway-card:hover::before { opacity: 1; }
+
+        .pathway-banner {
+            padding: 32px 28px 20px;
+            position: relative;
+        }
+        .pathway-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            display: block;
+        }
+        .pathway-title {
+            font-family: var(--font-heading);
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .pathway-title .accent { color: var(--primary); }
+        .pathway-desc {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .pathway-stats {
+            display: flex;
+            gap: 16px;
+            padding: 0 28px 20px;
+            flex-wrap: wrap;
+        }
+        .stat-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 999px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-family: var(--font-code);
+        }
+        .stat-chip .stat-value { color: var(--primary); font-weight: 600; }
+
+        .pathway-levels {
+            padding: 0 28px 28px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .level-tag {
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-family: var(--font-code);
+            font-weight: 500;
+        }
+
+        /* Level tag colors */
+        .level-tag.novice { background: rgba(0, 212, 170, 0.12); color: #00d4aa; border: 1px solid rgba(0, 212, 170, 0.3); }
+        .level-tag.beginner { background: rgba(77, 171, 247, 0.12); color: #4dabf7; border: 1px solid rgba(77, 171, 247, 0.3); }
+        .level-tag.intermediate { background: rgba(255, 212, 59, 0.12); color: #ffd43b; border: 1px solid rgba(255, 212, 59, 0.3); }
+        .level-tag.advanced { background: rgba(255, 140, 66, 0.12); color: #ff8c42; border: 1px solid rgba(255, 140, 66, 0.3); }
+        .level-tag.professional { background: rgba(255, 87, 87, 0.12); color: #ff5757; border: 1px solid rgba(255, 87, 87, 0.3); }
+
+        .pathway-footer {
+            margin-top: auto;
+            padding: 20px 28px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .pathway-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+        .status-dot.active { background: var(--primary); box-shadow: 0 0 8px var(--primary); }
+        .status-dot.inactive { background: var(--text-muted); }
+        .status-dot.in-development { background: #ffd43b; box-shadow: 0 0 8px rgba(255, 212, 59, 0.5); }
+
+        .pathway-link {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: gap 0.2s ease;
+        }
+        .pathway-card:hover .pathway-link { gap: 12px; }
+
+        /* Coming soon card */
+        .pathway-card.coming-soon {
+            opacity: 0.7;
+            cursor: default;
+        }
+        .pathway-card.coming-soon:hover {
+            transform: none;
+            border-color: var(--border-color);
+            box-shadow: var(--shadow-md);
+        }
+        .coming-soon-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--secondary-dim);
+            color: var(--secondary);
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 24px;
+            color: var(--text-muted);
+            font-size: 14px;
+            border-top: 1px solid var(--border-color);
+        }
+        footer a { color: var(--primary); text-decoration: none; }
+
+        /* Theme toggle */
+        .theme-toggle {
+            position: fixed;
+            top: 24px; right: 24px;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+        .theme-toggle:hover { border-color: var(--primary); box-shadow: 0 0 12px var(--primary-dim); }
+
+        @media (max-width: 600px) {
+            header { padding: 60px 16px 20px; }
+            h1 { font-size: 32px; }
+            .pathways-grid { padding: 20px 16px 60px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <header>
+        <div class="hero-badge">
+            <span class="pulse-dot"></span>
+            Interactive Learning Pathways
+        </div>
+        <h1>Choose Your <span class="accent">Journey</span></h1>
+        <p class="subtitle">
+            Hands-on, interactive platforms to master new skills — from machine learning
+            fundamentals to production-grade backend engineering.
+        </p>
+    </header>
+
+    <div class="pathways-grid">
+        <!-- ML Odyssey -->
+        <a href="http://localhost:8000" class="pathway-card">
+            <div class="pathway-banner">
+                <span class="pathway-icon">🧠</span>
+                <div class="pathway-title">ML <span class="accent">Odyssey</span></div>
+                <p class="pathway-desc">
+                    Master machine learning from novice to professional through interactive
+                    visualizations, live Python code execution, and quizzes. 33 topics across
+                    5 levels — from "What is ML?" to Deep RL and MLOps.
+                </p>
+            </div>
+            <div class="pathway-stats">
+                <span class="stat-chip">📊 <span class="stat-value">33</span> Topics</span>
+                <span class="stat-chip">🎯 <span class="stat-value">5</span> Levels</span>
+                <span class="stat-chip">💻 Code Playground</span>
+            </div>
+            <div class="pathway-levels">
+                <span class="level-tag novice">Novice</span>
+                <span class="level-tag beginner">Beginner</span>
+                <span class="level-tag intermediate">Intermediate</span>
+                <span class="level-tag advanced">Advanced</span>
+                <span class="level-tag professional">Professional</span>
+            </div>
+            <div class="pathway-footer">
+                <div class="pathway-status">
+                    <span class="status-dot active"></span>
+                    Active & Complete
+                </div>
+                <span class="pathway-link">Start Learning →</span>
+            </div>
+        </a>
+
+        <!-- FastAPI Backend -->
+        <a href="http://localhost:8001" class="pathway-card">
+            <div class="pathway-banner">
+                <span class="pathway-icon">⚡</span>
+                <div class="pathway-title">FastAPI <span class="accent">Backend</span></div>
+                <p class="pathway-desc">
+                    Learn to build production-grade APIs with FastAPI — from your first endpoint
+                    to JWT auth, databases, testing, and Docker deployment. Write real FastAPI
+                    code and test it live with TestClient.
+                </p>
+            </div>
+            <div class="pathway-stats">
+                <span class="stat-chip">📊 <span class="stat-value">26</span> Topics</span>
+                <span class="stat-chip">🎯 <span class="stat-value">5</span> Levels</span>
+                <span class="stat-chip">🔧 API Explorer</span>
+            </div>
+            <div class="pathway-levels">
+                <span class="level-tag novice">Foundations</span>
+                <span class="level-tag beginner">Data Handling</span>
+                <span class="level-tag intermediate">Async & Arch</span>
+                <span class="level-tag advanced">Security & DB</span>
+                <span class="level-tag professional">Production</span>
+            </div>
+            <div class="pathway-footer">
+                <div class="pathway-status">
+                    <span class="status-dot active"></span>
+                    Active & Complete
+                </div>
+                <span class="pathway-link">Start Learning →</span>
+            </div>
+        </a>
+
+        <!-- Coming Soon Placeholder -->
+        <div class="pathway-card coming-soon">
+            <div class="pathway-banner">
+                <span class="pathway-icon">🚀</span>
+                <div class="pathway-title">More <span class="accent">Pathways</span></div>
+                <p class="pathway-desc">
+                    New learning pathways are on the way. Have an idea? The platform architecture
+                    supports drop-in addition of new topics and pathways.
+                </p>
+            </div>
+            <div class="pathway-footer">
+                <div class="pathway-status">
+                    <span class="coming-soon-badge">Coming Soon</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Built with <a href="https://fastapi.tiangolo.com" target="_blank" rel="noopener">FastAPI</a> ·
+        Learning is a journey, not a destination.
+    </footer>
+
+    <script>
+        // Theme toggle
+        (function() {
+            var savedTheme = localStorage.getItem('learning_pathway_theme') || 'dark';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateIcon(savedTheme);
+
+            document.getElementById('theme-toggle').addEventListener('click', function() {
+                var current = document.documentElement.getAttribute('data-theme');
+                var next = current === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', next);
+                localStorage.setItem('learning_pathway_theme', next);
+                updateIcon(next);
+            });
+
+            function updateIcon(theme) {
+                document.getElementById('theme-icon').textContent = theme === 'dark' ? '🌙' : '☀️';
+            }
+        })();
+    </script>
+</body>
+</html>

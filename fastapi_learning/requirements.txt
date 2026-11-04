@@ -1,0 +1,19 @@
+# FastAPI Learning Platform — Dependencies
+# These are the same packages learners will use in their code
+
+# Core platform (needed to serve the SPA)
+fastapi
+uvicorn[standard]
+jinja2
+python-multipart
+
+# FastAPI ecosystem (needed for code runner / TestClient execution)
+pydantic
+pydantic-settings
+sqlalchemy
+httpx
+python-jose[cryptography]
+passlib[bcrypt]
+
+# Testing
+pytest
